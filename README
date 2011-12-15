@@ -1,0 +1,6 @@
+particlasm - a modular, data-driven particle system written in x86 assembly written as a university assignment
+Written by Leszek Godlewski
+
+Particlasm is being developed using Code::Blocks. The workspace consists of two projects:
+* libparticlasm - the actual library, written in x86 assembly plus some high-level multithreading glue in C + OpenMP,
+* hostapp - the host application, based on Lesson 19 from NeHe Productions (http://nehe.gamedev.net/tutorial/particle_engine_using_triangle_strips/21001/), and a reference implementation of libparticlasm written in C++.
