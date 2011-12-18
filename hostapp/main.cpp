@@ -20,6 +20,7 @@
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include <SDL/SDL.h>
+#include <dlfcn.h>
 
 // particlasm functions
 #include "../libparticlasm/libparticlasm.h"
@@ -27,13 +28,13 @@ PFNPTCCOMPILEEMITTER	ptcCompileEmitter;
 PFNPTCPROCESSEMITTER	ptcProcessEmitter;
 PFNPTCRELEASEEMITTER	ptcReleaseEmitter;
 
-#define USE_CPP_REFERENCE_IMPLEMENTATION
+//#define USE_CPP_REFERENCE_IMPLEMENTATION
 
 #ifdef USE_CPP_REFERENCE_IMPLEMENTATION
-extern unsigned int ref_ptcCompileEmitter(ptcEmitter *emitter);
-extern uint32_t ref_ptcProcessEmitter(ptcEmitter *emitter, float step,
-		ptcVector cameraCS[3], ptcVertex *buffer, uint32_t maxVertices);
-extern void ref_ptcReleaseEmitter(ptcEmitter *emitter);
+extern PTC_ATTRIBS unsigned int ref_ptcCompileEmitter(ptcEmitter *emitter);
+extern PTC_ATTRIBS uint32_t ref_ptcProcessEmitter(ptcEmitter *emitter,
+	float step, ptcVector cameraCS[3], ptcVertex *buffer, uint32_t maxVertices);
+extern PTC_ATTRIBS void ref_ptcReleaseEmitter(ptcEmitter *emitter);
 #else
 void *libparticlasmHandle = NULL;
 #endif // USE_CPP_REFERENCE_IMPLEMENTATION
@@ -45,15 +46,24 @@ bool InitParticlasm() {
 	ptcReleaseEmitter = ref_ptcReleaseEmitter;
 	return true;
 #else
-	libparticlasmHandle = dlopen("libparticlasm.so", RTLD_NOW);
-	return libparticlasmHandle != NULL;
+	libparticlasmHandle = dlopen("/home/inequation/projects/particlasm/bin/Debug/libparticlasm.so", RTLD_NOW);
+	if (!libparticlasmHandle)
+		return false;
+	ptcCompileEmitter = (PFNPTCCOMPILEEMITTER)dlsym(libparticlasmHandle, "ptcCompileEmitter");
+	ptcProcessEmitter = (PFNPTCPROCESSEMITTER)dlsym(libparticlasmHandle, "ptcProcessEmitter");
+	ptcReleaseEmitter = (PFNPTCRELEASEEMITTER)dlsym(libparticlasmHandle, "ptcReleaseEmitter");
+	if (ptcCompileEmitter && ptcProcessEmitter && ptcReleaseEmitter)
+		return true;
+	dlclose(libparticlasmHandle);
+	return false;
 #endif // USE_CPP_REFERENCE_IMPLEMENTATION
 }
 
 void FreeParticlasm() {
 #ifdef USE_CPP_REFERENCE_IMPLEMENTATION
 #else
-	dlclose(libparticlasmHandle);
+	if (libparticlasmHandle)
+		dlclose(libparticlasmHandle);
 #endif // USE_CPP_REFERENCE_IMPLEMENTATION
 }
 
@@ -295,7 +305,8 @@ int initGL(void)
 	for (size_t i = 0; i < ptc_nemitters; ++i) {
 		ptc_emitters[i].ParticleBuf = ptc_particles;
 		ptc_emitters[i].MaxParticles = sizeof(ptc_particles) / sizeof(ptc_particles[0]);
-		ptcCompileEmitter(&ptc_emitters[i]);
+		if (!ptcCompileEmitter(&ptc_emitters[i]))
+			return FALSE;
 	}
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glVertexPointer(3, GL_FLOAT, sizeof(ptcVertex), &ptc_vertices[0].Location[0]);

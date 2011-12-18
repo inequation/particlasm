@@ -81,6 +81,7 @@ size_t Fire(ptcEmitter **emitters) {
 	gravity.Centre.Constant.Val[0] = 0.f;
 	gravity.Centre.Constant.Val[1] = 0.f;
 	gravity.Centre.Constant.Val[2] = 0.f;
+	gravity.Radius = 0.2;
 	gravity.SourceMass = 4e14;
 	gravity.Flags = ptcGF_AxisX | ptcGF_AxisZ | ptcGF_LinearAtt;
 

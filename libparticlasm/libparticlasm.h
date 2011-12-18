@@ -2,6 +2,9 @@
 particlasm API header
 Copyright (C) 2011, Leszek Godlewski <lg@inequation.org>
 
+This file is also used for automatic NASM declaration generation (see the
+gen_asm_decls.py script).
+
 \author Leszek Godlewski
 */
 
@@ -28,7 +31,6 @@ typedef float		ptcColour[4];
 typedef uint32_t	ptcID;
 
 /// Enumerations to distinguish between the module IDs.
-/// \note Must match the definitions in \a ptc_modules.inc!
 enum ptcModuleID {
 	ptcMID_InitialLocation	= 0,	///< \sa ptcMod_InitialLocation
 	ptcMID_InitialRotation,			///< \sa ptcMod_InitialRotation
@@ -43,7 +45,6 @@ enum ptcModuleID {
 };
 
 /// Enumerations to describe variable distributions.
-/// \note Must match the definitions in \a ptc_distributions.inc!
 enum ptcDistributionID {
 	ptcDID_Constant			= 0,	///< constant distribution
 	ptcDID_Uniform,					///< random, uniform distribution
@@ -75,7 +76,7 @@ typedef struct {
 	float	TargVal;		///< value to interpolate to (from initial)
 } ptcSDistr_BicubicInterp;
 
-/// An union encompassing all of the scalar distributions.
+/// A union encompassing all of the scalar distributions.
 typedef union {
 	ptcID					DistrID;	///< distribution ID, must always be the corresponding \a ptcDistributionID value!
 	ptcSDistr_Constant		Constant;
@@ -142,10 +143,13 @@ typedef union {
 /// \name Module declarations
 /// @{
 
+/// Utility module pointer.
+typedef	union ptcModule_u	*ptcModulePtr;
+
 /// Module header struct.
 typedef struct {
 	ptcID				ModuleID;		///< module ID, must always be the corresponding \a ptcModuleID value!
-	union ptcModule_u	*Next;	///< pointer to the next module down the chain (NULL means last link)
+	ptcModulePtr		Next;	///< pointer to the next module down the chain (NULL means last link)
 } ptcModuleHeader;
 
 /// Sets initial location of the particle.
@@ -223,6 +227,7 @@ enum ptcGravityFlags {
 typedef struct {
 	ptcModuleHeader	Header;		///< module header
 	ptcVectorDistr	Centre;		///< location of gravity centre
+	float			Radius;		///< gravity source radius (linear falloff inside)
 	float			SourceMass;	///< mass of the gravity source
 	uint32_t		Flags;		///< gravity flags \sa ptcGravityFlags
 } ptcMod_Gravity;
@@ -278,11 +283,19 @@ typedef struct {
 	uint32_t		MaxParticles;	///< maximum number of particles (size of the particle buffer)
 } ptcEmitter;
 
+/// Function attribute declaration - here, we're explicitly declaring the
+/// calling convention as cdecl with 16-byte stack alignment.
+#ifdef __GNUC__
+	#define PTC_ATTRIBS	__attribute__((cdecl, __aligned__ (16)))
+#else
+	#define PTC_ATTRIBS	__declspec(cdecl align(16))
+#endif // __GNUC__
+
 /// Compiles a particle emitter given the emitter settings. Sets
 /// emitter->InternalPtr.
 /// \param	emitter				emitter to compile
 /// \return	non-zero on success, zero on failure
-typedef uint32_t (* PFNPTCCOMPILEEMITTER)(ptcEmitter *emitter);
+typedef PTC_ATTRIBS uint32_t (* PFNPTCCOMPILEEMITTER)(ptcEmitter *emitter);
 
 /// Spawns new particles according to the given emitter's parameters and
 /// advances all the existing ones by a simulation step, emitting particle
@@ -293,12 +306,12 @@ typedef uint32_t (* PFNPTCCOMPILEEMITTER)(ptcEmitter *emitter);
 /// \param	buffer		pointer to the vertex buffer to emit particle vertices to
 /// \param	maxVertices	maximum number of vertices to emit
 /// \return	number of particle vertices emitted
-typedef uint32_t (* PFNPTCPROCESSEMITTER)(ptcEmitter *emitter, float step,
-		ptcVector cameraCS[3], ptcVertex *buffer, uint32_t maxVertices);
+typedef PTC_ATTRIBS uint32_t (* PFNPTCPROCESSEMITTER)(ptcEmitter *emitter,
+	float step, ptcVector cameraCS[3], ptcVertex *buffer, uint32_t maxVertices);
 
 /// Releases all resources related to this emitter.
 /// \param	emitter				emitter to release
-typedef void (* PFNPTCRELEASEEMITTER)(ptcEmitter *emitter);
+typedef PTC_ATTRIBS void (* PFNPTCRELEASEEMITTER)(ptcEmitter *emitter);
 
 #ifdef __cplusplus
 }

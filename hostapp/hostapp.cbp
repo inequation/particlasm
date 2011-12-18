@@ -43,9 +43,10 @@
 			<Add library="GL" />
 			<Add library="GLU" />
 		</Linker>
+		<Unit filename="../libparticlasm/gen_asm_decls.py" />
+		<Unit filename="../libparticlasm/ref_impl.cpp" />
 		<Unit filename="emitters.cpp" />
 		<Unit filename="main.cpp" />
-		<Unit filename="../libparticlasm/ref_impl.cpp" />
 		<Extensions>
 			<code_completion />
 			<envvars />

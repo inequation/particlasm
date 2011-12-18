@@ -75,13 +75,24 @@ static inline bool ProcessParticle(ptcEmitter *emitter, ptcParticle *p,
 										+ diff[2] * diff[2];
 						if (r2 < 1e-6)
 							break;
+						// squared source radius
+						const float Rs2 = m->Gravity.Radius * m->Gravity.Radius;
 						// 1/r^2
 						const float invr2 = 1.f / r2;
 						// 1/r
 						const float invr = sqrtf(invr2);
-						// F = GMm/r^2
-						const float F = 6.673e-11 * m->Gravity.SourceMass
-							* ((m->Gravity.Flags & ptcGF_LinearAtt) ? invr : invr2);
+						float F;
+						if (r2 < Rs2) {
+							// inside radius -> linear falloff
+							const float Fmax = 6.673e-11 * m->Gravity.SourceMass
+								/ ((m->Gravity.Flags & ptcGF_LinearAtt)
+										? m->Gravity.Radius : Rs2);
+							F = Fmax * sqrtf(r2 / Rs2);
+						} else {
+							// outside radius -> F = GMm/r^2
+							F = 6.673e-11 * m->Gravity.SourceMass
+								* ((m->Gravity.Flags & ptcGF_LinearAtt) ? invr : invr2);
+						}
 						if (m->Gravity.Flags & ptcGF_AxisX)
 							p->Accel[0] = diff[0] * invr * F;
 						if (m->Gravity.Flags & ptcGF_AxisY)

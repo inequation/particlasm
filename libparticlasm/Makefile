@@ -40,12 +40,15 @@ release:
 
 # recursively call make with proper flags
 debug:
-	$(MAKE) libparticlasm.so ASFLAGS="$(ASFLAGS) -O0 -g" LINKERFLAGS="$(LINKERFLAGS)"
+	$(MAKE) libparticlasm.so ASFLAGS="$(ASFLAGS) -O0 -g -F dwarf" LINKERFLAGS="$(LINKERFLAGS)"
 	$(MKDIR_P) $(DEBUG_DIST_DIR)
 	mv libparticlasm.so $(DEBUG_DIST_DIR)
 
-libparticlasm.so: particlasm.o
-	$(LINKER) $(LINKERFLAGS) particlasm.o -o libparticlasm.so
+libparticlasm.so: particlasm.o ptc_modules.o
+	$(LINKER) $(LINKERFLAGS) particlasm.o ptc_modules.o -o libparticlasm.so
 
 particlasm.o: particl.asm
 	$(AS) $(ASFLAGS) particl.asm -o particlasm.o
+
+ptc_modules.o: ptc_modules.asm
+	$(AS) $(ASFLAGS) ptc_modules.asm -o ptc_modules.o
