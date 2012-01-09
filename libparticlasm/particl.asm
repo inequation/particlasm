@@ -1,11 +1,21 @@
 ; particlasm main module
 ; Copyright (C) 2011, Leszek Godlewski <lg@inequation.org>
 
+bits 32
+
 ; declarations
 %include "libparticlasm.inc"
 
 ; declare the GOT symbol
 extern _GLOBAL_OFFSET_TABLE_
+; macro used to store the _GLOBAL_OFFSET_TABLE_ address in ebx
+%macro get_GOT 0
+	call	%%getgot
+%%getgot:
+	pop		ebx
+	add		ebx, _GLOBAL_OFFSET_TABLE_+$$-%%getgot wrt ..gotpc
+%endmacro
+
 ; some useful cstdlib functions
 extern printf
 extern malloc
@@ -16,6 +26,9 @@ extern memcpy
 global ptcCompileEmitter:function
 global ptcProcessEmitter:function
 global ptcReleaseEmitter:function
+
+%include "ptc_distributions.inc"
+%include "ptc_modules.inc"
 
 ; simulation module, preprocessing
 mod_SimulatePre:
@@ -35,8 +48,7 @@ mod_SimulatePre:
 	dec		eax
 	mov		[ebx + ptcEmitter.NumParticles], eax
 .end:
-	nop
-mod_SimulatePre_size	equ	(mod_SimulatePre.end - mod_SimulatePre + 1)
+mod_SimulatePre_size	equ	(mod_SimulatePre.end - mod_SimulatePre)
 
 ; simulation module, postprocessing
 mod_SimulatePost:
@@ -55,12 +67,20 @@ mod_SimulatePost_size	equ	(mod_SimulatePost.end - mod_SimulatePost + 1)
 %macro AccumModBuf 1
 	cmp		edx, ptcMID_ %+ %1
 	jne		%%skip
-	mov		ecx, [spawnbuf]
-	add		ecx, mod_ %+ %1 %+ Spawn_size
-	mov		[spawnbuf], ecx
-	mov		ecx, [procbuf]
-	add		ecx, mod_ %+ %1 %+ Process_size
-	mov		[spawnbuf], ecx
+	call	mod_ %+ %1 %+ Measure
+	; we don't have a spare register to work with - put eax away for a sec...
+	push	eax
+	mov		eax, [spawnbuf]
+	add		eax, ebx
+	mov		[spawnbuf], eax
+	; ...and take it back
+	pop		eax
+	mov		ebx, [procbuf]
+	add		ebx, ecx
+	mov		[procbuf], ebx
+	mov		ebx, [databuf]
+	add		ebx, edx
+	mov		[databuf], ebx
 	jne		.next
 %%skip:
 %endmacro
@@ -76,30 +96,25 @@ mod_SimulatePost_size	equ	(mod_SimulatePost.end - mod_SimulatePost + 1)
 ; emitter compilation
 ptcCompileEmitter:
 	%push		ptcCompileEmitterContext
-	%stacksize	small
+	%stacksize	flat
 	%assign		%$localsize 0
-	%arg		emitter:dword
 	%local		spawnbuf:dword	; particle spawn code buffer size
-	%local		procbuf:dword		; particle processing code buffer size
+	%local		procbuf:dword	; particle processing code buffer size
+	%local		databuf:dword	; particle data buffer size
+	%arg		emitter:dword
 
-	;push    ebp
-	;mov     ebp, esp
-	enter   %$localsize,0
-
-	push    ebx
-	call    .get_GOT
-.get_GOT:
-	pop     ebx
-	add     ebx,_GLOBAL_OFFSET_TABLE_+$$-.get_GOT wrt ..gotpc
+	enter   %$localsize, 0
 
 	; calculate the sizes of the buffers
 	mov		dword [spawnbuf], 0
 	mov		dword [procbuf], 0
-	mov		eax, [emitter + ptcEmitter.Head]
+	mov		dword [databuf], 0
+	mov		eax, [emitter]
+	mov		eax, [eax + ptcEmitter.Head]
 .buf_loop:
 	cmp		eax, 0h
 	je		.alloc
-	mov		edx, [eax]
+	mov		edx, [eax + ptcModuleHeader.ModuleID]
 
 	; detect modules and add in their sizes
 	AccumModBuf InitialLocation
@@ -122,9 +137,9 @@ ptcCompileEmitter:
 	mov		ecx, [procbuf]
 	add		ecx, mod_SimulatePre_size
 	add		ecx, mod_SimulatePost_size
-	mov		[spawnbuf], ecx
+	mov		[procbuf], ecx
 
-	; allocate the buffer
+	; allocate the buffers
 	push	ecx
 	call	malloc
 
@@ -159,37 +174,14 @@ ptcCompileEmitter:
 
 	leave
 
-	;mov     ebx, [ebp-4]
-	;mov     esp, ebp
-	;pop     ebp
 	ret
 	%pop
 
-ptcProcessEmitter:	push    ebp
-        mov     ebp, esp
-        push    ebx
-        call    .get_GOT
-.get_GOT:
-        pop     ebx
-        add     ebx,_GLOBAL_OFFSET_TABLE_+$$-.get_GOT wrt ..gotpc
-
-        mov     eax, 0h
-
-        mov     ebx, [ebp-4]
-        mov     esp, ebp
-        pop     ebp
+ptcProcessEmitter:
+		mov     eax, 0h
         ret
 
-ptcReleaseEmitter:	push    ebp
-        mov     ebp, esp
-        push    ebx
-        call    .get_GOT
-.get_GOT:
-        pop     ebx
-        add     ebx,_GLOBAL_OFFSET_TABLE_+$$-.get_GOT wrt ..gotpc
-
-        mov     ebx, [ebp-4]
-        mov     esp, ebp
-        pop     ebp
+ptcReleaseEmitter:
+		mov		eax, 0h
         ret
 

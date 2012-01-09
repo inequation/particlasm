@@ -5,6 +5,9 @@
 ; If you need to change something, change the corresponding libparticlasm.h
 ; declaration and re-run gen_asm_decls.py.
 
+%ifndef LIBPARTICLASM_INC
+%define LIBPARTICLASM_INC
+
 ; enumerations
 
 ; ptcModuleID
@@ -164,56 +167,13 @@ struc ptcEmitter
 	.Period:		resd	1
 	.LifeTimeFixed:		resd	1
 	.LifeTimeRandom:		resd	1
-	.InternalPtr:		resd	1
+	.InternalPtr1:		resd	1
+	.InternalPtr2:		resd	1
+	.InternalPtr3:		resd	1
 	.Head:		resd	1
 	.ParticleBuf:		resd	1
 	.NumParticles:		resd	1
 	.MaxParticles:		resd	1
 endstruc
 
-; declarations of entry points
-%ifdef PTC_MODULES
-	%define visdecl global
-%else
-	%define visdecl extern
-%endif
-visdecl mod_InitialLocationSpawn
-visdecl mod_InitialLocationSpawn_size
-visdecl mod_InitialLocationProcess
-visdecl mod_InitialLocationProcess_size
-visdecl mod_InitialRotationSpawn
-visdecl mod_InitialRotationSpawn_size
-visdecl mod_InitialRotationProcess
-visdecl mod_InitialRotationProcess_size
-visdecl mod_InitialSizeSpawn
-visdecl mod_InitialSizeSpawn_size
-visdecl mod_InitialSizeProcess
-visdecl mod_InitialSizeProcess_size
-visdecl mod_InitialVelocitySpawn
-visdecl mod_InitialVelocitySpawn_size
-visdecl mod_InitialVelocityProcess
-visdecl mod_InitialVelocityProcess_size
-visdecl mod_InitialColourSpawn
-visdecl mod_InitialColourSpawn_size
-visdecl mod_InitialColourProcess
-visdecl mod_InitialColourProcess_size
-visdecl mod_VelocitySpawn
-visdecl mod_VelocitySpawn_size
-visdecl mod_VelocityProcess
-visdecl mod_VelocityProcess_size
-visdecl mod_AccelerationSpawn
-visdecl mod_AccelerationSpawn_size
-visdecl mod_AccelerationProcess
-visdecl mod_AccelerationProcess_size
-visdecl mod_ColourSpawn
-visdecl mod_ColourSpawn_size
-visdecl mod_ColourProcess
-visdecl mod_ColourProcess_size
-visdecl mod_SizeSpawn
-visdecl mod_SizeSpawn_size
-visdecl mod_SizeProcess
-visdecl mod_SizeProcess_size
-visdecl mod_GravitySpawn
-visdecl mod_GravitySpawn_size
-visdecl mod_GravityProcess
-visdecl mod_GravityProcess_size
+%endif ; LIBPARTICLASM_INC

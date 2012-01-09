@@ -276,7 +276,9 @@ typedef struct {
 	float			Period;			///< length of full emitter period (for scaling the effects of \a SpawnRate and \a BurstCount in time)
 	float			LifeTimeFixed;	///< life time of a particle (fixed part)
 	float			LifeTimeRandom;	///< life time of a particle (random part)
-	void			*InternalPtr;	///< pointer to internal particlasm data structure
+	void			*InternalPtr1;	///< pointer to internal particlasm data structure
+	void			*InternalPtr2;	///< pointer to internal particlasm data structure
+	void			*InternalPtr3;	///< pointer to internal particlasm data structure
 	ptcModule		*Head;			///< pointer to first module
 	ptcParticle		*ParticleBuf;	///< pointer to particle buffer
 	uint32_t		NumParticles;	///< current number of particles
@@ -286,9 +288,9 @@ typedef struct {
 /// Function attribute declaration - here, we're explicitly declaring the
 /// calling convention as cdecl with 16-byte stack alignment.
 #ifdef __GNUC__
-	#define PTC_ATTRIBS	__attribute__((cdecl, __aligned__ (16)))
+	#define PTC_ATTRIBS	__attribute__((cdecl))
 #else
-	#define PTC_ATTRIBS	__declspec(cdecl align(16))
+	#define PTC_ATTRIBS	__declspec(cdecl)
 #endif // __GNUC__
 
 /// Compiles a particle emitter given the emitter settings. Sets

@@ -40,7 +40,8 @@
 		<Unit filename="libparticlasm.h" />
 		<Unit filename="libparticlasm.inc" />
 		<Unit filename="particl.asm" />
-		<Unit filename="ptc_modules.asm" />
+		<Unit filename="ptc_distributions.inc" />
+		<Unit filename="ptc_modules.inc" />
 		<Unit filename="ptc_threads.c">
 			<Option compilerVar="CC" />
 		</Unit>

@@ -26,7 +26,9 @@ size_t Fire(ptcEmitter **emitters) {
 	emit[0].BurstCount.Uniform.Range[1] = 1;//25.f;
 	emit[0].LifeTimeFixed = 1;
 	emit[0].LifeTimeRandom = 1;
-	emit[0].InternalPtr = NULL;
+	emit[0].InternalPtr1 = NULL;
+	emit[0].InternalPtr2 = NULL;
+	emit[0].InternalPtr3 = NULL;
 	emit[0].Head = (ptcModule *)&initvel;
 	emit[0].ParticleBuf = NULL;
 	emit[0].NumParticles = 0;
@@ -94,7 +96,9 @@ size_t Fire(ptcEmitter **emitters) {
 	emit[1].BurstCount.Uniform.Range[1] = 12.5;
 	emit[1].LifeTimeFixed = 1;
 	emit[1].LifeTimeRandom = 1;
-	emit[1].InternalPtr = NULL;
+	emit[1].InternalPtr1 = NULL;
+	emit[1].InternalPtr2 = NULL;
+	emit[1].InternalPtr3 = NULL;
 	emit[1].Head = (ptcModule *)&s_il;
 	emit[1].ParticleBuf = NULL;
 	emit[1].NumParticles = 0;

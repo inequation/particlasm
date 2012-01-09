@@ -28,7 +28,7 @@ static void GetVector(ptcVectorDistr *d, float t, ptcVector out);
 static void GetColour(ptcColourDistr *d, uint32_t flags, float t, ptcColour out);
 
 uint32_t ref_ptcCompileEmitter(ptcEmitter *emitter) {
-	emitter->InternalPtr = new emitterData(emitter->Period);
+	emitter->InternalPtr1 = new emitterData(emitter->Period);
 	emitter->NumParticles = 0;
 	memset(emitter->ParticleBuf, 0, sizeof(ptcParticle) * emitter->MaxParticles);
 	return 0;
@@ -136,7 +136,7 @@ static inline bool ProcessParticle(ptcEmitter *emitter, ptcParticle *p,
 uint32_t ref_ptcProcessEmitter(ptcEmitter *emitter, float step,
 		ptcVector cameraCS[3], ptcVertex *buffer, uint32_t maxVertices) {
 	// particle spawning
-	emitterData *ed = static_cast<emitterData *>(emitter->InternalPtr);
+	emitterData *ed = static_cast<emitterData *>(emitter->InternalPtr1);
 	ed->clock += step * ed->stepScale;
 	if (ed->clock > 1.f)
 		ed->clock = ed->clock - floorf(ed->clock);
@@ -171,7 +171,7 @@ uint32_t ref_ptcProcessEmitter(ptcEmitter *emitter, float step,
 }
 
 void ref_ptcReleaseEmitter(ptcEmitter *emitter) {
-	emitterData *ed = static_cast<emitterData *>(emitter->InternalPtr);
+	emitterData *ed = static_cast<emitterData *>(emitter->InternalPtr1);
 	delete ed;
 }
 
