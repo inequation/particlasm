@@ -6,52 +6,163 @@
 ; declarations
 %include "libparticlasm.inc"
 
+; libc memcpy
+extern memcpy
+
 ; Spawning and processing calling convention:
 ; edx - particle active or not
-; ebx - pointer to the emitter
+; esi - pointer to the emitter
 ;
+; NOTE: Spawning expects the FPU stack to be cleared (zeroed) so that values can
+;       be placed in the registers by simple addition
 ; st0 - simulation step
 ; st1 - ptcParticle.TimeScale
 ; st2 - ptcParticle.Time
 ; st3 - ptcParticle.Rotation
 ; st4 - ptcParticle.Size
 ;
-; xmm0 - simulation step (as a vector)
+; xmm0 - simulation step (as a vector, i.e. [st0, st0, st0, st0])
 ; xmm1 - ptcParticle.Colour
 ; xmm2 - ptcParticle.Location
 ; xmm3 - ptcParticle.Velocity
 ; xmm4 - ptcParticle.Accel
 
 ; Measurement calling convention:
-; eax - pointer to module
+; esi - pointer to module
 ; ebx - spawn code size in bytes returned
 ; ecx - processing code size in bytes returned
 ; edx - data size in bytes returned
 
 ; Compilation calling convention:
-; (ebp - 4) - pointer to spawn code buffer
-; (ebp - 8) - pointer to processing code buffer
-; (ebp - 12) - pointer to data buffer
+; (esp + 4) - working pointer to spawn code buffer
+; (esp + 8) - working pointer to processing code buffer
+; (esp + 12) - working pointer to data buffer
+
+; ========================================
+; Particle simulation module
+; ========================================
+
+; simulation module, preprocessing
+mod_SimulatePre:
+	; if the particle is not active, just skip it
+	test	edx, edx
+	jz		.return
+	; T += t * Ts
+	fld		st0
+	fmul	st0, st2
+	faddp	st3, st0
+	; kill the particle if we're past its lifetime
+	fld1
+	fcomip	st3
+	jle		.return
+	xor		edx, edx
+	mov		eax, [esi + ptcEmitter.NumParticles]
+	dec		eax
+	mov		[esi + ptcEmitter.NumParticles], eax
+	jmp		.end
+.return:
+	ret
+.end:
+mod_SimulatePre_size	equ	(mod_SimulatePre.end - mod_SimulatePre)
+
+mod_SimulatePreCompile:
+	mov		eax, [esp + 8]
+	push	mod_SimulatePre_size
+	push	mod_SimulatePre
+	push	eax
+	call	memcpy
+	add		esp, 4 * 3
+	add		eax, mod_SimulatePre_size
+	mov		[esp + 8], eax
+ret
+
+; simulation module, postprocessing
+mod_SimulatePost:
+	; v += a * t
+	movups	xmm7, xmm3
+	mulps	xmm7, xmm4
+	addps	xmm2, xmm7
+	; x += v * t
+	movups	xmm7, xmm2
+	mulps	xmm7, xmm4
+	addps	xmm1, xmm7
+.preret:
+	ret
+.end:
+mod_SimulatePost_size	equ	(mod_SimulatePost.end - mod_SimulatePost)
+
+mod_SimulatePostCompile:
+	mov		edi, [esp + 8]
+	; copy in the postprocessing code
+	push	dword mod_SimulatePost_size
+	push	dword mod_SimulatePost
+	push	edi
+	call	memcpy
+	add		esp, 4 * 3
+
+	; also drop in a ret at the end of spawn code
+	mov		edi, [esp + 4]
+	push	dword (mod_SimulatePostCompile.postret - mod_SimulatePostCompile.preret)
+	push	dword mod_SimulatePostCompile.preret
+	push	edi
+	call	memcpy
+	add		esp, 4 * 3
+
+.preret:
+	ret
+.postret:
 
 ; ========================================
 ; InitialLocation
 ; ========================================
 
 mod_InitialLocationSpawn:
-	ret
+	; distribution code goes here
+	; move distribution result to target register
+	movups xmm2, xmm5
 .end:
+mod_InitialLocationSpawn_size	equ	(mod_InitialLocationSpawn.end - mod_InitialLocationSpawn)
 
+; nothing to process
 mod_InitialLocationProcess:
-	ret
 .end:
 
 mod_InitialLocationMeasure:
-	mov	ebx, 0
+	mov eax, [esi + ptcMod_InitialLocation.Distr]
+	distr_size eax, ebx, edx, v
+	add ebx, (mod_InitialLocationSpawn.end - mod_InitialLocationSpawn)
 	mov	ecx, 0
-	mov	edx, 0
 	ret
 
 mod_InitialLocationCompile:
+	; prepare pointers
+	mov		ecx, [esp + 4]
+	mov		edi, [esp + 12]
+
+	; compile distribution
+	add		esi, ptcMod_InitialLocation.Distr
+	mov		eax, [esi]
+	distr_compile eax, v
+	sub		esi, ptcMod_InitialLocation.Distr
+
+	; save off ecx
+	push	ecx
+
+	; copy our code over
+	mov		edx, mod_InitialLocationSpawn_size
+	push	edx
+	push	dword mod_InitialLocationSpawn
+	push	ecx
+	call	memcpy
+	add		esp, 4 * 3
+
+	; restore ecx
+	pop		ecx
+
+	; advance and save pointers
+	add		ecx, mod_InitialLocationSpawn_size
+	mov		[esp + 12], edi
+	mov		[esp + 4], ecx
 	ret
 
 ; ========================================
@@ -59,20 +170,52 @@ mod_InitialLocationCompile:
 ; ========================================
 
 mod_InitialRotationSpawn:
-	ret
+	; distribution code goes here
+	; move distribution result to target register
+	faddp st4, st0
 .end:
+mod_InitialRotationSpawn_size	equ (mod_InitialRotationSpawn.end - mod_InitialRotationSpawn)
 
+; nothing to process
 mod_InitialRotationProcess:
-	ret
 .end:
 
 mod_InitialRotationMeasure:
-	mov	ebx, 0
+	mov eax, [esi + ptcMod_InitialRotation.Distr]
+	distr_size eax, ebx, edx, s
+	add ebx, (mod_InitialRotationSpawn.end - mod_InitialRotationSpawn)
 	mov	ecx, 0
-	mov	edx, 0
 	ret
 
 mod_InitialRotationCompile:
+	; prepare pointers
+	mov		ecx, [esp + 4]
+	mov		edi, [esp + 12]
+
+	; compile distribution
+	add		esi, ptcMod_InitialRotation.Distr
+	mov		eax, [esi]
+	distr_compile eax, s
+	sub		esi, ptcMod_InitialRotation.Distr
+
+	; save off ecx
+	push	ecx
+
+	; copy our code over
+	mov		edx, mod_InitialRotationSpawn_size
+	push	edx
+	push	dword mod_InitialRotationSpawn
+	push	ecx
+	call	memcpy
+	add		esp, 4 * 3
+
+	; restore ecx
+	pop		ecx
+
+	; advance and save pointers
+	add		ecx, mod_InitialRotationSpawn_size
+	mov		[esp + 12], edi
+	mov		[esp + 4], ecx
 	ret
 
 ; ========================================
@@ -80,20 +223,52 @@ mod_InitialRotationCompile:
 ; ========================================
 
 mod_InitialSizeSpawn:
-	ret
+	; distribution code goes here
+	; move distribution result to target register
+	faddp st5, st0
 .end:
+mod_InitialSizeSpawn_size	equ	(mod_InitialSizeSpawn.end - mod_InitialSizeSpawn)
 
+; nothing to process
 mod_InitialSizeProcess:
-	ret
 .end:
 
 mod_InitialSizeMeasure:
-	mov	ebx, 0
+	mov eax, [esi + ptcMod_InitialSize.Distr]
+	distr_size eax, ebx, edx, s
+	add ebx, (mod_InitialSizeSpawn.end - mod_InitialSizeSpawn)
 	mov	ecx, 0
-	mov	edx, 0
 	ret
 
 mod_InitialSizeCompile:
+	; prepare pointers
+	mov		ecx, [esp + 4]
+	mov		edi, [esp + 12]
+
+	; compile distribution
+	add		esi, ptcMod_InitialSize.Distr
+	mov		eax, [esi]
+	distr_compile eax, s
+	sub		esi, ptcMod_InitialSize.Distr
+
+	; save off ecx
+	push	ecx
+
+	; copy our code over
+	mov		edx, mod_InitialSizeSpawn_size
+	push	edx
+	push	dword mod_InitialSizeSpawn
+	push	ecx
+	call	memcpy
+	add		esp, 4 * 3
+
+	; restore ecx
+	pop		ecx
+
+	; advance and save pointers
+	add		ecx, mod_InitialSizeSpawn_size
+	mov		[esp + 12], edi
+	mov		[esp + 4], ecx
 	ret
 
 ; ========================================
@@ -101,20 +276,52 @@ mod_InitialSizeCompile:
 ; ========================================
 
 mod_InitialVelocitySpawn:
-	ret
+	; distribution code goes here
+	; move distribution result to target register
+	movaps	xmm3, xmm5
 .end:
+mod_InitialVelocitySpawn_size	equ	(mod_InitialVelocitySpawn.end - mod_InitialVelocitySpawn)
 
+; nothing to process
 mod_InitialVelocityProcess:
-	ret
 .end:
 
 mod_InitialVelocityMeasure:
-	mov	ebx, 0
-	mov	ecx, 0
-	mov	edx, 0
+	mov		eax, [esi + ptcMod_InitialVelocity.Distr]
+	distr_size eax, ebx, edx, v
+	add		ebx, mod_InitialVelocitySpawn_size
+	mov		ecx, 0
 	ret
 
 mod_InitialVelocityCompile:
+	; prepare pointers
+	mov		ecx, [esp + 4]
+	mov		edi, [esp + 12]
+
+	; compile distribution
+	add		esi, ptcMod_InitialVelocity.Distr
+	mov		eax, [esi]
+	distr_compile eax, v
+	sub		esi, ptcMod_InitialVelocity.Distr
+
+	; save off ecx
+	push	ecx
+
+	; copy our code over
+	mov		edx, mod_InitialVelocitySpawn_size
+	push	edx
+	push	dword mod_InitialVelocitySpawn
+	push	ecx
+	call	memcpy
+	add		esp, 4 * 3
+
+	; restore ecx
+	pop		ecx
+
+	; advance and save pointers
+	add		ecx, mod_InitialVelocitySpawn_size
+	mov		[esp + 12], edi
+	mov		[esp + 4], ecx
 	ret
 
 ; ========================================
@@ -122,122 +329,334 @@ mod_InitialVelocityCompile:
 ; ========================================
 
 mod_InitialColourSpawn:
-	ret
+	; load colour flags
+	mov eax, [0xFFFFFFFF]	; filled upon compilation
+.predistr:
+	; distribution code goes here
+.postdistr:
+	; move distribution result to target register
+	movaps xmm1, xmm5
 .end:
 
+; nothing to process
 mod_InitialColourProcess:
-	ret
 .end:
 
 mod_InitialColourMeasure:
-	mov	ebx, 0
+	mov eax, [esi + ptcMod_InitialColour.Distr]
+	distr_size eax, ebx, edx, c
+	add ebx, (mod_InitialColourSpawn.end - mod_InitialColourSpawn)
 	mov	ecx, 0
-	mov	edx, 0
 	ret
 
 mod_InitialColourCompile:
+	; prepare pointers
+	mov		ecx, [esp + 4]
+	mov		edi, [esp + 12]
+
+	; put the fake flags in the data buffer
+	mov		[edi], dword (ptcCF_SetAlpha | ptcCF_SetRGB)
+
+	; save off ecx
+	push	ecx
+
+	; copy our pre-distribution code over
+	mov		edx, (mod_InitialColourSpawn.predistr - mod_InitialColourSpawn)
+	push	edx
+	push	dword mod_InitialColourSpawn
+	push	ecx
+	call	memcpy
+	add		esp, 4 * 3
+
+	; restore ecx
+	pop		ecx
+	; fill in the read address
+	mov		[ecx + (mod_InitialColourSpawn.predistr - mod_InitialColourSpawn - 4)], edi
+	; advance the pointers
+	add		ecx, (mod_InitialColourSpawn.predistr - mod_InitialColourSpawn)
+	add		edi, 4
+
+	; compile distribution
+	add		esi, ptcMod_InitialColour.Distr
+	mov		eax, [esi]
+	distr_compile eax, c
+	sub		esi, ptcMod_InitialColour.Distr
+
+	; save off ecx
+	push	ecx
+
+	; copy our post-distribution code over
+	mov		edx, (mod_InitialColourSpawn.end - mod_InitialColourSpawn.postdistr)
+	push	edx
+	push	dword mod_InitialColourSpawn.postdistr
+	push	ecx
+	call	memcpy
+	add		esp, 4 * 3
+
+	; restore ecx
+	pop		ecx
+
+	; advance and save pointers
+	add		ecx, (mod_InitialColourSpawn.end - mod_InitialColourSpawn.postdistr)
+	mov		[esp + 12], edi
+	mov		[esp + 4], ecx
 	ret
 
 ; ========================================
 ; Velocity
 ; ========================================
 
+; nothing to do on spawn
 mod_VelocitySpawn:
-	ret
 .end:
 
 mod_VelocityProcess:
-	ret
+	; distribution code goes here
+	; move distribution result to target register
+	movaps xmm3, xmm5
 .end:
+mod_VelocityProcess_size	equ	(mod_VelocityProcess.end - mod_VelocityProcess)
 
 mod_VelocityMeasure:
+	mov eax, [esi + ptcMod_Velocity.Distr]
+	distr_size eax, ecx, edx, v
+	add ecx, (mod_VelocityProcess.end - mod_VelocityProcess)
 	mov	ebx, 0
-	mov	ecx, 0
-	mov	edx, 0
 	ret
 
 mod_VelocityCompile:
+	; prepare pointers
+	mov		ecx, [esp + 8]
+	mov		edi, [esp + 12]
+
+	; compile distribution
+	add		esi, ptcMod_Velocity.Distr
+	mov		eax, [esi]
+	distr_compile eax, v
+	sub		esi, ptcMod_Velocity.Distr
+
+	; save off ecx
+	push	ecx
+
+	; copy our code over
+	mov		edx, mod_VelocityProcess_size
+	push	edx
+	push	dword mod_VelocityProcess
+	push	ecx
+	call	memcpy
+	add		esp, 4 * 3
+
+	; restore ecx
+	pop		ecx
+
+	; advance and save pointers
+	add		ecx, mod_VelocityProcess_size
+	mov		[esp + 12], edi
+	mov		[esp + 8], ecx
 	ret
 
 ; ========================================
 ; Acceleration
 ; ========================================
 
+; nothing to do on spawn
 mod_AccelerationSpawn:
-	ret
 .end:
 
 mod_AccelerationProcess:
-	ret
+	; distribution code goes here
+	; move distribution result to target register
+	movaps xmm4, xmm5
 .end:
+mod_AccelerationProcess_size	equ	(mod_AccelerationProcess.end - mod_AccelerationProcess)
 
 mod_AccelerationMeasure:
-	mov	ebx, 0
-	mov	ecx, 0
-	mov	edx, 0
+	mov eax, [esi + ptcMod_Acceleration.Distr]
+	distr_size eax, ecx, edx, v
+	add ecx, (mod_AccelerationProcess.end - mod_AccelerationProcess)
+	xor	ebx, ebx
 	ret
 
 mod_AccelerationCompile:
+	; prepare pointers
+	mov		ecx, [esp + 8]
+	mov		edi, [esp + 12]
+
+	; compile distribution
+	add		esi, ptcMod_Acceleration.Distr
+	mov		eax, [esi]
+	distr_compile eax, v
+	sub		esi, ptcMod_Acceleration.Distr
+
+	; save off ecx
+	push	ecx
+
+	; copy our code over
+	mov		edx, mod_AccelerationProcess_size
+	push	edx
+	push	dword mod_AccelerationProcess
+	push	ecx
+	call	memcpy
+	add		esp, 4 * 3
+
+	; restore ecx
+	pop		ecx
+
+	; advance and save pointers
+	add		ecx, mod_AccelerationProcess_size
+	mov		[esp + 12], edi
+	mov		[esp + 8], ecx
 	ret
 
 ; ========================================
 ; Colour
 ; ========================================
 
+; nothing to do on spawn
 mod_ColourSpawn:
-	ret
 .end:
 
 mod_ColourProcess:
-	ret
+	; load colour flags
+	mov eax, [0xFFFFFFFF]	; filled upon compilation
+.predistr:
+	; distribution code goes here
+.postdistr:
+	; move distribution result to target register
+	movaps xmm1, xmm5
 .end:
 
 mod_ColourMeasure:
-	mov	ebx, 0
-	mov	ecx, 0
-	mov	edx, 0
+	mov eax, [esi + ptcMod_Colour.Distr]
+	distr_size eax, ecx, edx, c
+	add ecx, (mod_ColourProcess.end - mod_ColourProcess)
+	xor	ebx, ebx
 	ret
 
 mod_ColourCompile:
+	; prepare pointers
+	mov		ecx, [esp + 8]
+	mov		edi, [esp + 12]
+
+	; put the flags in the data buffer
+	mov		edx, [esi + ptcMod_Colour.Flags]
+	mov		[edi], edx
+
+	; save off ecx
+	push	ecx
+
+	; copy our pre-distribution code over
+	mov		edx, (mod_ColourProcess.predistr - mod_ColourProcess)
+	push	edx
+	push	dword mod_ColourProcess
+	push	ecx
+	call	memcpy
+	add		esp, 4 * 3
+
+	; restore ecx
+	pop		ecx
+	; fill in the read address
+	mov		[ecx + (mod_ColourProcess.predistr - mod_ColourProcess - 4)], edi
+	; advance the pointers
+	add		ecx, (mod_ColourProcess.predistr - mod_ColourProcess)
+	add		edi, 4
+
+	; compile distribution
+	add		esi, ptcMod_Colour.Distr
+	mov		eax, [esi]
+	distr_compile eax, c
+	sub		esi, ptcMod_Colour.Distr
+
+	; save off ecx
+	push	ecx
+
+	; copy our post-distribution code over
+	mov		edx, (mod_ColourProcess.end - mod_ColourProcess.postdistr)
+	push	edx
+	push	dword mod_ColourProcess.postdistr
+	push	ecx
+	call	memcpy
+	add		esp, 4 * 3
+
+	; restore ecx
+	pop		ecx
+
+	; advance and save pointers
+	add		ecx, (mod_ColourProcess.end - mod_ColourProcess.postdistr)
+	mov		[esp + 12], edi
+	mov		[esp + 8], ecx
 	ret
 
 ; ========================================
 ; Size
 ; ========================================
 
+; nothing to do on spawn
 mod_SizeSpawn:
-	ret
 .end:
 
 mod_SizeProcess:
-	ret
+	; distribution code goes here
+	; move distribution result to target register
+	faddp st4, st0
 .end:
+mod_SizeProcess_size	equ	(mod_SizeProcess.end - mod_SizeProcess)
 
 mod_SizeMeasure:
-	mov	ebx, 0
-	mov	ecx, 0
-	mov	edx, 0
+	mov eax, [esi + ptcMod_Size.Distr]
+	distr_size eax, ebx, edx, s
+	add ebx, (mod_SizeSpawn.end - mod_SizeSpawn)
+	xor	ecx, ecx
 	ret
 
 mod_SizeCompile:
+	; prepare pointers
+	mov		ecx, [esp + 8]
+	mov		edi, [esp + 12]
+
+	; compile distribution
+	add		esi, ptcMod_Size.Distr
+	mov		eax, [esi]
+	distr_compile eax, s
+	sub		esi, ptcMod_Size.Distr
+
+	; save off ecx
+	push	ecx
+
+	; copy our code over
+	mov		edx, mod_SizeProcess_size
+	push	edx
+	push	dword mod_SizeProcess
+	push	ecx
+	call	memcpy
+	add		esp, 4 * 3
+
+	; restore ecx
+	pop		ecx
+
+	; advance and save pointers
+	add		ecx, mod_SizeProcess_size
+	mov		[esp + 12], edi
+	mov		[esp + 4], ecx
+	ret
 	ret
 
 ; ========================================
 ; Gravity
 ; ========================================
 
+; nothing to do on spawn
 mod_GravitySpawn:
-	ret
 .end:
 
 mod_GravityProcess:
-	ret
+	; TODO
 .end:
 
 mod_GravityMeasure:
-	mov	ebx, 0
-	mov	ecx, 0
-	mov	edx, 0
+	xor	ebx, ebx
+	xor	ecx, ecx
+	xor	edx, edx
 	ret
 
 mod_GravityCompile:

@@ -62,7 +62,7 @@ size_t Fire(ptcEmitter **emitters) {
 	initsize.Distr.Uniform.Range[1] = 6.f;
 
 	accel.Header.ModuleID = ptcMID_Acceleration;
-	accel.Header.Next = (ptcModule *)&alpha;
+	accel.Header.Next = NULL;//(ptcModule *)&alpha;
 	accel.Distr.Uniform.DistrID = ptcDID_Uniform;
 	accel.Distr.Uniform.Ranges[0][0] = 0.f;
 	accel.Distr.Uniform.Ranges[0][1] = -50.f;
@@ -106,12 +106,12 @@ size_t Fire(ptcEmitter **emitters) {
 	s_il.Header.ModuleID = ptcMID_InitialLocation;
 	s_il.Header.Next = (ptcModule *)&s_iv;
 	s_il.Distr.Uniform.DistrID = ptcDID_Uniform;
-	s_iv.Distr.Uniform.Ranges[0][0] = -15;
-	s_iv.Distr.Uniform.Ranges[0][1] = 40;
-	s_iv.Distr.Uniform.Ranges[0][2] = -15;
-	s_iv.Distr.Uniform.Ranges[1][0] = 15;
-	s_iv.Distr.Uniform.Ranges[1][1] = 80;
-	s_iv.Distr.Uniform.Ranges[1][2] = 15;
+	s_il.Distr.Uniform.Ranges[0][0] = -15;
+	s_il.Distr.Uniform.Ranges[0][1] = 40;
+	s_il.Distr.Uniform.Ranges[0][2] = -15;
+	s_il.Distr.Uniform.Ranges[1][0] = 15;
+	s_il.Distr.Uniform.Ranges[1][1] = 80;
+	s_il.Distr.Uniform.Ranges[1][2] = 15;
 
 	s_iv.Header.ModuleID = ptcMID_InitialVelocity;
 	s_iv.Header.Next = (ptcModule *)&s_ic;

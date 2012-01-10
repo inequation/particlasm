@@ -46,7 +46,7 @@ endstruc
 
 struc ptcSDistr_Uniform
 	.DistrID:		resd	1
-	.Range:		resd	1
+	.Range:		resd	2
 endstruc
 
 struc ptcSDistr_BicubicInterp
@@ -61,7 +61,7 @@ endstruc
 
 struc ptcVDistr_Uniform
 	.DistrID:		resd	1
-	.Ranges:		resd	3
+	.Ranges:		resd	6
 endstruc
 
 struc ptcVDistr_BicubicInterp
@@ -76,7 +76,7 @@ endstruc
 
 struc ptcCDistr_Uniform
 	.DistrID:		resd	1
-	.Ranges:		resd	4
+	.Ranges:		resd	8
 endstruc
 
 struc ptcCDistr_BicubicInterp
@@ -158,7 +158,7 @@ endstruc
 struc ptcVertex
 	.Colour:		resd	4
 	.Location:		resd	3
-	.TexCoords:		resw	1
+	.TexCoords:		resw	2
 endstruc
 
 struc ptcEmitter
