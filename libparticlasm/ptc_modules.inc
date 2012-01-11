@@ -11,7 +11,6 @@ extern memcpy
 
 ; Spawning and processing calling convention:
 ; edx - particle active or not
-; esi - pointer to the emitter
 ;
 ; NOTE: Spawning expects the FPU stack to be cleared (zeroed) so that values can
 ;       be placed in the registers by simple addition
@@ -54,13 +53,11 @@ mod_SimulatePre:
 	; kill the particle if we're past its lifetime
 	fld1
 	fcomip	st3
+	fwait
 	jle		.return
-	xor		edx, edx
-	mov		eax, [esi + ptcEmitter.NumParticles]
-	dec		eax
-	mov		[esi + ptcEmitter.NumParticles], eax
 	jmp		.end
 .return:
+	xor		edx, edx
 	ret
 .end:
 mod_SimulatePre_size	equ	(mod_SimulatePre.end - mod_SimulatePre)

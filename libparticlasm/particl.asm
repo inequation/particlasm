@@ -31,6 +31,11 @@ global ptcReleaseEmitter:function
 %include "ptc_distributions.inc"
 %include "ptc_modules.inc"
 
+; internal emitter data struct
+struc ptcEmitterData
+	.LastSpawnTime:	resd	1
+endstruc
+
 ; macro to accumulate buffer length by module
 %macro AccumModBuf 1
 	cmp		edx, ptcMID_ %+ %1
@@ -76,6 +81,13 @@ ptcCompileEmitter:
 	push	ebx
 	push	esi
 	push	edi
+
+	; initialize emitter data
+	mov		eax, dword ptcEmitterData_size
+	push	eax
+	call	malloc
+	mov		esi, [emitter]
+	mov		[esi + ptcEmitter.InternalPtr4], eax
 
 	; calculate the sizes of the buffers
 	; include additional space for a ret instruction at the end of spawn code
@@ -191,9 +203,192 @@ ptcCompileEmitter:
 	ret
 	%pop
 
+; loads particle data into registers; assumes pointer in esi
+%macro load_particle 0
+	mov		edx, [esi + ptcParticle.Active]
+	fld		dword [esi + ptcParticle.Size]
+	fld		dword [esi + ptcParticle.Rotation]
+	fld		dword [esi + ptcParticle.Time]
+	fld		dword [esi + ptcParticle.TimeScale]
+	movups	xmm1, [esi + ptcParticle.Colour]
+	movups	xmm2, [esi + ptcParticle.Location]
+	movups	xmm3, [esi + ptcParticle.Velocity]
+	movups	xmm4, [esi + ptcParticle.Accel]
+%endmacro
+
+; stores particle data into registers; assumes pointer in esi
+%macro store_particle 0
+	movups	[esi + ptcParticle.Accel], xmm4
+	movups	[esi + ptcParticle.Velocity], xmm3
+	movups	[esi + ptcParticle.Location], xmm2
+	movups	[esi + ptcParticle.Colour], xmm1
+	fstp	dword [esi + ptcParticle.TimeScale]
+	fstp	dword [esi + ptcParticle.Time]
+	fstp	dword [esi + ptcParticle.Rotation]
+	fstp	dword [esi + ptcParticle.Size]
+	mov		[esi + ptcParticle.Active], edx
+%endmacro
+
+; macro that pushes the time step into the correct registers
+%macro push_step 1
+	fld		dword %1
+	; load it into the low order part of the register
+	movss	xmm0, %1
+	; and broadcast it to the entire one
+	shufps	xmm0, xmm0, 00h
+%endmacro
+
+; macro that pops the time step off the registers
+%macro pop_step 0
+	fsubp	st0, st0
+%endmacro
+
+; particle spawning code, extracted from the processing routine for clarity
+%macro spawn 0
+	mov		esi, [ebx + ptcEmitter.ParticleBuf]
+	; find a free spot in the buffer
+.find_spot:
+	mov		edx, [esi + ptcParticle.Active]
+	test	edx, edx
+	loopnz	.find_spot
+	; increase particle counter
+	mov		edx, [ebx + ptcEmitter.NumParticles]
+	inc		edx;
+	mov		[ebx + ptcEmitter.NumParticles], edx
+	; clear data
+	mov		[esi + ptcParticle.Active], dword 1
+	; calculate time scale
+	fld1
+	fld		dword [ebx + ptcEmitter.LifeTimeFixed]
+	fld		dword [ebx + ptcEmitter.LifeTimeRandom]
+	frand
+	fmulp	st1, st0
+	faddp	st1, st0
+	fdivp	st1, st0
+	fstp	dword [esi + ptcParticle.TimeScale]
+	fwait
+	mov		[esi + ptcParticle.Time], dword 0
+	fld1
+	fst		dword [esi + ptcParticle.Colour]
+	fst		dword [esi + (ptcParticle.Colour + 4)]
+	fst		dword [esi + (ptcParticle.Colour + 8)]
+	fst		dword [esi + (ptcParticle.Colour + 12)]
+	fwait
+	mov		[esi + ptcParticle.Location], dword 0
+	mov		[esi + (ptcParticle.Location + 4)], dword 0
+	mov		[esi + (ptcParticle.Location + 8)], dword 0
+	mov		[esi + (ptcParticle.Location + 12)], dword 0
+	mov		[esi + ptcParticle.Rotation], dword 0
+	fstp	dword [esi + ptcParticle.Size]
+	fwait
+	mov		[esi + ptcParticle.Velocity], dword 0
+	mov		[esi + (ptcParticle.Velocity + 4)], dword 0
+	mov		[esi + (ptcParticle.Velocity + 8)], dword 0
+	mov		[esi + (ptcParticle.Velocity + 12)], dword 0
+	mov		[esi + ptcParticle.Accel], dword 0
+	mov		[esi + (ptcParticle.Accel + 4)], dword 0
+	mov		[esi + (ptcParticle.Accel + 8)], dword 0
+	mov		[esi + (ptcParticle.Accel + 12)], dword 0
+	; load particle data into registers
+	load_particle
+	push_step [step]
+	; call the spawn code
+	call	[ebx + ptcEmitter.InternalPtr2]
+	pop_step
+	; store new particle state
+	store_particle
+%endmacro
+
 ptcProcessEmitter:
+	%push		ptcProcessEmitterContext
+	%stacksize	flat
+	%assign		%$localsize 0
+	%arg		emitter:dword
+	%arg		step:dword
+	%arg		cameraCS:dword
+	%arg		buffer:dword
+	%arg		maxVertices:dword
+
+	enter   %$localsize, 0
+
+	; initialize the FPU to make sure the stack is clear and there are no
+	; exceptions
+	finit
+
+	mov		ebx, [emitter]
+	mov		esi, [ebx + ptcEmitter.InternalPtr4]
+	mov		esi, [esi]
+
+	; spawn particles according to the spawn rate and other settings
+	; calculate spawn period
+	xor		eax, eax	; whether the buffer is saturated
+	fld1
+	fld		dword [ebx + ptcEmitter.SpawnRate]
+	fdivp	st1, st0
+	fld		dword [esi + ptcEmitterData.LastSpawnTime]
+	fld		dword [step]
+	faddp	st1, st0
+	mov		eax, [ebx + ptcEmitter.NumParticles]
+	mov		edx, [ebx + ptcEmitter.MaxParticles]
+	; st0 = last spawn time
+	; st1 = spawn period
+.spawn_time_loop:
+	fcomi	st1
+	fwait
+	; skip if spawn rate exhausted
+	jl		.advance
+	fsub	st0, st1
+	mov		ecx, [ebx + ptcEmitter.BurstCount]
+.spawn_loop:
+	inc		eax
+	cmp		eax, edx
+	jge		.advance
+	spawn
+	dec		ecx
+	test	ecx, ecx
+	jz		.spawn_time_loop
+	jmp		.spawn_loop
+
+.advance:
+	fstp	dword [esi + ptcEmitterData.LastSpawnTime]
+	fsubp	st0, st0
+	; eax now holds the number of emitted vertices
+	xor		eax, eax
+	mov		edi, [buffer]
+
+	; advance the existing particles
+	mov		esi, [ebx + ptcEmitter.ParticleBuf]
+	mov		ecx, [ebx + ptcEmitter.NumParticles]
+.advance_loop:
+	jecxz	.done
+	mov		edx, [esi + ptcParticle.Active]
+	test	edx, edx
+	jnz		.process
+	loop	.advance_loop
+.process:
+	load_particle
+	push_step [step]
+	call	[ebx + ptcEmitter.InternalPtr3]
+	pop_step
+	store_particle
+	test	edx, edx
+	jz		.kill
+	; particle still active, emit vertices
+	add		eax, dword 4
+	mov		edx, [maxVertices]
+	cmp		eax, edx
+	jg		.done
+	jmp		.advance_loop
+.kill:
+	mov		edx, [ebx + ptcEmitter.NumParticles]
+	dec		edx
+	mov		[ebx + ptcEmitter.NumParticles], edx
+.done:
 	xor     eax, eax
+
+	leave
 	ret
+	%pop
 
 ptcReleaseEmitter:
 	%push		ptcReleaseEmitterContext

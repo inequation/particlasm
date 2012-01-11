@@ -213,10 +213,13 @@ vdistr_Uniform:
 	sub		esp, 4 * 4
 	mov		eax, esp
 	fst		dword [eax]
+	fwait
 	add		eax, 4
 	fst 	dword [eax]
+	fwait
 	add		eax, 4
 	fst		dword [eax]
+	fwait
 	; load them into xmm
 	movups	xmm5, [esp]
 	; pop the temp variables off the stack
@@ -382,15 +385,19 @@ cdistr_Uniform:
 	frand
 	add		eax, (4 * 4)
 	fstp	dword [eax]
+	fwait
 	frand
 	add		eax, 4
 	fstp	dword [eax]
+	fwait
 	frand
 	add		eax, 4
 	fstp	dword [eax]
+	fwait
 	frand
 	add		eax, 4
 	fstp	dword [eax]
+	fwait
 	; load them into xmm
 	movups	xmm5, [esp]
 	; get distribution value

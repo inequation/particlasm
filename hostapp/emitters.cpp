@@ -18,12 +18,8 @@ size_t Fire(ptcEmitter **emitters) {
 	static ptcEmitter emit[2];
 
 	// fire emitter
-	emit[0].SpawnRate.Uniform.DistrID = ptcDID_Uniform;
-	emit[0].SpawnRate.Uniform.Range[0] = 300.f;
-	emit[0].SpawnRate.Uniform.Range[1] = 500.f;
-	emit[0].BurstCount.Uniform.DistrID = ptcDID_Uniform;
-	emit[0].BurstCount.Uniform.Range[0] = 1;//5.f;
-	emit[0].BurstCount.Uniform.Range[1] = 1;//25.f;
+	emit[0].SpawnRate = 400.f;
+	emit[0].BurstCount = 15;
 	emit[0].LifeTimeFixed = 1;
 	emit[0].LifeTimeRandom = 1;
 	emit[0].InternalPtr1 = NULL;
@@ -62,7 +58,7 @@ size_t Fire(ptcEmitter **emitters) {
 	initsize.Distr.Uniform.Range[1] = 6.f;
 
 	accel.Header.ModuleID = ptcMID_Acceleration;
-	accel.Header.Next = NULL;//(ptcModule *)&alpha;
+	accel.Header.Next = (ptcModule *)&alpha;
 	accel.Distr.Uniform.DistrID = ptcDID_Uniform;
 	accel.Distr.Uniform.Ranges[0][0] = 0.f;
 	accel.Distr.Uniform.Ranges[0][1] = -50.f;
@@ -72,7 +68,7 @@ size_t Fire(ptcEmitter **emitters) {
 	accel.Distr.Uniform.Ranges[1][2] = 0.f;
 
 	alpha.Header.ModuleID = ptcMID_Colour;
-	alpha.Header.Next = (ptcModule *)&gravity;
+	alpha.Header.Next = NULL;//(ptcModule *)&gravity;
 	alpha.Distr.Constant.DistrID = ptcDID_Constant;
 	alpha.Distr.Constant.Val[3] = 1.f;
 	alpha.Flags = ptcCF_SetAlpha;
@@ -88,12 +84,8 @@ size_t Fire(ptcEmitter **emitters) {
 	gravity.Flags = ptcGF_AxisX | ptcGF_AxisZ | ptcGF_LinearAtt;
 
 	// smoke emitter
-	emit[1].SpawnRate.Uniform.DistrID = ptcDID_Uniform;
-	emit[1].SpawnRate.Uniform.Range[0] = 150.f;
-	emit[1].SpawnRate.Uniform.Range[1] = 250.f;
-	emit[1].BurstCount.Uniform.DistrID = ptcDID_Uniform;
-	emit[1].BurstCount.Uniform.Range[0] = 2.5;
-	emit[1].BurstCount.Uniform.Range[1] = 12.5;
+	emit[1].SpawnRate = 200.f;
+	emit[1].BurstCount = 8;
 	emit[1].LifeTimeFixed = 1;
 	emit[1].LifeTimeRandom = 1;
 	emit[1].InternalPtr1 = NULL;

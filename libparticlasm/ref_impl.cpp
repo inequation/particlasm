@@ -139,21 +139,20 @@ uint32_t ref_ptcProcessEmitter(ptcEmitter *emitter, float step,
 	emitterData *ed = static_cast<emitterData *>(emitter->InternalPtr1);
 	ed->clock += step * ed->stepScale;
 	if (ed->clock > 1.f)
-		ed->clock = ed->clock - floorf(ed->clock);
+		ed->clock = ed->clock - 1.f;
 	ed->lastSpawnTime += step;
-	float sp = 1.f / GetScalar(&emitter->SpawnRate, ed->clock);
+	float sp = 1.f / emitter->SpawnRate;
 	bool sat = false;
 	while (ed->lastSpawnTime >= sp) {
 		ed->lastSpawnTime -= sp;
 		const bool advance = ed->lastSpawnTime >= sp;
 		// break on buffer saturation
-		size_t count = floorf(GetScalar(&emitter->BurstCount, ed->clock));
-		for (size_t i = 0; i < count; ++i)
+		for (size_t i = 0; i < emitter->BurstCount; ++i)
 			if ((sat = !SpawnParticle(emitter, advance, sp)))
 				break;
 		if (sat)
 			break;
-		sp = 1.f / GetScalar(&emitter->SpawnRate, ed->clock);
+		//sp = 1.f / GetScalar(&emitter->SpawnRate, ed->clock);
 	}
 
 	// particle advancing
