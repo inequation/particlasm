@@ -1,7 +1,9 @@
 ; particlasm main module
 ; Copyright (C) 2011, Leszek Godlewski <lg@inequation.org>
 
+; we're targeting a 32-bit Pentium M
 bits 32
+cpu p3
 
 ; put EVERYTHING in the code section
 section .text
@@ -25,7 +27,8 @@ extern free
 
 ; entry points to the library
 global ptcCompileEmitter:function
-global ptcInternalProcessEmitter:function
+global ptcInternalSpawnParticles:function
+global ptcInternalProcessParticles:function
 global ptcReleaseEmitter:function
 
 %include "ptc_distributions.inc"

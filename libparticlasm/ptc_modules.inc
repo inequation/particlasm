@@ -83,7 +83,6 @@ mod_SimulatePost:
 	movups	xmm7, xmm2
 	mulps	xmm7, xmm4
 	addps	xmm1, xmm7
-.preret:
 	ret
 .end:
 mod_SimulatePost_size	equ	(mod_SimulatePost.end - mod_SimulatePost)

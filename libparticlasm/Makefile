@@ -19,7 +19,7 @@ ASFLAGS = -f elf
 # path to the C compiler
 CC = gcc
 # additional CC flags
-CFLAGS = -fPIC -c -Wall -Wextra
+CFLAGS = -fPIC -c -Wall -Wextra -march=pentium-m -mfpmath=sse
 # path to the linker executable
 LINKER = ld
 # additional linker flags

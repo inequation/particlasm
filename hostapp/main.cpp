@@ -47,13 +47,16 @@ bool InitParticlasm() {
 	return true;
 #else
 	libparticlasmHandle = dlopen("/home/inequation/projects/particlasm/bin/Debug/libparticlasm.so", RTLD_NOW);
-	if (!libparticlasmHandle)
+	if (!libparticlasmHandle) {
+		printf("dlerror: %s\n", dlerror());
 		return false;
+	}
 	ptcCompileEmitter = (PFNPTCCOMPILEEMITTER)dlsym(libparticlasmHandle, "ptcCompileEmitter");
 	ptcProcessEmitter = (PFNPTCPROCESSEMITTER)dlsym(libparticlasmHandle, "ptcProcessEmitter");
 	ptcReleaseEmitter = (PFNPTCRELEASEEMITTER)dlsym(libparticlasmHandle, "ptcReleaseEmitter");
 	if (ptcCompileEmitter && ptcProcessEmitter && ptcReleaseEmitter)
 		return true;
+	printf("dlerror: %s\n", dlerror());
 	dlclose(libparticlasmHandle);
 	return false;
 #endif // USE_CPP_REFERENCE_IMPLEMENTATION
@@ -582,6 +585,7 @@ int main( int argc, char **argv )
 		else
 			// fake last frame time so that we pause simulation instead of dropping frames
 			prev_t = SDL_GetTicks();
+		done = TRUE;
 	}
 
     /* clean ourselves up and exit */
