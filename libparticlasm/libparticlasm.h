@@ -273,10 +273,9 @@ typedef struct {
 typedef struct {
 	float			SpawnRate;		///< particle spawn rate in bursts per second
 	uint32_t		BurstCount;		///< number of particles per burst
-	float			Period;			///< length of full emitter period (for scaling the effects of \a SpawnRate and \a BurstCount in time)
+	float			SpawnTimer;		///< working variable that keeps track of when to spawn new particles
 	float			LifeTimeFixed;	///< life time of a particle (fixed part)
 	float			LifeTimeRandom;	///< life time of a particle (random part)
-	void			*InternalPtr4;	///< pointer to internal particlasm data structure
 	void			*InternalPtr1;	///< pointer to internal particlasm data structure
 	void			*InternalPtr2;	///< pointer to internal particlasm data structure
 	void			*InternalPtr3;	///< pointer to internal particlasm data structure

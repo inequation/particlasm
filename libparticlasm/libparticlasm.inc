@@ -164,10 +164,9 @@ endstruc
 struc ptcEmitter
 	.SpawnRate:		resd	1
 	.BurstCount:		resd	1
-	.Period:		resd	1
+	.SpawnTimer:		resd	1
 	.LifeTimeFixed:		resd	1
 	.LifeTimeRandom:		resd	1
-	.InternalPtr4:		resd	1
 	.InternalPtr1:		resd	1
 	.InternalPtr2:		resd	1
 	.InternalPtr3:		resd	1
