@@ -246,6 +246,8 @@ vdistr_UniformCompile:
 	push	dword 4 * 3
 	lea		edx, [esi + ptcVDistr_Uniform.Ranges + 4 * 3]
 	push	edx
+	; copy 16 bytes after the first one - source has 3 components, but SSE
+	; registers are 4-component anyway, we'll take those 4 bytes of slack...
 	lea		edx, [edi + 4 * 4]
 	push	edx
 	call	memcpy
@@ -337,7 +339,7 @@ cdistr_ConstantCompile:
 	push	ecx
 
 	; first, memcpy data to data buffer
-	push	dword 4 * 4
+	push	dword cdistr_ConstantData_size
 	lea		edx, [esi + ptcCDistr_Constant.Val]
 	push	edx
 	push	edi
@@ -416,7 +418,7 @@ cdistr_UniformCompile:
 	push	ecx
 
 	; first, memcpy data to data buffer
-	push	dword 4 * 4 * 2
+	push	dword cdistr_UniformData_size
 	lea		edx, [esi + ptcVDistr_Constant.Val]
 	push	edx
 	push	edi
@@ -437,9 +439,9 @@ cdistr_UniformCompile:
 	pop		ecx
 
 	; fix the movups instructions operands
-	mov		[ecx + cdistr_Uniform.postrange0 - cdistr_Uniform - 4], edi
+	mov		[ecx + (cdistr_Uniform.postrange0 - cdistr_Uniform - 4)], edi
 	add		edi, 4 * 4
-	mov		[ecx + cdistr_Uniform.postrange1 - cdistr_Uniform - 4], edi
+	mov		[ecx + (cdistr_Uniform.postrange1 - cdistr_Uniform - 4)], edi
 	sub		edi, 4 * 4
 
 	; advance the pointers

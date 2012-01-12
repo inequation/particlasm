@@ -61,6 +61,60 @@ global ptcReleaseEmitter:function
 %%skip:
 %endmacro
 
+; loads particle data into registers; assumes pointer in esi
+%macro load_particle 0
+	mov		edx, [esi + ptcParticle.Active]
+	fld		dword [esi + ptcParticle.Size]
+	fld		dword [esi + ptcParticle.Rotation]
+	fld		dword [esi + ptcParticle.Time]
+	fld		dword [esi + ptcParticle.TimeScale]
+	movups	xmm1, [esi + ptcParticle.Colour]
+	movups	xmm2, [esi + ptcParticle.Location]
+	movups	xmm3, [esi + ptcParticle.Velocity]
+	movups	xmm4, [esi + ptcParticle.Accel]
+%endmacro
+
+; stores particle data into memory; assumes pointer in esi
+%macro store_particle 0
+	movups	[esi + ptcParticle.Accel], xmm4
+	movups	[esi + ptcParticle.Velocity], xmm3
+	movups	[esi + ptcParticle.Location], xmm2
+	movups	[esi + ptcParticle.Colour], xmm1
+	fstp	dword [esi + ptcParticle.TimeScale]
+	fstp	dword [esi + ptcParticle.Time]
+	fstp	dword [esi + ptcParticle.Rotation]
+	fstp	dword [esi + ptcParticle.Size]
+	mov		[esi + ptcParticle.Active], edx
+%endmacro
+
+; macro that pushes the time step into the correct registers
+%macro push_step 1
+	fld		dword %1
+	; load it into the low order part of the register
+	movss	xmm0, %1
+	; and broadcast it to the entire one
+	shufps	xmm0, xmm0, 00h
+%endmacro
+
+; macro that pops the time step off the registers
+%macro pop_step 0
+	fsubp	st0, st0
+%endmacro
+
+; macro that advances and wraps the particle pointer around buffer size
+%macro advance_particle_ptr 0
+	add		esi, ptcParticle_size
+	mov		eax, [ebx + ptcEmitter.ParticleBuf]
+	mov		edx, [ebx + ptcEmitter.MaxParticles]
+	add		eax, edx
+	cmp		esi, eax
+	jl		%%skip
+	mov		eax, ptcParticle_size
+	mul		edx
+	sub		esi, eax
+%%skip:
+%endmacro
+
 ; emitter compilation
 ptcCompileEmitter:
 	%push		ptcCompileEmitterContext
@@ -82,9 +136,9 @@ ptcCompileEmitter:
 
 	; calculate the sizes of the buffers
 	; include additional space for a ret instruction at the end of spawn code
-	mov		dword [spawnbuf_len], (mod_SimulatePostCompile.postret - mod_SimulatePostCompile.preret)
-	mov		dword [procbuf_len], 0
-	mov		dword [databuf_len], 0
+	mov		dword [spawnbuf_len], 16
+	mov		dword [procbuf_len], 16
+	mov		dword [databuf_len], 16
 	mov		esi, [emitter]
 	mov		esi, [esi + ptcEmitter.Head]
 .buf_loop:
@@ -194,60 +248,7 @@ ptcCompileEmitter:
 	ret
 	%pop
 
-; loads particle data into registers; assumes pointer in esi
-%macro load_particle 0
-	mov		edx, [esi + ptcParticle.Active]
-	fld		dword [esi + ptcParticle.Size]
-	fld		dword [esi + ptcParticle.Rotation]
-	fld		dword [esi + ptcParticle.Time]
-	fld		dword [esi + ptcParticle.TimeScale]
-	movups	xmm1, [esi + ptcParticle.Colour]
-	movups	xmm2, [esi + ptcParticle.Location]
-	movups	xmm3, [esi + ptcParticle.Velocity]
-	movups	xmm4, [esi + ptcParticle.Accel]
-%endmacro
-
-; stores particle data into memory; assumes pointer in esi
-%macro store_particle 0
-	movups	[esi + ptcParticle.Accel], xmm4
-	movups	[esi + ptcParticle.Velocity], xmm3
-	movups	[esi + ptcParticle.Location], xmm2
-	movups	[esi + ptcParticle.Colour], xmm1
-	fstp	dword [esi + ptcParticle.TimeScale]
-	fstp	dword [esi + ptcParticle.Time]
-	fstp	dword [esi + ptcParticle.Rotation]
-	fstp	dword [esi + ptcParticle.Size]
-	mov		[esi + ptcParticle.Active], edx
-%endmacro
-
-; macro that pushes the time step into the correct registers
-%macro push_step 1
-	fld		dword %1
-	; load it into the low order part of the register
-	movss	xmm0, %1
-	; and broadcast it to the entire one
-	shufps	xmm0, xmm0, 00h
-%endmacro
-
-; macro that pops the time step off the registers
-%macro pop_step 0
-	fsubp	st0, st0
-%endmacro
-
-; macro that advances and wraps the particle pointer around buffer size
-%macro advance_particle_ptr 0
-	add		esi, ptcParticle_size
-	mov		eax, [ebx + ptcEmitter.ParticleBuf]
-	mov		edx, [ebx + ptcEmitter.MaxParticles]
-	add		eax, edx
-	cmp		esi, eax
-	jl		%%skip
-	mov		eax, ptcParticle_size
-	mul		edx
-	sub		esi, eax
-%%skip:
-%endmacro
-
+; arguments begin at esp+8
 ptcInternalSpawnParticles:
 	%push		ptcInternalSpawnParticlesContext
 	%stacksize	flat
@@ -258,25 +259,31 @@ ptcInternalSpawnParticles:
 
 	enter	%$localsize, 0
 
+	push	ebx
+	push	esi
+	push	edi
+
+	;get_GOT
+
 	; initialize the FPU to make sure the stack is clear and there are no
 	; exceptions
-	finit
+	;finit
+	;fwait
 
 	; start at a random index to reduce chances of a collision
 	call	rand
-	mov		edx, [emitter + ptcEmitter.MaxParticles]
-	div		edx
+	mov		ebx, [emitter]
+	xor		edx, edx
+	mov		ecx, [ebx + ptcEmitter.MaxParticles]
+	div		ecx
 	mov		eax, ptcParticle_size
 	mul		edx
-	add		esi, eax
+	mov		esi, eax
 
 	mov		ecx, [count]
-	mov		ebx, [emitter]
-	mov		esi, [ebx + ptcEmitter.ParticleBuf]
+	add		esi, [ebx + ptcEmitter.ParticleBuf]
 
 	; kick off the loop - find a free spot in the buffer
-
-	mov		esi, [ebx + ptcEmitter.ParticleBuf]
 .find_spot:
 	mov		edx, [esi + ptcParticle.Active]
 	test	edx, edx
@@ -348,6 +355,10 @@ ptcInternalSpawnParticles:
 	advance_particle_ptr
 	dec		ecx
 	jmp		.find_spot
+
+	pop		edi
+	pop		esi
+	pop		ebx
 
 	leave
 	ret

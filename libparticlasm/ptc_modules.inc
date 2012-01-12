@@ -96,17 +96,12 @@ mod_SimulatePostCompile:
 	call	memcpy
 	add		esp, 4 * 3
 
-	; also drop in a ret at the end of spawn code
+	; also drop in a ret instruction at the end of spawn code
 	mov		edi, [esp + 4]
-	push	dword (mod_SimulatePostCompile.postret - mod_SimulatePostCompile.preret)
-	push	dword mod_SimulatePostCompile.preret
-	push	edi
-	call	memcpy
-	add		esp, 4 * 3
-
+	mov		edx, mod_SimulatePostCompile.preret
+	mov		[edi], byte dl
 .preret:
 	ret
-.postret:
 
 ; ========================================
 ; InitialLocation
@@ -357,9 +352,8 @@ mod_InitialColourCompile:
 	push	ecx
 
 	; copy our pre-distribution code over
-	mov		edx, (mod_InitialColourSpawn.predistr - mod_InitialColourSpawn)
-	push	edx
-	push	dword mod_InitialColourSpawn
+	push	dword (mod_InitialColourSpawn.predistr - mod_InitialColourSpawn)
+	push	mod_InitialColourSpawn
 	push	ecx
 	call	memcpy
 	add		esp, 4 * 3

@@ -585,7 +585,6 @@ int main( int argc, char **argv )
 		else
 			// fake last frame time so that we pause simulation instead of dropping frames
 			prev_t = SDL_GetTicks();
-		done = TRUE;
 	}
 
     /* clean ourselves up and exit */
