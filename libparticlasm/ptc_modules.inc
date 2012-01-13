@@ -95,11 +95,15 @@ mod_SimulatePostCompile:
 	push	edi
 	call	memcpy
 	add		esp, 4 * 3
+	add		edi, mod_SimulatePost_size
+	mov		[esp + 8], edi
 
 	; also drop in a ret instruction at the end of spawn code
 	mov		edi, [esp + 4]
 	mov		edx, mod_SimulatePostCompile.preret
 	mov		[edi], byte dl
+	inc		edi
+	mov		[esp + 4], edi
 .preret:
 	ret
 
@@ -119,10 +123,10 @@ mod_InitialLocationProcess:
 .end:
 
 mod_InitialLocationMeasure:
-	mov eax, [esi + ptcMod_InitialLocation.Distr]
+	mov		eax, [esi + ptcMod_InitialLocation.Distr]
 	distr_size eax, ebx, edx, v
-	add ebx, (mod_InitialLocationSpawn.end - mod_InitialLocationSpawn)
-	mov	ecx, 0
+	add		ebx, (mod_InitialLocationSpawn.end - mod_InitialLocationSpawn)
+	xor		ecx, ecx
 	ret
 
 mod_InitialLocationCompile:
@@ -172,10 +176,10 @@ mod_InitialRotationProcess:
 .end:
 
 mod_InitialRotationMeasure:
-	mov eax, [esi + ptcMod_InitialRotation.Distr]
+	mov		eax, [esi + ptcMod_InitialRotation.Distr]
 	distr_size eax, ebx, edx, s
-	add ebx, (mod_InitialRotationSpawn.end - mod_InitialRotationSpawn)
-	mov	ecx, 0
+	add		ebx, (mod_InitialRotationSpawn.end - mod_InitialRotationSpawn)
+	xor		ecx, ecx
 	ret
 
 mod_InitialRotationCompile:
@@ -225,10 +229,10 @@ mod_InitialSizeProcess:
 .end:
 
 mod_InitialSizeMeasure:
-	mov eax, [esi + ptcMod_InitialSize.Distr]
+	mov		eax, [esi + ptcMod_InitialSize.Distr]
 	distr_size eax, ebx, edx, s
-	add ebx, (mod_InitialSizeSpawn.end - mod_InitialSizeSpawn)
-	mov	ecx, 0
+	add		ebx, (mod_InitialSizeSpawn.end - mod_InitialSizeSpawn)
+	xor		ecx, ecx
 	ret
 
 mod_InitialSizeCompile:
@@ -281,7 +285,7 @@ mod_InitialVelocityMeasure:
 	mov		eax, [esi + ptcMod_InitialVelocity.Distr]
 	distr_size eax, ebx, edx, v
 	add		ebx, mod_InitialVelocitySpawn_size
-	mov		ecx, 0
+	xor		ecx, ecx
 	ret
 
 mod_InitialVelocityCompile:
@@ -334,10 +338,12 @@ mod_InitialColourProcess:
 .end:
 
 mod_InitialColourMeasure:
-	mov eax, [esi + ptcMod_InitialColour.Distr]
+	mov		eax, [esi + ptcMod_InitialColour.Distr]
 	distr_size eax, ebx, edx, c
-	add ebx, (mod_InitialColourSpawn.end - mod_InitialColourSpawn)
-	mov	ecx, 0
+	add		ebx, (mod_InitialColourSpawn.end - mod_InitialColourSpawn)
+	; also add the flags to the data length
+	add		edx, 4
+	xor		ecx, ecx
 	ret
 
 mod_InitialColourCompile:
@@ -408,10 +414,10 @@ mod_VelocityProcess:
 mod_VelocityProcess_size	equ	(mod_VelocityProcess.end - mod_VelocityProcess)
 
 mod_VelocityMeasure:
-	mov eax, [esi + ptcMod_Velocity.Distr]
+	mov		eax, [esi + ptcMod_Velocity.Distr]
 	distr_size eax, ecx, edx, v
-	add ecx, (mod_VelocityProcess.end - mod_VelocityProcess)
-	mov	ebx, 0
+	add		ecx, (mod_VelocityProcess.end - mod_VelocityProcess)
+	xor		ebx, ebx
 	ret
 
 mod_VelocityCompile:
@@ -517,10 +523,12 @@ mod_ColourProcess:
 .end:
 
 mod_ColourMeasure:
-	mov eax, [esi + ptcMod_Colour.Distr]
+	mov		eax, [esi + ptcMod_Colour.Distr]
 	distr_size eax, ecx, edx, c
-	add ecx, (mod_ColourProcess.end - mod_ColourProcess)
-	xor	ebx, ebx
+	add		ecx, (mod_ColourProcess.end - mod_ColourProcess)
+	; also add the flags to the data length
+	add		edx, 4
+	xor		ebx, ebx
 	ret
 
 mod_ColourCompile:

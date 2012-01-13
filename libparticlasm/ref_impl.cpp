@@ -30,7 +30,7 @@ static void GetColour(ptcColourDistr *d, uint32_t flags, float t, ptcColour out)
 uint32_t ref_ptcCompileEmitter(ptcEmitter *emitter) {
 	emitter->NumParticles = 0;
 	memset(emitter->ParticleBuf, 0, sizeof(ptcParticle) * emitter->MaxParticles);
-	return 0;
+	return 1;
 }
 
 #define MIN_SUBSTEP		0.025f

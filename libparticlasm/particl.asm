@@ -21,21 +21,17 @@ extern _GLOBAL_OFFSET_TABLE_
 	add		ebx, _GLOBAL_OFFSET_TABLE_+$$-%%getgot wrt ..gotpc
 %endmacro
 
-; some useful cstdlib functions
-extern malloc
-extern free
-
 ; entry points to the library
-global ptcCompileEmitter:function
+global ptcInternalMeasureModule:function
+global ptcInternalCompileModule:function
 global ptcInternalSpawnParticles:function
 global ptcInternalProcessParticles:function
-global ptcReleaseEmitter:function
 
 %include "ptc_distributions.inc"
 %include "ptc_modules.inc"
 
-; macro to accumulate buffer length by module
-%macro AccumModBuf 1
+; macro to measure module buffer lengths
+%macro MeasureModBuf 1
 	cmp		edx, ptcMID_ %+ %1
 	jne		%%skip
 	call	mod_ %+ %1 %+ Measure
@@ -48,7 +44,7 @@ global ptcReleaseEmitter:function
 	mov		eax, [databuf_len]
 	add		eax, edx
 	mov		[databuf_len], eax
-	jmp		.next
+	jmp		.end
 %%skip:
 %endmacro
 
@@ -57,7 +53,7 @@ global ptcReleaseEmitter:function
 	cmp		edx, ptcMID_ %+ %1
 	jne		%%skip
 	call	mod_ %+ %1 %+ Compile
-	jne		.compile_next
+	jne		.end
 %%skip:
 %endmacro
 
@@ -115,18 +111,170 @@ global ptcReleaseEmitter:function
 %%skip:
 %endmacro
 
-; emitter compilation
-ptcCompileEmitter:
+ptcInternalMeasureModule:
+	%push		ptcInternalMeasureModuleContext
+	%stacksize	flat
+	%assign		%$localsize 0
+	%arg		module:dword
+	%arg		spawnCodeBufLenPtr:dword
+	%arg		processCodeBufLenPtr:dword
+	%arg		dataBufLenPtr:dword
+	%local		spawnbuf_len:dword	; particle spawn code buffer size
+	%local		procbuf_len:dword	; pointer particle processing code buffer size
+	%local		databuf_len:dword	; pointer particle data buffer size
+
+	enter   %$localsize, 0
+
+	; save off working registers
+	pusha
+
+	; initialize counters
+	mov		esi, [spawnCodeBufLenPtr]
+	mov		edx, [esi]
+	mov		[spawnbuf_len], edx
+	mov		esi, [processCodeBufLenPtr]
+	mov		edx, [esi]
+	mov		[procbuf_len], edx
+	mov		esi, [dataBufLenPtr]
+	mov		edx, [esi]
+	mov		[databuf_len], edx
+
+	mov		esi, [module]
+
+	; if module == NULL, add in the simulation module
+	test	esi, esi
+	jnz		.normal
+
+	mov		eax, [spawnbuf_len]
+	inc		eax	; keep 1 byte for a ret instruction
+	mov		[spawnbuf_len], eax
+	mov		eax, [procbuf_len]
+	add		eax, mod_SimulatePre_size + mod_SimulatePost_size
+	mov		[procbuf_len], eax
+	jmp		.end
+
+.normal:
+	mov		edx, [esi + ptcModuleHeader.ModuleID]
+
+	; detect modules and add in their sizes
+	MeasureModBuf InitialLocation
+	MeasureModBuf InitialRotation
+	MeasureModBuf InitialSize
+	MeasureModBuf InitialVelocity
+	MeasureModBuf InitialColour
+	MeasureModBuf Velocity
+	MeasureModBuf Acceleration
+	MeasureModBuf Colour
+	MeasureModBuf Size
+	MeasureModBuf Gravity
+
+.end:
+	; copy measured length to the provided pointers
+	mov		edx, [spawnbuf_len]
+	mov		edi, [spawnCodeBufLenPtr]
+	mov		[edi], edx
+	mov		edx, [procbuf_len]
+	mov		edi, [processCodeBufLenPtr]
+	mov		[edi], edx
+	mov		edx, [databuf_len]
+	mov		edi, [dataBufLenPtr]
+	mov		[edi], edx
+
+	; restore working registers
+	popa
+
+	leave
+	ret
+	%pop
+
+ptcInternalCompileModule:
 	%push		ptcCompileEmitterContext
 	%stacksize	flat
 	%assign		%$localsize 0
+	%arg		module:dword
+	%arg		spawnCodeBufPtr:dword
+	%arg		processCodeBufPtr:dword
+	%arg		dataBufPtr:dword
+
+	enter   %$localsize, 0
+
+	; save off working registers
+	push	ebx
+	push	esi
+	push	edi
+
+	; place the pointers on the stack in the convention that modules expect them
+	mov		eax, [dataBufPtr]
+	mov		eax, [eax]
+	push	eax
+	mov		eax, [processCodeBufPtr]
+	mov		eax, [eax]
+	push	eax
+	mov		eax, [spawnCodeBufPtr]
+	mov		eax, [eax]
+	push	eax
+	mov		esi, [module]
+
+	; check for simulation pre- and post-processing modules
+	cmp		esi, dword -1
+	jne		.try_post
+	; add in the simulation preprocessing module
+	call	mod_SimulatePreCompile
+	jmp		.end
+.try_post:
+	cmp		esi, dword -2
+	jne		.normal
+	; add in the simulation postprocessing module
+	call	mod_SimulatePostCompile
+	jmp		.end
+.normal:
+	mov		edx, [esi + ptcModuleHeader.ModuleID]
+
+	; detect modules and copy in their code and data
+	CompileMod InitialLocation
+	CompileMod InitialRotation
+	CompileMod InitialSize
+	CompileMod InitialVelocity
+	CompileMod InitialColour
+	CompileMod Velocity
+	CompileMod Acceleration
+	CompileMod Colour
+	CompileMod Size
+	CompileMod Gravity
+
+.end:
+	; return pointers after advancing
+	pop		edx
+	mov		eax, [spawnCodeBufPtr]
+	mov		[eax], edx
+	pop		edx
+	mov		eax, [processCodeBufPtr]
+	mov		[eax], edx
+	pop		edx
+	mov		eax, [dataBufPtr]
+	mov		[eax], edx
+
+	; restore working registers
+	pop		edi
+	pop		esi
+	pop		ebx
+
+	leave
+	ret
+	%pop
+
+; emitter compilation
+ptcCompileEmitter_old:
+	%push		ptcCompileEmitterContext
+	%stacksize	flat
+	%assign		%$localsize 0
+	%arg		emitter:dword
 	%local		spawnbuf_len:dword	; particle spawn code buffer size
 	%local		procbuf_len:dword	; particle processing code buffer size
 	%local		databuf_len:dword	; particle data buffer size
 	%local		spawnbuf_ptr:dword	; particle spawn code buffer pointer
 	%local		procbuf_ptr:dword	; particle processing code buffer pointer
 	%local		databuf_ptr:dword	; particle data buffer pointer
-	%arg		emitter:dword
 
 	enter   %$localsize, 0
 
@@ -380,7 +528,7 @@ ptcInternalProcessParticles:
 	ret
 	%pop
 
-ptcReleaseEmitter:
+ptcReleaseEmitter_old:
 	%push		ptcReleaseEmitterContext
 	%stacksize	flat
 	%assign		%$localsize 0
