@@ -6,21 +6,8 @@
 ; declarations
 %include "libparticlasm.inc"
 
-; libc rand() and memcpy()
-extern rand
+; libc memcpy()
 extern memcpy
-
-; equal to 1.f / RAND_MAX (as per the stdlib.h declaration)
-INV_RAND_MAX	dd	4.65661287524579692411e-10
-
-MASK_RGB		dd	0xFFFFFFFF
-				dd	0xFFFFFFFF
-				dd	0xFFFFFFFF
-				dd	0x00000000
-MASK_ALPHA		dd	0x00000000
-				dd	0x00000000
-				dd	0x00000000
-				dd	0xFFFFFFFF
 
 ; scalar distributions put their result into st0
 ; vector and colour - into xmm5
@@ -35,17 +22,18 @@ MASK_ALPHA		dd	0x00000000
 ; for modules.
 
 ; utility macro that places a random number in the [0..1] range in st0
-%macro frand 0
-	call	rand
+; %1 - additional stack offset
+%macro frand 1
+	; need to make the call a far one since the code will live in a totally
+	; different memory block
+	call	[esp + (4 + %1)]
 	; temp variable - the fild instruction needs to read from memory
 	push	eax
 	fild	dword [esp]
-	; load in the divisor
-	mov		eax, [INV_RAND_MAX]
-	push	eax
-	fld		dword [esp]
-	; pop the two dwords off the stack
-	add		esp, 4 * 2
+	; load in the inverse RAND_MAX (add 4 to account for the push above)
+	fld		dword [esp + (12 + %1)]
+	; pop the rand() result off the stack
+	add		esp, 4
 	; rand() * (1.f / RAND_MAX)
 	fmulp	st1, st0
 %endmacro
@@ -97,7 +85,7 @@ sdistr_Uniform:
 .postrange1:
 	; range[1] - range[0]
 	fsub	st1, st0
-	frand
+	frand	0
 	; multiply the range span by the random number
 	fmulp	st2, st0
 	; add the lower bound
@@ -205,20 +193,17 @@ vdistr_Uniform:
 	movups	xmm7, [0xFFFFFFFF]	; range[1]; this address is filled upon compilation
 .postrange1:
 	subps	xmm7, xmm6
-	; get 3 random numbers
-	frand
-	frand
-	frand
-	; store them on the stack, leave one float of slack (oh, the rhyme!)
+	; get 3 random numbers and store them on the stack, leave one float of slack
+	; (oh, the rhyme!)
 	sub		esp, 4 * 4
-	mov		eax, esp
-	fst		dword [eax]
+	frand 4 * 4
+	fstp	dword [esp]
 	fwait
-	add		eax, 4
-	fst 	dword [eax]
+	frand 4 * 4
+	fstp	dword [esp + 4]
 	fwait
-	add		eax, 4
-	fst		dword [eax]
+	frand 4 * 4
+	fstp	dword [esp + 8]
 	fwait
 	; load them into xmm
 	movups	xmm5, [esp]
@@ -306,7 +291,8 @@ vdistr_BicubicInterpCompile:
 	test	eax, ptcCF_SetRGB
 	jz		%%alpha
 	; mask out alpha from the distribution value and add in the original alpha
-	movups	xmm7, [ebx + MASK_RGB wrt ..gotoff]
+	mov		eax, [esp + 12]
+	movups	xmm7, [ebx + eax]
 	andps	xmm6, xmm7
 	andnps	xmm7, xmm5
 	addps	xmm6, xmm7
@@ -316,7 +302,8 @@ vdistr_BicubicInterpCompile:
 	test	eax, ptcCF_SetAlpha
 	jz		.end
 	; mask out RGB from the distribution value and add in the original RGB
-	movups	xmm7, [ebx + MASK_ALPHA wrt ..gotoff]
+	mov		eax, [esp + 16]
+	movups	xmm7, [ebx + eax]
 	andps	xmm6, xmm7
 	andnps	xmm7, xmm5
 	addps	xmm6, xmm7
@@ -383,30 +370,28 @@ cdistr_Uniform:
 	sub		esp, (4 * 4 * 2)
 	mov		eax, esp
 	movups	[eax], xmm5
-	; get 4 random numbers
-	frand
-	add		eax, (4 * 4)
-	fstp	dword [eax]
+	; get 4 random numbers and store them on the stack, leave one float of slack
+	; (oh, the rhyme!)
+	sub		esp, 4 * 4
+	frand 4 * 4
+	fstp	dword [esp]
 	fwait
-	frand
-	add		eax, 4
-	fstp	dword [eax]
+	frand 4 * 4
+	fstp	dword [esp + 4]
 	fwait
-	frand
-	add		eax, 4
-	fstp	dword [eax]
+	frand 4 * 4
+	fstp	dword [esp + 8]
 	fwait
-	frand
-	add		eax, 4
-	fstp	dword [eax]
+	frand 4 * 4
+	fstp	dword [esp + 12]
 	fwait
 	; load them into xmm
 	movups	xmm5, [esp]
+	; pop the temp variables off the stack
+	add		esp, (4 * 4 * 2)
 	; get distribution value
 	mulps	xmm5, xmm7
 	addps	xmm6, xmm5
-	; pop the temp variables off the stack
-	add		esp, (4 * 4 * 2)
 	; mix the colours
 	cdistr_mix
 .end:

@@ -11,6 +11,8 @@ section .text
 ; declarations
 %include "libparticlasm.inc"
 
+extern rand
+
 ; declare the GOT symbol
 extern _GLOBAL_OFFSET_TABLE_
 ; macro used to store the _GLOBAL_OFFSET_TABLE_ address in ebx
@@ -26,6 +28,18 @@ global ptcInternalMeasureModule:function
 global ptcInternalCompileModule:function
 global ptcInternalSpawnParticles:function
 global ptcInternalProcessParticles:function
+
+; equal to 1.f / RAND_MAX (as per the stdlib.h declaration) in hex representation
+%define INV_RAND_MAX	0x30000000	;4.65661287524579692411e-10
+
+MASK_RGB		dd	0xFFFFFFFF
+				dd	0xFFFFFFFF
+				dd	0xFFFFFFFF
+				dd	0x00000000
+MASK_ALPHA		dd	0x00000000
+				dd	0x00000000
+				dd	0x00000000
+				dd	0xFFFFFFFF
 
 %include "ptc_distributions.inc"
 %include "ptc_modules.inc"
@@ -63,7 +77,6 @@ global ptcInternalProcessParticles:function
 	fld		dword [esi + ptcParticle.Size]
 	fld		dword [esi + ptcParticle.Rotation]
 	fld		dword [esi + ptcParticle.Time]
-	fld		dword [esi + ptcParticle.TimeScale]
 	movups	xmm1, [esi + ptcParticle.Colour]
 	movups	xmm2, [esi + ptcParticle.Location]
 	movups	xmm3, [esi + ptcParticle.Velocity]
@@ -76,7 +89,6 @@ global ptcInternalProcessParticles:function
 	movups	[esi + ptcParticle.Velocity], xmm3
 	movups	[esi + ptcParticle.Location], xmm2
 	movups	[esi + ptcParticle.Colour], xmm1
-	fstp	dword [esi + ptcParticle.TimeScale]
 	fstp	dword [esi + ptcParticle.Time]
 	fstp	dword [esi + ptcParticle.Rotation]
 	fstp	dword [esi + ptcParticle.Size]
@@ -94,7 +106,7 @@ global ptcInternalProcessParticles:function
 
 ; macro that pops the time step off the registers
 %macro pop_step 0
-	fsubp	st0, st0
+	fstp	st0
 %endmacro
 
 ; macro that advances and wraps the particle pointer around buffer size
@@ -263,139 +275,6 @@ ptcInternalCompileModule:
 	ret
 	%pop
 
-; emitter compilation
-ptcCompileEmitter_old:
-	%push		ptcCompileEmitterContext
-	%stacksize	flat
-	%assign		%$localsize 0
-	%arg		emitter:dword
-	%local		spawnbuf_len:dword	; particle spawn code buffer size
-	%local		procbuf_len:dword	; particle processing code buffer size
-	%local		databuf_len:dword	; particle data buffer size
-	%local		spawnbuf_ptr:dword	; particle spawn code buffer pointer
-	%local		procbuf_ptr:dword	; particle processing code buffer pointer
-	%local		databuf_ptr:dword	; particle data buffer pointer
-
-	enter   %$localsize, 0
-
-	push	ebx
-	push	esi
-	push	edi
-
-	; calculate the sizes of the buffers
-	; include additional space for a ret instruction at the end of spawn code
-	mov		dword [spawnbuf_len], 16
-	mov		dword [procbuf_len], 16
-	mov		dword [databuf_len], 16
-	mov		esi, [emitter]
-	mov		esi, [esi + ptcEmitter.Head]
-.buf_loop:
-	cmp		esi, 0
-	je		.alloc
-	mov		edx, [esi + ptcModuleHeader.ModuleID]
-
-	; detect modules and add in their sizes
-	AccumModBuf InitialLocation
-	AccumModBuf InitialRotation
-	AccumModBuf InitialSize
-	AccumModBuf InitialVelocity
-	AccumModBuf InitialColour
-	AccumModBuf Velocity
-	AccumModBuf Acceleration
-	AccumModBuf Colour
-	AccumModBuf Size
-	AccumModBuf Gravity
-.next:
-	; get next module pointer
-	mov		esi, [esi + ptcModuleHeader.Next]
-	jmp		.buf_loop
-
-.alloc:
-	; also add the simulation module
-	mov		ecx, [procbuf_len]
-	add		ecx, (mod_SimulatePre_size + mod_SimulatePost_size)
-	mov		[procbuf_len], ecx
-
-	; allocate the buffers
-	; FIXME: error checking!
-	mov		eax, [spawnbuf_len]
-	push	eax
-	call	malloc
-	mov		[spawnbuf_ptr], eax
-	mov		eax, [procbuf_len]
-	push	eax
-	call	malloc
-	mov		[procbuf_ptr], eax
-	mov		eax, [databuf_len]
-	push	eax
-	call	malloc
-	mov		[databuf_ptr], eax
-	; pop the pointers off the stack
-	add		esp, 4 * 3
-
-	; compile
-	; place the pointers on the stack in the convention that modules expect them
-	push	eax
-	mov		eax, [procbuf_ptr]
-	push	eax
-	mov		eax, [spawnbuf_ptr]
-	push	eax
-
-	; add in the simulation preprocessing module
-	call	mod_SimulatePreCompile
-
-	; start traversing the list
-	mov		esi, [emitter]
-	mov		esi, [esi + ptcEmitter.Head]
-.compile_loop:
-	cmp		esi, 0
-	je		.done
-	mov		edx, [esi + ptcModuleHeader.ModuleID]
-
-	; detect modules and copy in their code and data
-	CompileMod InitialLocation
-	CompileMod InitialRotation
-	CompileMod InitialSize
-	CompileMod InitialVelocity
-	CompileMod InitialColour
-	CompileMod Velocity
-	CompileMod Acceleration
-	CompileMod Colour
-	CompileMod Size
-	CompileMod Gravity
-.compile_next:
-	; get next module pointer
-	mov		esi, [esi + ptcModuleHeader.Next]
-	jmp		.compile_loop
-
-.done:
-	; add in the simulation postprocessing module
-	call	mod_SimulatePostCompile
-
-	; pop all the pointers off the stack
-	add		esp, 4 * 4
-
-	; write the pointers to the emitter struct
-	mov		esi, [emitter]
-	mov		edx, [databuf_ptr]
-	mov		[esi + ptcEmitter.InternalPtr1], edx
-	mov		edx, [procbuf_ptr]
-	mov		[esi + ptcEmitter.InternalPtr2], edx
-	mov		edx, [spawnbuf_ptr]
-	mov		[esi + ptcEmitter.InternalPtr3], edx
-
-	pop		edi
-	pop		esi
-	pop		ebx
-
-	; return success
-	mov     eax, 1
-
-	leave
-
-	ret
-	%pop
-
 ; arguments begin at esp+8
 ptcInternalSpawnParticles:
 	%push		ptcInternalSpawnParticlesContext
@@ -415,8 +294,8 @@ ptcInternalSpawnParticles:
 
 	; initialize the FPU to make sure the stack is clear and there are no
 	; exceptions
-	;finit
-	;fwait
+	finit
+	fwait
 
 	; start at a random index to reduce chances of a collision
 	call	rand
@@ -449,7 +328,12 @@ ptcInternalSpawnParticles:
 	fld1
 	fld		dword [ebx + ptcEmitter.LifeTimeFixed]
 	fld		dword [ebx + ptcEmitter.LifeTimeRandom]
-	frand
+	; need the function address and inverse RAND_MAX on the stack
+	push	dword INV_RAND_MAX
+	push	rand
+	push	0	; dummy value
+	frand	0
+	add		esp, 4 * 2
 	; st0=frand(), st1=LTR, st2=LTF, st3=1.0
 	fmulp	st1, st0
 	; st0=frand()*LTR, st1=LTF, st2=1.0
@@ -489,9 +373,18 @@ ptcInternalSpawnParticles:
 	; load particle data into registers
 	load_particle
 	push_step [step]
-	; call the spawn code
+	; load the pointers that we need
+	push	MASK_ALPHA
+	push	MASK_RGB
+	push	dword INV_RAND_MAX
+	push	rand
 	mov		ebx, [emitter]
+
+	; call the spawn code
 	call	[ebx + ptcEmitter.InternalPtr2]
+
+	; restore previous state
+	add		esp, 3 * 4
 	pop_step
 	; store new particle state
 	store_particle
@@ -523,33 +416,6 @@ ptcInternalProcessParticles:
 	%arg		maxVertices:dword
 
 	enter   %$localsize, 0
-
-	leave
-	ret
-	%pop
-
-ptcReleaseEmitter_old:
-	%push		ptcReleaseEmitterContext
-	%stacksize	flat
-	%assign		%$localsize 0
-	%arg		emitter:dword
-
-	enter   %$localsize, 0
-
-	; free the buffers
-	mov		esi, [emitter]
-	mov		eax, [esi + ptcEmitter.InternalPtr1]
-	push	eax
-	call	free
-	mov		eax, [esi + ptcEmitter.InternalPtr2]
-	push	eax
-	call	free
-	mov		eax, [esi + ptcEmitter.InternalPtr3]
-	push	eax
-	call	free
-
-	; pop all the pointers off the stack
-	add		esp, 4 * 3
 
 	leave
 	ret

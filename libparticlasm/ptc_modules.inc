@@ -11,14 +11,17 @@ extern memcpy
 
 ; Spawning and processing calling convention:
 ; edx - particle active or not
+; [esp + 4] - pointer to rand() (as a workaround)
+; [esp + 8] - INV_RAND_MAX
+; [esp + 12] - pointer to MASK_RGB
+; [esp + 16] - pointer to MASK_ALPHA
 ;
 ; NOTE: Spawning expects the FPU stack to be cleared (zeroed) so that values can
 ;       be placed in the registers by simple addition
 ; st0 - simulation step
-; st1 - ptcParticle.TimeScale
-; st2 - ptcParticle.Time
-; st3 - ptcParticle.Rotation
-; st4 - ptcParticle.Size
+; st1 - ptcParticle.Time
+; st2 - ptcParticle.Rotation
+; st3 - ptcParticle.Size
 ;
 ; xmm0 - simulation step (as a vector, i.e. [st0, st0, st0, st0])
 ; xmm1 - ptcParticle.Colour
@@ -100,11 +103,11 @@ mod_SimulatePostCompile:
 
 	; also drop in a ret instruction at the end of spawn code
 	mov		edi, [esp + 4]
-	mov		edx, mod_SimulatePostCompile.preret
+	mov		edx, [mod_SimulatePostCompile.ret_instruction]
 	mov		[edi], byte dl
 	inc		edi
 	mov		[esp + 4], edi
-.preret:
+.ret_instruction:
 	ret
 
 ; ========================================
@@ -596,15 +599,18 @@ mod_SizeSpawn:
 mod_SizeProcess:
 	; distribution code goes here
 	; move distribution result to target register
-	faddp st4, st0
+	fldz
+	fxch	st4, st0
+	fstp	st0
+	faddp	st4, st0
 .end:
 mod_SizeProcess_size	equ	(mod_SizeProcess.end - mod_SizeProcess)
 
 mod_SizeMeasure:
-	mov eax, [esi + ptcMod_Size.Distr]
+	mov		eax, [esi + ptcMod_Size.Distr]
 	distr_size eax, ebx, edx, s
-	add ebx, (mod_SizeSpawn.end - mod_SizeSpawn)
-	xor	ecx, ecx
+	add		ebx, (mod_SizeSpawn.end - mod_SizeSpawn)
+	xor		ecx, ecx
 	ret
 
 mod_SizeCompile:
