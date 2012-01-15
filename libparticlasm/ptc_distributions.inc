@@ -292,7 +292,7 @@ vdistr_BicubicInterpCompile:
 	jz		%%alpha
 	; mask out alpha from the distribution value and add in the original alpha
 	mov		eax, [esp + 12]
-	movups	xmm7, [ebx + eax]
+	movups	xmm7, [eax]
 	andps	xmm6, xmm7
 	andnps	xmm7, xmm5
 	addps	xmm6, xmm7
@@ -303,7 +303,7 @@ vdistr_BicubicInterpCompile:
 	jz		.end
 	; mask out RGB from the distribution value and add in the original RGB
 	mov		eax, [esp + 16]
-	movups	xmm7, [ebx + eax]
+	movups	xmm7, [eax]
 	andps	xmm6, xmm7
 	andnps	xmm7, xmm5
 	addps	xmm6, xmm7
@@ -368,30 +368,31 @@ cdistr_Uniform:
 	; reserve some space on the stack - we need to lay off the original colour
 	; as well as random floats
 	sub		esp, (4 * 4 * 2)
-	mov		eax, esp
-	movups	[eax], xmm5
+	; save off the original colour
+	movups	[esp], xmm5
 	; get 4 random numbers and store them on the stack, leave one float of slack
 	; (oh, the rhyme!)
-	sub		esp, 4 * 4
-	frand 4 * 4
-	fstp	dword [esp]
+	frand 4 * 4 * 2
+	fstp	dword [esp + 16]
 	fwait
-	frand 4 * 4
-	fstp	dword [esp + 4]
+	frand 4 * 4 * 2
+	fstp	dword [esp + 20]
 	fwait
-	frand 4 * 4
-	fstp	dword [esp + 8]
+	frand 4 * 4 * 2
+	fstp	dword [esp + 24]
 	fwait
-	frand 4 * 4
-	fstp	dword [esp + 12]
+	frand 4 * 4 * 2
+	fstp	dword [esp + 28]
 	fwait
-	; load them into xmm
-	movups	xmm5, [esp]
-	; pop the temp variables off the stack
-	add		esp, (4 * 4 * 2)
+	; load the random numbers into xmm
+	movups	xmm5, [esp + 16]
 	; get distribution value
 	mulps	xmm5, xmm7
 	addps	xmm6, xmm5
+	; restore original colour in xmm5
+	movups	xmm5, [esp + 16]
+	; pop the temp variables off the stack
+	add		esp, (4 * 4 * 2)
 	; mix the colours
 	cdistr_mix
 .end:

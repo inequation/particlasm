@@ -354,9 +354,6 @@ mod_InitialColourCompile:
 	mov		ecx, [esp + 4]
 	mov		edi, [esp + 12]
 
-	; put the fake flags in the data buffer
-	mov		[edi], dword (ptcCF_SetAlpha | ptcCF_SetRGB)
-
 	; save off ecx
 	push	ecx
 
@@ -371,6 +368,8 @@ mod_InitialColourCompile:
 	pop		ecx
 	; fill in the read address
 	mov		[ecx + (mod_InitialColourSpawn.predistr - mod_InitialColourSpawn - 4)], edi
+	; put the fake flags in the data buffer
+	mov		[edi], dword (ptcCF_SetAlpha | ptcCF_SetRGB)
 	; advance the pointers
 	add		ecx, (mod_InitialColourSpawn.predistr - mod_InitialColourSpawn)
 	add		edi, 4

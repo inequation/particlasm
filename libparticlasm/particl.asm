@@ -112,14 +112,14 @@ MASK_ALPHA		dd	0x00000000
 ; macro that advances and wraps the particle pointer around buffer size
 %macro advance_particle_ptr 0
 	add		esi, ptcParticle_size
-	mov		eax, [ebx + ptcEmitter.ParticleBuf]
 	mov		edx, [ebx + ptcEmitter.MaxParticles]
+	mov		eax, ptcParticle_size
+	mul		edx
+	mov		edx, [ebx + ptcEmitter.ParticleBuf]
 	add		eax, edx
 	cmp		esi, eax
 	jl		%%skip
-	mov		eax, ptcParticle_size
-	mul		edx
-	sub		esi, eax
+	mov		esi, edx
 %%skip:
 %endmacro
 
@@ -290,8 +290,6 @@ ptcInternalSpawnParticles:
 	push	esi
 	push	edi
 
-	;get_GOT
-
 	; initialize the FPU to make sure the stack is clear and there are no
 	; exceptions
 	finit
@@ -328,12 +326,16 @@ ptcInternalSpawnParticles:
 	fld1
 	fld		dword [ebx + ptcEmitter.LifeTimeFixed]
 	fld		dword [ebx + ptcEmitter.LifeTimeRandom]
+	; save off ecx
+	push	ecx
 	; need the function address and inverse RAND_MAX on the stack
 	push	dword INV_RAND_MAX
 	push	rand
 	push	0	; dummy value
 	frand	0
-	add		esp, 4 * 2
+	add		esp, 4 * 3
+	; restore ecx
+	pop		ecx
 	; st0=frand(), st1=LTR, st2=LTF, st3=1.0
 	fmulp	st1, st0
 	; st0=frand()*LTR, st1=LTF, st2=1.0
@@ -367,9 +369,10 @@ ptcInternalSpawnParticles:
 	mov		[esi + (ptcParticle.Accel + 4)], dword 0
 	mov		[esi + (ptcParticle.Accel + 8)], dword 0
 	mov		[esi + (ptcParticle.Accel + 12)], dword 0
-	; save off ecx and ebx
+	; save off working registers
 	push	ebx
 	push	ecx
+	push	esi
 	; load particle data into registers
 	load_particle
 	push_step [step]
@@ -384,19 +387,22 @@ ptcInternalSpawnParticles:
 	call	[ebx + ptcEmitter.InternalPtr2]
 
 	; restore previous state
-	add		esp, 3 * 4
+	add		esp, 4 * 4
 	pop_step
 	; store new particle state
 	store_particle
-	; restore ecx and ebx
+	; restore working registers
+	pop		esi
 	pop		ecx
 	pop		ebx
-	add		esi, ptcParticle_size
 
 	advance_particle_ptr
+
 	dec		ecx
+	jecxz	.end
 	jmp		.find_spot
 
+.end:
 	pop		edi
 	pop		esi
 	pop		ebx
@@ -416,6 +422,14 @@ ptcInternalProcessParticles:
 	%arg		maxVertices:dword
 
 	enter   %$localsize, 0
+
+	push	ebx
+	push	esi
+	push	edi
+
+	pop		edi
+	pop		esi
+	pop		ebx
 
 	leave
 	ret
