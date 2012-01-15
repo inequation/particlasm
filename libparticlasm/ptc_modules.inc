@@ -19,9 +19,10 @@ extern memcpy
 ; NOTE: Spawning expects the FPU stack to be cleared (zeroed) so that values can
 ;       be placed in the registers by simple addition
 ; st0 - simulation step
-; st1 - ptcParticle.Time
-; st2 - ptcParticle.Rotation
-; st3 - ptcParticle.Size
+; st1 - ptcParticle.TimeScale
+; st2 - ptcParticle.Time
+; st3 - ptcParticle.Rotation
+; st4 - ptcParticle.Size
 ;
 ; xmm0 - simulation step (as a vector, i.e. [st0, st0, st0, st0])
 ; xmm1 - ptcParticle.Colour
@@ -57,10 +58,14 @@ mod_SimulatePre:
 	fld1
 	fcomip	st3
 	fwait
-	jle		.return
-	jmp		.end
-.return:
+	; if it's still < 1, skip to the end
+	jae		.end
+	; decrease particle counter
+	mov		edx, [ebx + ptcEmitter.NumParticles]
+	dec		edx;
+	mov		[ebx + ptcEmitter.NumParticles], edx
 	xor		edx, edx
+.return:
 	ret
 .end:
 mod_SimulatePre_size	equ	(mod_SimulatePre.end - mod_SimulatePre)
@@ -79,13 +84,13 @@ ret
 ; simulation module, postprocessing
 mod_SimulatePost:
 	; v += a * t
-	movups	xmm7, xmm3
-	mulps	xmm7, xmm4
-	addps	xmm2, xmm7
+	movaps	xmm7, xmm4
+	mulps	xmm7, xmm0
+	addps	xmm3, xmm7
 	; x += v * t
-	movups	xmm7, xmm2
-	mulps	xmm7, xmm4
-	addps	xmm1, xmm7
+	movaps	xmm7, xmm3
+	mulps	xmm7, xmm0
+	addps	xmm2, xmm7
 	ret
 .end:
 mod_SimulatePost_size	equ	(mod_SimulatePost.end - mod_SimulatePost)
@@ -223,7 +228,10 @@ mod_InitialRotationCompile:
 mod_InitialSizeSpawn:
 	; distribution code goes here
 	; move distribution result to target register
-	faddp st5, st0
+	fldz
+	fxch	st5, st0
+	fstp	st0
+	faddp	st5, st0
 .end:
 mod_InitialSizeSpawn_size	equ	(mod_InitialSizeSpawn.end - mod_InitialSizeSpawn)
 
@@ -538,17 +546,12 @@ mod_ColourCompile:
 	mov		ecx, [esp + 8]
 	mov		edi, [esp + 12]
 
-	; put the flags in the data buffer
-	mov		edx, [esi + ptcMod_Colour.Flags]
-	mov		[edi], edx
-
 	; save off ecx
 	push	ecx
 
 	; copy our pre-distribution code over
-	mov		edx, (mod_ColourProcess.predistr - mod_ColourProcess)
-	push	edx
-	push	dword mod_ColourProcess
+	push	dword (mod_ColourProcess.predistr - mod_ColourProcess)
+	push	mod_ColourProcess
 	push	ecx
 	call	memcpy
 	add		esp, 4 * 3
@@ -557,6 +560,9 @@ mod_ColourCompile:
 	pop		ecx
 	; fill in the read address
 	mov		[ecx + (mod_ColourProcess.predistr - mod_ColourProcess - 4)], edi
+	; put the flags in the data buffer
+	mov		edx, [esi + ptcMod_Colour.Flags]
+	mov		[edi], edx
 	; advance the pointers
 	add		ecx, (mod_ColourProcess.predistr - mod_ColourProcess)
 	add		edi, 4

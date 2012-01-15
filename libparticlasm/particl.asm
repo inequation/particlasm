@@ -77,6 +77,7 @@ MASK_ALPHA		dd	0x00000000
 	fld		dword [esi + ptcParticle.Size]
 	fld		dword [esi + ptcParticle.Rotation]
 	fld		dword [esi + ptcParticle.Time]
+	fld		dword [esi + ptcParticle.TimeScale]
 	movups	xmm1, [esi + ptcParticle.Colour]
 	movups	xmm2, [esi + ptcParticle.Location]
 	movups	xmm3, [esi + ptcParticle.Velocity]
@@ -85,10 +86,21 @@ MASK_ALPHA		dd	0x00000000
 
 ; stores particle data into memory; assumes pointer in esi
 %macro store_particle 0
-	movups	[esi + ptcParticle.Accel], xmm4
-	movups	[esi + ptcParticle.Velocity], xmm3
-	movups	[esi + ptcParticle.Location], xmm2
+	; our vectors are 12 bytes wide, so these stores require some SSE magic:
+	; first store the low order half of the register, then broadcast the 3rd
+	; float onto the entire register and store it as a scalar at an offset
+	movlps	[esi + ptcParticle.Accel], xmm4
+	shufps	xmm4, xmm4, 0xAA
+	movss	[esi + ptcParticle.Accel + 8], xmm4
+	movlps	[esi + ptcParticle.Velocity], xmm3
+	shufps	xmm3, xmm3, 0xAA
+	movss	[esi + ptcParticle.Velocity + 8], xmm3
+	movlps	[esi + ptcParticle.Location], xmm2
+	shufps	xmm3, xmm3, 0xAA
+	movss	[esi + ptcParticle.Location + 8], xmm2
+	; colour is 16 bytes wide, no magic required
 	movups	[esi + ptcParticle.Colour], xmm1
+	fstp	dword [esi + ptcParticle.TimeScale]
 	fstp	dword [esi + ptcParticle.Time]
 	fstp	dword [esi + ptcParticle.Rotation]
 	fstp	dword [esi + ptcParticle.Size]
@@ -275,7 +287,6 @@ ptcInternalCompileModule:
 	ret
 	%pop
 
-; arguments begin at esp+8
 ptcInternalSpawnParticles:
 	%push		ptcInternalSpawnParticlesContext
 	%stacksize	flat
@@ -326,15 +337,17 @@ ptcInternalSpawnParticles:
 	fld1
 	fld		dword [ebx + ptcEmitter.LifeTimeFixed]
 	fld		dword [ebx + ptcEmitter.LifeTimeRandom]
-	; save off ecx
+	; save off ecx and edx
 	push	ecx
+	push	edx
 	; need the function address and inverse RAND_MAX on the stack
 	push	dword INV_RAND_MAX
 	push	rand
 	push	0	; dummy value
 	frand	0
 	add		esp, 4 * 3
-	; restore ecx
+	; restore ecx and edx
+	pop		edx
 	pop		ecx
 	; st0=frand(), st1=LTR, st2=LTF, st3=1.0
 	fmulp	st1, st0
@@ -358,17 +371,14 @@ ptcInternalSpawnParticles:
 	mov		[esi + ptcParticle.Location], dword 0
 	mov		[esi + (ptcParticle.Location + 4)], dword 0
 	mov		[esi + (ptcParticle.Location + 8)], dword 0
-	mov		[esi + (ptcParticle.Location + 12)], dword 0
 	mov		[esi + ptcParticle.Rotation], dword 0
 	mov		dword [esi + ptcParticle.Size], eax
 	mov		[esi + ptcParticle.Velocity], dword 0
 	mov		[esi + (ptcParticle.Velocity + 4)], dword 0
 	mov		[esi + (ptcParticle.Velocity + 8)], dword 0
-	mov		[esi + (ptcParticle.Velocity + 12)], dword 0
 	mov		[esi + ptcParticle.Accel], dword 0
 	mov		[esi + (ptcParticle.Accel + 4)], dword 0
 	mov		[esi + (ptcParticle.Accel + 8)], dword 0
-	mov		[esi + (ptcParticle.Accel + 12)], dword 0
 	; save off working registers
 	push	ebx
 	push	ecx
@@ -385,6 +395,9 @@ ptcInternalSpawnParticles:
 
 	; call the spawn code
 	call	[ebx + ptcEmitter.InternalPtr2]
+
+	; mark as active
+	mov		edx, dword 1
 
 	; restore previous state
 	add		esp, 4 * 4
@@ -416,6 +429,8 @@ ptcInternalProcessParticles:
 	%stacksize	flat
 	%assign		%$localsize 0
 	%arg		emitter:dword
+	%arg		startPtr:dword
+	%arg		endPtr:dword
 	%arg		step:dword
 	%arg		cameraCS:dword
 	%arg		buffer:dword
@@ -427,9 +442,52 @@ ptcInternalProcessParticles:
 	push	esi
 	push	edi
 
+	; initialize pointers
+	mov		esi, [startPtr]
+	mov		edi, [endPtr]
+	mov		ebx, [emitter]
+
+	; kick off the loop
+.loop:
+	; save off working registers
+	push	ebx
+	push	ecx
+	push	esi
+	push	edi
+	; load particle data into registers
+	load_particle
+	push_step [step]
+	; load the pointers that we need
+	push	MASK_ALPHA
+	push	MASK_RGB
+	push	dword INV_RAND_MAX
+	push	rand
+	mov		ebx, [emitter]
+
+	; call the processing code
+	call	[ebx + ptcEmitter.InternalPtr3]
+
+	; restore previous state
+	add		esp, 4 * 4
+	pop_step
+	; store new particle state
+	store_particle
+	; restore working registers
+	pop		edi
+	pop		esi
+	pop		ecx
+	pop		ebx
+
+	; advance pointer
+	add		esi, ptcParticle_size
+	cmp		esi, edi
+	jl		.loop
+
 	pop		edi
 	pop		esi
 	pop		ebx
+
+	xor		eax, eax
 
 	leave
 	ret

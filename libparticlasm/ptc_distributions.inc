@@ -30,10 +30,10 @@ extern memcpy
 	; temp variable - the fild instruction needs to read from memory
 	push	eax
 	fild	dword [esp]
-	; load in the inverse RAND_MAX (add 4 to account for the push above)
-	fld		dword [esp + (12 + %1)]
-	; pop the rand() result off the stack
 	add		esp, 4
+	; load in the inverse RAND_MAX
+	fld		dword [esp + (8 + %1)]
+	; pop the rand() result off the stack
 	; rand() * (1.f / RAND_MAX)
 	fmulp	st1, st0
 %endmacro
@@ -83,13 +83,33 @@ sdistr_Uniform:
 .postrange0:
 	fld		dword [0xFFFFFFFF]	; range[1]; this address is filled upon compilation
 .postrange1:
+	; exchange the registers - FPU is stupid...
+	fxch	st1
+	; save off eax and edx
+	push	eax
+	push	edx
+	; temp variable
+	sub		esp, 4
+	; st1=range[1], st0=range[0]
 	; range[1] - range[0]
 	fsub	st1, st0
-	frand	0
+	; save range[0] to temp var
+	fstp	dword [esp]
+	; st0=range[1] - range[0]
+	fwait
+	frand	12
 	; multiply the range span by the random number
-	fmulp	st2, st0
+	; st0=frand(), st1=range[1] - range[0]
+	fmulp	st1, st0
 	; add the lower bound
+	; st0=frand() * (range[1] - range[0])
+	fld		dword [esp]
 	faddp	st1, st0
+	add		esp, 4
+	; restore eax and edx
+	pop		edx
+	pop		eax
+	; st0=distribution result
 .end:
 sdistr_Uniform_size		equ	(sdistr_Uniform.end - sdistr_Uniform)
 sdistr_UniformData_size	equ	8
@@ -193,22 +213,28 @@ vdistr_Uniform:
 	movups	xmm7, [0xFFFFFFFF]	; range[1]; this address is filled upon compilation
 .postrange1:
 	subps	xmm7, xmm6
+	; save off eax and edx
+	push	eax
+	push	edx
 	; get 3 random numbers and store them on the stack, leave one float of slack
 	; (oh, the rhyme!)
 	sub		esp, 4 * 4
-	frand 4 * 4
+	frand 4 * 6
 	fstp	dword [esp]
 	fwait
-	frand 4 * 4
+	frand 4 * 6
 	fstp	dword [esp + 4]
 	fwait
-	frand 4 * 4
+	frand 4 * 6
 	fstp	dword [esp + 8]
 	fwait
 	; load them into xmm
 	movups	xmm5, [esp]
 	; pop the temp variables off the stack
 	add		esp, 4 * 4
+	; restore eax and edx
+	pop		edx
+	pop		eax
 	mulps	xmm5, xmm7
 	addps	xmm5, xmm6
 .end:
@@ -316,6 +342,7 @@ vdistr_BicubicInterpCompile:
 
 cdistr_Constant:
 	movups	xmm6, [0xFFFFFFFF]	; val; this address is filled upon compilation
+.postval:
 	cdistr_mix
 .end:
 cdistr_Constant_size		equ	(cdistr_Constant.end - cdistr_Constant)
@@ -347,7 +374,7 @@ cdistr_ConstantCompile:
 	pop		ecx
 
 	; fix the movups instruction operand
-	mov		[ecx + cdistr_Constant.end - cdistr_Constant - 4], edi
+	mov		[ecx + cdistr_Constant.postval - cdistr_Constant - 4], edi
 
 	; advance the pointers
 	add		ecx, cdistr_Constant_size
@@ -365,6 +392,9 @@ cdistr_Uniform:
 	movups	xmm7, [0xFFFFFFFF]	; range[1]; this address is filled upon compilation
 .postrange1:
 	subps	xmm7, xmm6
+	; save off eax and edx
+	push	eax
+	push	edx
 	; reserve some space on the stack - we need to lay off the original colour
 	; as well as random floats
 	sub		esp, (4 * 4 * 2)
@@ -372,16 +402,16 @@ cdistr_Uniform:
 	movups	[esp], xmm5
 	; get 4 random numbers and store them on the stack, leave one float of slack
 	; (oh, the rhyme!)
-	frand 4 * 4 * 2
+	frand 4 * 4 * 2 + 4 * 2
 	fstp	dword [esp + 16]
 	fwait
-	frand 4 * 4 * 2
+	frand 4 * 4 * 2 + 4 * 2
 	fstp	dword [esp + 20]
 	fwait
-	frand 4 * 4 * 2
+	frand 4 * 4 * 2 + 4 * 2
 	fstp	dword [esp + 24]
 	fwait
-	frand 4 * 4 * 2
+	frand 4 * 4 * 2 + 4 * 2
 	fstp	dword [esp + 28]
 	fwait
 	; load the random numbers into xmm
@@ -390,9 +420,12 @@ cdistr_Uniform:
 	mulps	xmm5, xmm7
 	addps	xmm6, xmm5
 	; restore original colour in xmm5
-	movups	xmm5, [esp + 16]
+	movups	xmm5, [esp]
 	; pop the temp variables off the stack
 	add		esp, (4 * 4 * 2)
+	; restore eax and edx
+	pop		edx
+	pop		eax
 	; mix the colours
 	cdistr_mix
 .end:

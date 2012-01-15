@@ -21,9 +21,11 @@ Copyright (C) 2011, Leszek Godlewski <lg@inequation.org>
 	#define EXPORTDECL
 #endif
 
+// declaration of the assembly module size measuring function
 extern void ptcInternalMeasureModule(ptcModule *module,
 	uint32_t *spawnCodeBufLenPtr, uint32_t *processCodeBufLenPtr,
 	uint32_t *dataBufLenPtr);
+// declaration of the assembly module compilation function
 extern void ptcInternalCompileModule(ptcModule *module,
 	void **spawnCodeBufPtr, void **processCodeBufPtr,
 	void **dataBufPtr);
@@ -31,8 +33,9 @@ extern void ptcInternalCompileModule(ptcModule *module,
 extern void ptcInternalSpawnParticles(ptcEmitter *emitter, float step,
 	uint32_t count);
 // declaration of the assembly particle advancing function
-extern void ptcInternalProcessParticles(ptcEmitter *emitter, float step,
-	uint32_t count);
+extern uint32_t ptcInternalProcessParticles(ptcEmitter *emitter,
+	ptcParticle *startPtr, ptcParticle *endPtr, float step,
+	ptcVector cameraCS[3], ptcVertex *buffer, uint32_t maxVertices);
 
 
 uint32_t EXPORTDECL ptcCompileEmitter(ptcEmitter *emitter) {
@@ -130,18 +133,29 @@ uint32_t EXPORTDECL ptcCompileEmitter(ptcEmitter *emitter) {
 uint32_t EXPORTDECL ptcProcessEmitter(ptcEmitter *emitter, float step,
 		ptcVector cameraCS[3], ptcVertex *buffer, uint32_t maxVertices) {
 	float bursts;
-	int count;
+	uint32_t count;
 
 	emitter->SpawnTimer += step;
-	bursts = floorf(emitter->SpawnTimer * emitter->SpawnRate);
-	emitter->SpawnTimer -= bursts;
+	if (emitter->SpawnTimer > 0.f) {
+		bursts = floorf(emitter->SpawnTimer * emitter->SpawnRate);
+		emitter->SpawnTimer -= bursts;
+	} else
+		bursts = 0.f;
 
-	count = ((int)bursts * emitter->BurstCount)
-		% (emitter->MaxParticles - emitter->NumParticles);
-	if (count > 0)
+	count = (int)bursts * emitter->BurstCount;
+	if (count > emitter->MaxParticles - emitter->NumParticles)
+		count = emitter->MaxParticles - emitter->NumParticles;
+	if (count > 0) {
+		printf("libparticlasm: spawning a burst of %d particles\n", count);
 		ptcInternalSpawnParticles(emitter, step, count);
+	}
 
-	return 0;
+	// call the processing code
+	count = ptcInternalProcessParticles(emitter,
+		emitter->ParticleBuf, emitter->ParticleBuf + emitter->MaxParticles,
+		step, cameraCS, buffer, maxVertices);
+
+	return count;
 }
 
 uint32_t EXPORTDECL ptcReleaseEmitter(ptcEmitter *emitter) {
