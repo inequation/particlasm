@@ -96,7 +96,7 @@ MASK_ALPHA		dd	0x00000000
 	shufps	xmm3, xmm3, 0xAA
 	movss	[esi + ptcParticle.Velocity + 8], xmm3
 	movlps	[esi + ptcParticle.Location], xmm2
-	shufps	xmm3, xmm3, 0xAA
+	shufps	xmm2, xmm2, 0xAA
 	movss	[esi + ptcParticle.Location + 8], xmm2
 	; colour is 16 bytes wide, no magic required
 	movups	[esi + ptcParticle.Colour], xmm1

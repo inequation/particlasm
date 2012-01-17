@@ -18,7 +18,7 @@ size_t Fire(ptcEmitter **emitters) {
 	static ptcEmitter emit[2];
 
 	// fire emitter
-	emit[0].SpawnRate = 400.f;
+	emit[0].SpawnRate = 500.f;
 	emit[0].BurstCount = 15;
 	emit[0].LifeTimeFixed = 1;
 	emit[0].LifeTimeRandom = 1;
