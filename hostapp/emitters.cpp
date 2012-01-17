@@ -58,7 +58,7 @@ size_t Fire(ptcEmitter **emitters) {
 	initsize.Distr.Uniform.Range[1] = 6.f;
 
 	accel.Header.ModuleID = ptcMID_Acceleration;
-	accel.Header.Next = NULL;//(ptcModule *)&alpha;
+	accel.Header.Next = (ptcModule *)&alpha;
 	accel.Distr.Uniform.DistrID = ptcDID_Uniform;
 	accel.Distr.Uniform.Ranges[0][0] = 0.f;
 	accel.Distr.Uniform.Ranges[0][1] = -50.f;

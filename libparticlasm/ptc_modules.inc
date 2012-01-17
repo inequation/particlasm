@@ -524,7 +524,10 @@ mod_ColourSpawn:
 
 mod_ColourProcess:
 	; load colour flags
-	mov eax, [0xFFFFFFFF]	; filled upon compilation
+	mov		eax, [0xFFFFFFFF]	; filled upon compilation
+.postmov:
+	; load previous colour (colour distributions require this)
+	movaps	xmm5, xmm1
 .predistr:
 	; distribution code goes here
 .postdistr:
@@ -559,7 +562,7 @@ mod_ColourCompile:
 	; restore ecx
 	pop		ecx
 	; fill in the read address
-	mov		[ecx + (mod_ColourProcess.predistr - mod_ColourProcess - 4)], edi
+	mov		[ecx + (mod_ColourProcess.postmov - mod_ColourProcess - 4)], edi
 	; put the flags in the data buffer
 	mov		edx, [esi + ptcMod_Colour.Flags]
 	mov		[edi], edx
