@@ -9,20 +9,9 @@ Copyright (C) 2011, Leszek Godlewski <lg@inequation.org>
 #include <cmath>
 #include <algorithm>
 
-struct emitterData {
-	float	stepScale;
-	float	clock;
-	float	lastSpawnTime;
-
-	emitterData(float p) :
-		stepScale(1.f / p),
-		clock(0.f),
-		lastSpawnTime(0.f) {}
-};
-
 // forward declarations
 static float FRand();	// uniform distribution, range [0; 1]
-static bool SpawnParticle(ptcEmitter *e, bool advance, float step);
+static bool SpawnParticle(ptcEmitter *e);
 static float GetScalar(ptcScalarDistr *d, float t);
 static void GetVector(ptcVectorDistr *d, float t, ptcVector out);
 static void GetColour(ptcColourDistr *d, uint32_t flags, float t, ptcColour out);
@@ -136,19 +125,13 @@ uint32_t ref_ptcProcessEmitter(ptcEmitter *emitter, float step,
 		ptcVector cameraCS[3], ptcVertex *buffer, uint32_t maxVertices) {
 	// particle spawning
 	emitter->SpawnTimer += step;
-	float sp = 1.f / emitter->SpawnTimer;
-	bool sat = false;
-	while (emitter->SpawnTimer >= sp) {
-		emitter->SpawnTimer -= sp;
-		const bool advance = emitter->SpawnTimer >= sp;
-		// break on buffer saturation
-		for (size_t i = 0; i < emitter->BurstCount; ++i)
-			if ((sat = !SpawnParticle(emitter, advance, sp)))
-				break;
-		if (sat)
-			break;
-		//sp = 1.f / GetScalar(&emitter->SpawnRate, ed->clock);
-	}
+	size_t count = (size_t)floorf(emitter->SpawnTimer * emitter->SpawnRate);
+	emitter->SpawnTimer -= (float)count / emitter->SpawnRate;
+	count *= emitter->BurstCount;
+	if (count > emitter->MaxParticles - emitter->NumParticles)
+		count = emitter->MaxParticles - emitter->NumParticles;
+	for (size_t i = 0; i < count; ++i)
+		SpawnParticle(emitter);
 
 	// particle advancing
 	uint32_t verts = 0;
@@ -165,15 +148,13 @@ uint32_t ref_ptcProcessEmitter(ptcEmitter *emitter, float step,
 }
 
 void ref_ptcReleaseEmitter(ptcEmitter *emitter) {
-	emitterData *ed = static_cast<emitterData *>(emitter->InternalPtr1);
-	delete ed;
 }
 
 static float FRand() {
 	return (float)rand() / (float)RAND_MAX;
 }
 
-static bool SpawnParticle(ptcEmitter *e, bool advance, float step) {
+static bool SpawnParticle(ptcEmitter *e) {
 	if (e->NumParticles + 1 >= e->MaxParticles)
 		// no room to spawn particle
 		return false;
@@ -215,8 +196,6 @@ static bool SpawnParticle(ptcEmitter *e, bool advance, float step) {
 				break;
 		}
 	}
-	if (advance)
-		ProcessParticle(e, p, step, NULL, NULL);
 	return true;
 }
 

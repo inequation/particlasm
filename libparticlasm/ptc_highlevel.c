@@ -132,21 +132,16 @@ uint32_t EXPORTDECL ptcCompileEmitter(ptcEmitter *emitter) {
 // responsible for some high level organization
 uint32_t EXPORTDECL ptcProcessEmitter(ptcEmitter *emitter, float step,
 		ptcVector cameraCS[3], ptcVertex *buffer, uint32_t maxVertices) {
-	float bursts;
 	uint32_t count;
 
 	emitter->SpawnTimer += step;
-	if (emitter->SpawnTimer > 0.f) {
-		bursts = floorf(emitter->SpawnTimer * emitter->SpawnRate);
-		emitter->SpawnTimer -= bursts;
-	} else
-		bursts = 0.f;
-
-	count = (int)bursts * emitter->BurstCount;
+	count = (size_t)floorf(emitter->SpawnTimer * emitter->SpawnRate);
+	emitter->SpawnTimer -= (float)count / emitter->SpawnRate;
+	count *= emitter->BurstCount;
 	if (count > emitter->MaxParticles - emitter->NumParticles)
 		count = emitter->MaxParticles - emitter->NumParticles;
 	if (count > 0) {
-		printf("libparticlasm: spawning a burst of %d particles\n", count);
+		//printf("libparticlasm: spawning a burst of %d particles\n", count);
 		ptcInternalSpawnParticles(emitter, step, count);
 	}
 

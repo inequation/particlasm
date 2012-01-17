@@ -435,12 +435,16 @@ ptcInternalProcessParticles:
 	%arg		cameraCS:dword
 	%arg		buffer:dword
 	%arg		maxVertices:dword
+	%local		verts:dword
 
 	enter   %$localsize, 0
 
 	push	ebx
 	push	esi
 	push	edi
+
+	mov		ebx, [maxVertices]
+	mov		[verts], ebx
 
 	; initialize pointers
 	mov		esi, [startPtr]
@@ -478,16 +482,109 @@ ptcInternalProcessParticles:
 	pop		ecx
 	pop		ebx
 
-	; advance pointer
+	; skip vertex emitting if there's nothing to emit it for
+	test	edx, edx
+	jz		.cont
+
+	push	edi
+
+	; emit vertices
+	mov		edx, [maxVertices]
+	test	edx, edx
+	jz		.end
+	mov		edi, [buffer]
+	; just copy the colour into an xmm
+	movups	xmm7, [esi + ptcParticle.Colour]
+	; find the vertices of the particle
+	movups	xmm0, [esi + ptcParticle.Location]
+	; load in the particle size and broadcast it to all components
+	movss	xmm3, [esi + ptcParticle.Size]
+	shufps	xmm3, xmm3, 0x00
+	; load in 0.5 and broadcast it to all components
+	push	dword 0x3F000000
+	movss	xmm4, [esp]
+	add		esp, 4
+	shufps	xmm4, xmm4, 0x00
+	; load in the camera coordinate system
+	push	esi
+	mov		esi, [cameraCS]
+	movups	xmm1, [esi + 3 * 4]
+	movups	xmm2, [esi + 6 * 4]
+	pop		esi
+	; multiply by particle size and 0.5
+	mulps	xmm1, xmm3
+	mulps	xmm1, xmm4
+	mulps	xmm2, xmm3
+	mulps	xmm2, xmm4
+	; at this point we have:
+	; xmm0 - particle location (centre)
+	; xmm1 - right camera vector * particle size * 0.5
+	; xmm2 - up camera vector * particle size * 0.5
+	; use these to calc the different vertices into xmm3
+	; vertex 1 = location + right + up
+	movaps	xmm3, xmm0
+	addps	xmm3, xmm1
+	addps	xmm3, xmm2
+	; vertex 2 = location - right + up
+	movaps	xmm4, xmm0
+	subps	xmm4, xmm1
+	addps	xmm4, xmm2
+	; vertex 3 = location - right - up
+	movaps	xmm5, xmm0
+	subps	xmm5, xmm1
+	subps	xmm5, xmm2
+	; vertex 4 = location + right - up
+	movaps	xmm6, xmm0
+	addps	xmm6, xmm1
+	subps	xmm6, xmm2
+
+	; save vertex data
+	movups	[edi + ptcVertex_size * 0 + ptcVertex.Colour], xmm7
+	movlps	[edi + ptcVertex_size * 0 + ptcVertex.Location], xmm3
+	shufps	xmm3, xmm3, 0xAA
+	movss	[edi + ptcVertex_size * 0 + ptcVertex.Location + 8], xmm3
+	mov		[edi + ptcVertex_size * 0 + ptcVertex.TexCoords], word 1
+	mov		[edi + ptcVertex_size * 0 + ptcVertex.TexCoords + 2], word 0
+
+	movups	[edi + ptcVertex_size * 1 + ptcVertex.Colour], xmm7
+	movlps	[edi + ptcVertex_size * 1 + ptcVertex.Location], xmm4
+	shufps	xmm4, xmm4, 0xAA
+	movss	[edi + ptcVertex_size * 1 + ptcVertex.Location + 8], xmm4
+	mov		[edi + ptcVertex_size * 1 + ptcVertex.TexCoords], word 0
+	mov		[edi + ptcVertex_size * 1 + ptcVertex.TexCoords + 2], word 0
+
+	movups	[edi + ptcVertex_size * 2 + ptcVertex.Colour], xmm7
+	movlps	[edi + ptcVertex_size * 2 + ptcVertex.Location], xmm5
+	shufps	xmm5, xmm5, 0xAA
+	movss	[edi + ptcVertex_size * 2 + ptcVertex.Location + 8], xmm5
+	mov		[edi + ptcVertex_size * 2 + ptcVertex.TexCoords], word 0
+	mov		[edi + ptcVertex_size * 2 + ptcVertex.TexCoords + 2], word 1
+
+	movups	[edi + ptcVertex_size * 3 + ptcVertex.Colour], xmm7
+	movlps	[edi + ptcVertex_size * 3 + ptcVertex.Location], xmm6
+	shufps	xmm6, xmm6, 0xAA
+	movss	[edi + ptcVertex_size * 3 + ptcVertex.Location + 8], xmm6
+	mov		[edi + ptcVertex_size * 3 + ptcVertex.TexCoords], word 1
+	mov		[edi + ptcVertex_size * 3 + ptcVertex.TexCoords + 2], word 1
+
+	; advance pointers
+	sub		edx, 4
+	mov		[maxVertices], edx
+	add		edi, ptcVertex_size * 4
+	mov		[buffer], edi
+	pop		edi
+.cont:
 	add		esi, ptcParticle_size
 	cmp		esi, edi
 	jl		.loop
 
-	pop		edi
-	pop		esi
-	pop		ebx
+.end:
+	mov		ebx, [maxVertices]
+	mov		eax, [verts]
+	sub		eax, ebx
 
-	xor		eax, eax
+	pop		edi
+	pop		ebx
 
 	leave
 	ret

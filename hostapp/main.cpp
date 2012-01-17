@@ -21,6 +21,7 @@
 #include <GL/glu.h>
 #include <SDL/SDL.h>
 #include <dlfcn.h>
+#include <ctime>
 
 // particlasm functions
 #include "../libparticlasm/libparticlasm.h"
@@ -90,7 +91,7 @@ float timescale = 1.f;
 size_t ptc_nemitters;
 ptcEmitter *ptc_emitters;
 volatile size_t ptc_nvertices;
-ptcParticle ptc_particles[10000];
+ptcParticle ptc_particles[MAX_PARTICLES];
 ptcVertex ptc_vertices[sizeof(ptc_particles) / sizeof(ptc_particles[0]) * 4];
 
 extern size_t Fire(ptcEmitter **emitters);
@@ -437,6 +438,9 @@ int main( int argc, char **argv )
     const SDL_VideoInfo *videoInfo;
     /* whether or not the window is active */
     int isActive = TRUE;
+
+	// initialize random number generator
+	srand((unsigned int)time(NULL));
 
     /* initialize SDL */
     if ( SDL_Init( SDL_INIT_VIDEO ) < 0 )
