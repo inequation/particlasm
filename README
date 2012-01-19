@@ -1,6 +1,23 @@
-particlasm - a modular, data-driven particle system written in x86 assembly written as a university assignment
+particlasm - a modular, data-driven particle system written in x86 assembly
 Written by Leszek Godlewski
 
-Particlasm is being developed using Code::Blocks. The workspace consists of two projects:
-* libparticlasm - the actual library, written in x86 assembly plus some high-level multithreading glue in C + OpenMP,
-* hostapp - the host application, based on Lesson 19 from NeHe Productions (http://nehe.gamedev.net/tutorial/particle_engine_using_triangle_strips/21001/), and a reference implementation of libparticlasm written in C++.
+This is a nifty little project I've written as university assignment. Inspired by Unreal
+Cascade (Unreal Engine 3's particle system editor), it combines the artist-friendly
+concept of particle-processing modules with a blazing-fast implementation.
+
+Processing speed is achieved by compiling the predefined emitter modules into two
+contiguous buffers of native machine code and a contiguous data buffer, thus removing
+most of the usual function calling overhead, significantly reducing memory access counts
+(most of the time all the necessary data fits in the registers) and practically
+eliminating cache misses. The design also displays potential for some awesome
+parallelization.
+
+Particlasm is being developed using Code::Blocks. The workspace consists of three
+projects:
+
+* libparticlasm - the actual library, written in x86 assembly plus some high-level glue
+  in C, plus a reference implementation of the engine written in C++
+* hostapp - the host application, based on Lesson 19 from NeHe Productions
+  (http://nehe.gamedev.net/tutorial/particle_engine_using_triangle_strips/21001/),
+* headless - a headless (i.e. no rendering, just plain particle processing) application
+  for benchmarking particlasm implementations.

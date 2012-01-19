@@ -1,6 +1,6 @@
 /**
 particlasm API header
-Copyright (C) 2011, Leszek Godlewski <lg@inequation.org>
+Copyright (C) 2011-2012, Leszek Godlewski <lg@inequation.org>
 
 This file is also used for automatic NASM declaration generation (see the
 gen_asm_decls.py script).

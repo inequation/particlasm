@@ -1,6 +1,6 @@
 /*
 particlasm reference C++ implementation
-Copyright (C) 2011, Leszek Godlewski <lg@inequation.org>
+Copyright (C) 2011-2012, Leszek Godlewski <lg@inequation.org>
 */
 
 #include "libparticlasm.h"
@@ -16,6 +16,9 @@ static float GetScalar(ptcScalarDistr *d, float t);
 static void GetVector(ptcVectorDistr *d, float t, ptcVector out);
 static void GetColour(ptcColourDistr *d, uint32_t flags, float t, ptcColour out);
 
+#ifdef __cplusplus
+extern "C"
+#endif
 uint32_t ref_ptcCompileEmitter(ptcEmitter *emitter) {
 	emitter->NumParticles = 0;
 	memset(emitter->ParticleBuf, 0, sizeof(ptcParticle) * emitter->MaxParticles);
@@ -121,6 +124,9 @@ static inline bool ProcessParticle(ptcEmitter *emitter, ptcParticle *p,
 	return true;
 }
 
+#ifdef __cplusplus
+extern "C"
+#endif
 uint32_t ref_ptcProcessEmitter(ptcEmitter *emitter, float step,
 		ptcVector cameraCS[3], ptcVertex *buffer, uint32_t maxVertices) {
 	// particle spawning
@@ -147,6 +153,9 @@ uint32_t ref_ptcProcessEmitter(ptcEmitter *emitter, float step,
 	return verts;
 }
 
+#ifdef __cplusplus
+extern "C"
+#endif
 void ref_ptcReleaseEmitter(ptcEmitter *emitter) {
 }
 

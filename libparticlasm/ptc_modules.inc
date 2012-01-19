@@ -1,5 +1,5 @@
 ; particlasm modules code
-; Copyright (C) 2011, Leszek Godlewski <lg@inequation.org>
+; Copyright (C) 2011-2012, Leszek Godlewski <lg@inequation.org>
 
 %ifndef PTC_MODULES
 %define PTC_MODULES

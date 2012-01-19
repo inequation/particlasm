@@ -1,5 +1,5 @@
 # libparticlasm makefile
-# Copyright (C) 2011, Leszek Godlewski <lg@ineqution.org>
+# Copyright (C) 2011-2012, Leszek Godlewski <lg@ineqution.org>
 
 # =============================================================================
 # Configuration

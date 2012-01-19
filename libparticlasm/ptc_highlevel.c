@@ -1,6 +1,6 @@
 /*
 particlasm threads module
-Copyright (C) 2011, Leszek Godlewski <lg@inequation.org>
+Copyright (C) 2011-2012, Leszek Godlewski <lg@inequation.org>
 */
 
 #include <stdio.h>

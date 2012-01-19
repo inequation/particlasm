@@ -1,5 +1,5 @@
 ; particlasm main module
-; Copyright (C) 2011, Leszek Godlewski <lg@inequation.org>
+; Copyright (C) 2011-2012, Leszek Godlewski <lg@inequation.org>
 
 ; we're targeting a 32-bit Pentium M
 bits 32

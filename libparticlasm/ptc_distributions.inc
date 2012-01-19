@@ -1,5 +1,5 @@
 ; particlasm value distributions code
-; Copyright (C) 2011, Leszek Godlewski <lg@inequation.org>
+; Copyright (C) 2011-2012, Leszek Godlewski <lg@inequation.org>
 
 %ifndef PTC_DISTRIBUTIONS
 %define PTC_DISTRIBUTIONS

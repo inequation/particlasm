@@ -32,10 +32,10 @@ PFNPTCRELEASEEMITTER	ptcReleaseEmitter;
 //#define USE_CPP_REFERENCE_IMPLEMENTATION
 
 #ifdef USE_CPP_REFERENCE_IMPLEMENTATION
-extern PTC_ATTRIBS unsigned int ref_ptcCompileEmitter(ptcEmitter *emitter);
-extern PTC_ATTRIBS uint32_t ref_ptcProcessEmitter(ptcEmitter *emitter,
+extern "C" PTC_ATTRIBS unsigned int ref_ptcCompileEmitter(ptcEmitter *emitter);
+extern "C" PTC_ATTRIBS uint32_t ref_ptcProcessEmitter(ptcEmitter *emitter,
 	float step, ptcVector cameraCS[3], ptcVertex *buffer, uint32_t maxVertices);
-extern PTC_ATTRIBS void ref_ptcReleaseEmitter(ptcEmitter *emitter);
+extern "C" PTC_ATTRIBS void ref_ptcReleaseEmitter(ptcEmitter *emitter);
 #else
 void *libparticlasmHandle = NULL;
 #endif // USE_CPP_REFERENCE_IMPLEMENTATION
@@ -94,7 +94,7 @@ volatile size_t ptc_nvertices;
 ptcParticle ptc_particles[MAX_PARTICLES];
 ptcVertex ptc_vertices[sizeof(ptc_particles) / sizeof(ptc_particles[0]) * 4];
 
-extern size_t Fire(ptcEmitter **emitters);
+extern "C" size_t Fire(ptcEmitter **emitters);
 
 GLuint texture[1];     /* Storage For Our Particle Texture                   */
 

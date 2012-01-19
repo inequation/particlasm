@@ -2,6 +2,9 @@
 #include "../libparticlasm/libparticlasm.h"
 
 // returns an array of emitter definitions for the fire effect
+#ifdef __cplusplus
+extern "C"
+#endif
 size_t Fire(ptcEmitter **emitters) {
 	static ptcMod_InitialVelocity initvel;
 	static ptcMod_InitialColour initcol;
