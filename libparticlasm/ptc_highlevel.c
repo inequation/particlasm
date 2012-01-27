@@ -21,23 +21,49 @@ Copyright (C) 2011-2012, Leszek Godlewski <lg@inequation.org>
 	#define EXPORTDECL
 #endif
 
-// declaration of the assembly module size measuring function
+/// Internal assembly module size measuring procedure. Increases the counters
+/// pointed at with the sizes of the corresponding buffers.
+///	\param	module					module to measure
+/// \param	spawnCodeBufLenPtr		pointer to spawn code buffer length
+/// \param	processCodeBufLenPtr	pointer to processing code buffer length
+/// \param	dataBufLenPtr			pointer to spawn code buffer length
 extern void ptcInternalMeasureModule(ptcModule *module,
 	uint32_t *spawnCodeBufLenPtr, uint32_t *processCodeBufLenPtr,
 	uint32_t *dataBufLenPtr);
-// declaration of the assembly module compilation function
+
+/// Internal assembly module compilation procedure. Puts the resulting code and
+/// data in the indicated buffers and advances the indicated pointers.
+/// \param	module					module whose code will be compiled
+/// \param	spawnCodeBufPtr			pointer to a pointer to the spawn code buffer, will be advanced by the compiler
+/// \param	processCodeBufPtr		pointer to a pointer to the processing code buffer, will be advanced by the compiler
+/// \param	dataBufPtr				pointer to a pointer to the data buffer, will be advanced by the compiler
 extern void ptcInternalCompileModule(ptcModule *module,
 	void **spawnCodeBufPtr, void **processCodeBufPtr,
 	void **dataBufPtr);
-// declaration of the assembly particle spawning function
+
+/// Internal particle spawning procedure. Performs the control logic and calls
+/// the spawn code buffer accordingly.
+/// \param	emitter					emitter to process
+/// \param	step					simulation step time
+/// \param	count					number of particles to spawn
 extern void ptcInternalSpawnParticles(ptcEmitter *emitter, float step,
 	uint32_t count);
-// declaration of the assembly particle advancing function
+
+/// Internal particle processing procedure. Performs the control logic and calls
+/// the processing code buffer accordingly, emitting vertices to the given
+/// buffer.
+/// \param	emitter					emitter to process
+/// \param	startPtr				pointer to the start of the particle buffer segment to process
+/// \param	endPtr					pointer to just beyond the end of the particle buffer segment to process
+/// \param	step					simulation step time
+/// \param	cameraCS				camera coordinate system - 3 unit-length vectors: forward, right and up
+/// \param	buffer					buffer to emit vertices to
+/// \param	maxVertices				maximum number of vertices to emit
 extern uint32_t ptcInternalProcessParticles(ptcEmitter *emitter,
 	ptcParticle *startPtr, ptcParticle *endPtr, float step,
 	ptcVector cameraCS[3], ptcVertex *buffer, uint32_t maxVertices);
 
-
+/// \sa PFNPTCCOMPILEEMITTER
 uint32_t EXPORTDECL ptcCompileEmitter(ptcEmitter *emitter) {
 	ptcModule	*m;
 	uint32_t	spawnCodeBufLen = 0,
@@ -130,6 +156,7 @@ uint32_t EXPORTDECL ptcCompileEmitter(ptcEmitter *emitter) {
 
 // entry point to the particle processing routine
 // responsible for some high level organization
+/// \sa PFNPTCPROCESSEMITTER
 uint32_t EXPORTDECL ptcProcessEmitter(ptcEmitter *emitter, float step,
 		ptcVector cameraCS[3], ptcVertex *buffer, uint32_t maxVertices) {
 	uint32_t count;
@@ -153,6 +180,7 @@ uint32_t EXPORTDECL ptcProcessEmitter(ptcEmitter *emitter, float step,
 	return count;
 }
 
+/// \sa PFNPTCRELEASEEMITTER
 uint32_t EXPORTDECL ptcReleaseEmitter(ptcEmitter *emitter) {
 	free(emitter->InternalPtr1);
 	munmap(emitter->InternalPtr2, 0);

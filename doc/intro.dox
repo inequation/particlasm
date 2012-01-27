@@ -1,0 +1,40 @@
+/**
+\page intro Introduction
+\section assumptions Basic project goals
+-	an engine producing data available for instant use in OpenGL without any
+	addtional preprocessing
+-	potential for parallel computing
+-	extensive utilization of SSE instructions (3D vector calculations)
+-	form of a Linux shared library
+-	a simple C++ application for visualization of results
+
+\section desc Description
+As an avid, both hobbyist and professional game developer, I decided to write
+a particle system engine for my assembly programming project. Inspired by Unreal
+Cascade (Unreal Engine 3's particle system editor), it combines the
+non-technical artist-friendly concept of emitters as stacks of
+particle-processing modules with a blazing-fast implementation.
+
+Processing speed is achieved by compiling the predefined emitter modules into
+two contiguous buffers of native machine code and a contiguous data buffer, thus
+removing most of the usual function calling overhead, significantly reducing
+memory access counts (most of the time all the necessary data fits in the
+registers) and practically eliminating cache misses. The design also displays
+great potential for parallelization.
+
+Particlasm has been developed using Code::Blocks and NASM. The workspace
+consists of four C::B projects:
+
+-	\b libparticlasm - the actual library, written in x86 assembly plus some
+	high-level glue in C, plus a reference implementation of the engine written
+	in C++,
+-	\b hostapp - the host application, based on <a
+	href="http://nehe.gamedev.net/tutorial/particle_engine_using_triangle_strips/21001/">
+	Lesson 19 from NeHe	Productions</a>,
+-	\b headless - a headless (i.e. no rendering, no GUI, just plain particle
+	processing) application for benchmarking particlasm implementations.
+
+Next: \ref arch
+
+Previous: \ref mainpage "Table of contents"
+**/

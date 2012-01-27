@@ -1,0 +1,24 @@
+/**
+\mainpage particlasm
+\anchor mainpage
+
+<center>
+<h2>A modular, data-driven particle system written in x86 assembly</h2>
+http://github.com/inequation/particlasm
+
+<h2>Project in Assembly Programming</h2>
+</center>
+\date Gliwice, January 26, 2012
+\author Leszek Godlewski <leszgod081@student.polsl.pl>\n
+Computer Science, sem. V, gr. I, section I\n
+Faculty of Automatic Control, Electronics and Computer Science\n
+Silesian University of Technology\n
+
+\section toc Table of contents
+-# \subpage intro
+-# \subpage arch
+-# \subpage extern_spec
+-# \subpage intern_spec
+-# \subpage testing
+-# \subpage conclusions
+**/

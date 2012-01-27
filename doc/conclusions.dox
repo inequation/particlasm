@@ -1,0 +1,42 @@
+/**
+\page conclusions Conclusions
+This project has been of great educational value to me. I have extended my
+knowledge about x86 processors and solved some uncanny problems:
+
+-	NASM producing incorrect local variable access instructions due to incorrect
+	stack addressation settings
+	-	was using small stack model instead of flat
+-	OS preventing me from running code from malloc()-ed memory
+	-	heap memory pages are marked as non-executable, had to allocate my own
+		using mmap() with correct flags
+-	moving 3-component vectors to and from XMM registers
+	- I split the operation into 3 instructions:
+		-	move the low-order 2 components (movhlps)
+		-	broadcast the second-highest-order component to all other components
+			(shufps)
+		-	move the lowest-order component (movss)
+-	debugging assembly code in gdb is a tedious task
+	-	I have yet to find a solution for this one.
+
+And even though the assembly implementation gives a significant performance
+boost, there is still room for improvement:
+
+-	some redundant register transfers could be removed with clever macro tricks
+-	stack usage could be removed altogether in some places
+-	some FPU code could be rewritten to use SSE instead
+-	data and stack could be aligned to 16 bytes instead of 4 for improved SSE
+	transfers (movaps versus movups)
+-	calls to rand() could be replaced by an inline version of the function
+-	parallelization could be coded in, since the project is mostly ready for it.
+
+Also, the code is currently not very portable - it is tailored for Linux
+specifically. A Windows port should not be a time-consuming task, though.
+
+I've overcome and fixed a lot of other bugs, most of them being results of
+my own negligence or clumsiness; but I also found out a few things I didn't
+know. I've also become convinced that assembly can be the right tool to
+accomplish some tasks; it comes at a price, though, of a steep learning curve
+and high-maintenance, hardly portable (between hardware platforms) code.
+
+Previous: \ref testing
+**/

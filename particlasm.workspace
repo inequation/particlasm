@@ -5,6 +5,7 @@
 			<Depends filename="libparticlasm/libparticlasm.cbp" />
 		</Project>
 		<Project filename="libparticlasm/libparticlasm.cbp" />
-		<Project filename="headless/headless.cbp" active="1" />
+		<Project filename="headless/headless.cbp" />
+		<Project filename="doc/doc.cbp" active="1" />
 	</Workspace>
 </CodeBlocks_workspace_file>

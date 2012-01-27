@@ -1,0 +1,14 @@
+/**
+\page extern_spec External specification
+The result of the project is a library with a C API. The functions to load from
+the shared library are:
+-	\b ptcCompileEmitter (\ref PFNPTCCOMPILEEMITTER pointer type),
+-	\b ptcProcessEmitter (\ref PFNPTCPROCESSEMITTER),
+-	and \b ptcReleaseEmitter (\ref PFNPTCRELEASEEMITTER).
+
+Please see \ref libparticlasm.h for details.
+
+Next: \ref intern_spec
+
+Previous: \ref arch
+**/

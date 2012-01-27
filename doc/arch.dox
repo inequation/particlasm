@@ -1,0 +1,96 @@
+/**
+\page arch Architecture
+\section modularity Modularity
+The engine has been designed around the concept of \b modules, inspired by
+<a href="http://udn.epicgames.com/Three/CascadeUserGuide.html">Unreal
+Cascade</a>. Making an analogy to DSP effects, a single particle corresponds to
+the signal, which gets its characteristics (acceleration, velocity, colour etc.)
+altered and modified by the effects (modules) in the chain. A single module
+stack is called an \b emitter. The modules can interact with the particle in two
+ways over its lifetime: either once, when the particle is created \b (spawned),
+or continuously on \b every \b consecutive \b simulation \b frame, until the
+particle dies. Of course, modules are also allowed to use both ways.
+
+Module variable values are controlled using \b distributions - a group of data
+types that provide flexibility by allowing for constant values, random values
+within a range, values interpolated along a curve, and values driven by
+parameters.
+
+Such design provides flexibility and makes the engine fall under the data-driven
+category.
+
+\image html cascade.jpg Fig. 1 - Unreal Cascade
+
+\section perfissues Performance issues
+I started the project by writing a reference implementation in C++. While
+functionality was achieved very quickly, performance issues have rapidly become
+evident. Considering the number of particles present in an average game scene
+(several thousand instances at the same time is quite a common sight), a look at
+the main processing loop brings immediate attention to several potential
+problems:
+
+\include perfsnip.cpp
+
+These problems are:
+
+-	excessive amount of function calls
+	-	could possibly, but not necessarily be addressed by inlining
+-	excessive number of dereferences
+	-	could be partially addressed
+-	interleaving memory accesses - to the particle structure and to the module
+	description structure - due to data fragmentation
+	-	not so easy to address in high-level languages
+-	lack of explicit vectorization (SSE instructions)
+	-	automatic vectorization by the compiler may not be successful due to the
+		usage of 3-component vectors
+
+Even a superficial analysis with a basic understanding of modern CPU
+architecture leaves no doubt that this program will suffer from frequent cache
+misses.
+
+\section dop Data-oriented programming
+In order to reduce the performance hit coming from the above, I stuck to the
+paradigm of \b data-oriented \b programming, which basically means awareness of
+the \b topology \b and \b statistics \b of \b the \b data, as well as \b CPU
+\b architecture.
+
+Modern CPUs are designed for \b pipelining, so I aimed for a pipeline-friendly
+design. This comes with the additional benefit of parallelization potential.
+I also made keeping the data \b and code contiguous my priority - this helps
+keep the dereference and call counts low.
+
+\section app Application of theory
+In order to achieve contiguity of code and data, I decided to simply \b compile
+the modules of an emitter stack into \b native \b code \b blocks. Memory
+allocations are made in the high-level library glue and then the assembly simply
+copies and pastes code templates and fills in the blanks (instruction
+operands - addresses). After the compilation step, two ready-to-execute native
+machine code blobs are available - one for particle spawning, and one for the
+per-frame processing.
+
+Each module described in the C header file has an assembly code template; so
+does every type of distribution. These templates are pasted into the destination
+buffer at the right place. All user-input data (distribution and module
+parameters) is copied from the module structure into a dedicated, contiguous
+buffer. After a code template is copied, address instruction operands are filled
+with the proper addresses of data instances from the aforementioned buffer.
+Every emitter's processing code gets injected with a "built-in" predefined
+simulation preprocessing module at start, which handles the particle's life span
+(i.e. kills it once it has exceeded its life time), and gets a postprocessing
+one appended at the end, responsible for advancing the particle's kinematics.
+
+All of the module code templates share a certain "calling convention", which
+enables the above architecture of copy-pasting the modules together
+back-to-back - it is guaranteed that the given elements of the particle instance
+data will always reside in the given CPU registers (memory usage is discouraged
+and is treated as a last resort when register file space runs out) at the module
+seams. This allowed me to simplify the control logic down to an elementary
+procedure of loading the particle data into registers, calling the processing
+code and writing the data back into memory.
+
+\image html calling.png Fig. 2 - Module calling convention
+
+Next: \ref extern_spec
+
+Previous: \ref intro
+**/

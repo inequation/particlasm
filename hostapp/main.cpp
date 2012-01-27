@@ -81,7 +81,7 @@ void FreeParticlasm() {
 #define FALSE 0
 
 /* Max number of particles */
-#define MAX_PARTICLES 10000
+#define MAX_PARTICLES 8000
 
 /* This is our SDL surface */
 SDL_Surface *surface;

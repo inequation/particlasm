@@ -1,0 +1,8 @@
+/**
+\page intern_spec Internal specification
+Please see \ref ptc_highlevel.c for the internal API of the library.
+
+Next: \ref testing
+
+Previous: \ref extern_spec
+**/

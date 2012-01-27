@@ -1,0 +1,72 @@
+/**
+\page testing Testing
+The testing was performed using a simple emitter, stylized as a fire. Its
+settings are as follows:
+
+-	spawn rate: 500 bursts/second
+-	burst count: 15 particles/burst
+	-	effective spawn rate: 7500 particles/second
+-	life time: random, from 1 to 2 seconds
+
+These settings should provide about 10,000 particles at any given time in the
+simulation.
+
+The test environment was as follows:
+-	hardware:
+	-	single-core Intel Pentium M CPU at 1.5 GHz, 2 MB of Cache
+	-	1536 MB of SDRAM
+	-	integrated Intel 915GM GPU
+-	software:
+	-	Debian Linux, kernel 3.1.0-1-686-pae #1 SMP
+	-	X.org 7.6 X11 server
+	-	xf86-video-intel 2.17.0 driver
+	-	libgl1-mesa-dri 7.11.2 DRI driver
+
+\section hostapp Renderer host application results
+The host application is configured to run with an 8,000 particle buffer (the
+library will simply cease spawning new particles if there is not enough room
+left in the buffer). Average results for a 30 seconds run are as follows:
+
+-	C++ reference implementation: \b 7.766 \b frames \b per \b second
+-	assembly implementation: \b 25.300 \b frames \b per \b second
+
+Of course, more is better. Average performance gain from using assembly is \b
+3.258 \b times.
+
+However, we must take into consideration the fact that the renderer introduces
+significant overhead due to an exceptionally poor-performing GPU and its
+drivers. This is why I've created another application to measure particle
+processing speed alone.
+
+\section headless Headless benchmark results
+This application runs in a headless mode (i.e. no X11 server running, console
+mode only) in order to minimize the influence of other processes, creating a
+particle buffer of size specified as a command line parameter. I set the
+application to run a constant number of frames, assuming a constant simulation
+time step. Such perfect conditions never take place in reality, but I simulate
+them in order to give both implementations a fair measurement. The values are
+derived from the settings of \b 30 \b seconds worth of frames at a framerate of
+\b 60 \b FPS.
+
+I've compared the performance of both implementations at buffer sizes from 1,000
+to 30,000, measuring in 1,000 steps. The results are as follows:
+
+-	C++ reference implementation average time per frame: \b 2.825 \b milliseconds
+-	assembly implementation average time per frame: \b 0.586 \b milliseconds
+
+Here, less is better. Average performance gain from using assembly is \b 4.850
+\b times.
+
+Below is a plot of the processing times by buffer sizes. Note the inflection
+points - they denote the point at which the buffer is large enough to accomodate
+all the particles at all times. It is offset in the C++ implementation by its
+performance hit. The grow factor that remains beyond the inflection points
+results from the idle buffer traversal overhead. The performance gain from
+assembly is clearly visible.
+
+\image html plot.png Fig. 3 - Particle processing times by implementation
+
+Next: \ref conclusions
+
+Previous: \ref intern_spec
+**/
