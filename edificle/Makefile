@@ -13,9 +13,9 @@ MKDIR_P = mkdir -p
 # path to the C++ compiler
 CXX = g++
 # additional CXX flags
-CXXFLAGS = -fPIC -Wall -Wextra -mfpmath=sse
+CXXFLAGS = -fPIC -Wall -Wextra -msse -mfpmath=sse -std=gnu++0x
 # additional linker flags
-LINKERFLAGS =
+LDFLAGS =
 # debug dist directory
 DEBUG_DIST_DIR = ../bin/Debug
 # release dist directory
@@ -28,25 +28,32 @@ EXEC_EXT =
 # End of configuration
 # =============================================================================
 
-SOURCES = main.cpp
+SOURCES=main.cpp MainFrame.cpp
+OBJECTS=$(SOURCES:.cpp=.o)
 
 all: release
 
-clean:
-	rm -f *.o
+clean: cleandebug cleanrelease
+
+cleanrelease:
+	rm -f *.o $(RELEASE_DIST_DIR)/edificle$(EXEC_EXT)
+
+cleandebug:
+	rm -f *.o $(DEBUG_DIST_DIR)/edificle$(EXEC_EXT)
 
 # recursively call make with proper flags
 release:
-	$(MAKE) edificle CXXFLAGS="$(CFLAGS) -O3" LINKERFLAGS="$(LINKERFLAGS) -S" WX_CXXFLAGS="`wx-config  --version=2.8 --static=no --unicode=yes --debug=no --cflags`" WX_LINKERFLAGS="`wx-config  --version=2.8 --static=no --unicode=yes --debug=no --libs`"
 	$(MKDIR_P) $(RELEASE_DIST_DIR)
-	mv edificle$(EXT) $(RELEASE_DIST_DIR)
+	$(MAKE) $(RELEASE_DIST_DIR)/edificle$(EXEC_EXT) DIST_DIR="$(RELEASE_DIST_DIR)/"  CXXFLAGS="$(CXXFLAGS) -O3" LDFLAGS="$(LDFLAGS) -s -O3 --relax" WX_CXXFLAGS="`wx-config  --version=2.8 --static=no --unicode=yes --debug=no --cflags`" WX_LDFLAGS="`wx-config  --version=2.8 --static=no --unicode=yes --debug=no --libs`"
+	mv edificle$(EXEC_EXT) $(RELEASE_DIST_DIR)
 
 # recursively call make with proper flags
 debug:
-	$(MAKE) edificle CXXFLAGS="$(CFLAGS) -O0 -g" LINKERFLAGS="$(LINKERFLAGS)" WX_CXXFLAGS="`wx-config  --version=2.8 --static=no --unicode=yes --debug=yes --cflags`" WX_LINKERFLAGS="`wx-config  --version=2.8 --static=no --unicode=yes --debug=yes --libs`"
 	$(MKDIR_P) $(DEBUG_DIST_DIR)
-	mv edificle$(EXT) $(DEBUG_DIST_DIR)
+	$(MAKE) $(DEBUG_DIST_DIR)/edificle$(EXEC_EXT) DIST_DIR="$(DEBUG_DIST_DIR)/" CXXFLAGS="$(CXXFLAGS) -O0 -g" LDFLAGS="$(LDFLAGS)" WX_CXXFLAGS="`wx-config  --version=2.8 --static=no --unicode=yes --debug=yes --cflags`" WX_LDFLAGS="`wx-config  --version=2.8 --static=no --unicode=yes --debug=yes --libs`"
 
-edificle: $(SOURCES)
-	echo "Compiling high level code..."
-	$(CXX) $(CXXFLAGS) $(WX_CXXFLAGS) $(LINKERFLAGS) $(WX_LINKERFLAGS) $(SOURCES) -o edificle$(EXEC_EXT)
+$(DIST_DIR)edificle$(EXEC_EXT): $(OBJECTS)
+	$(CXX) $(LDFLAGS) $(WX_LDFLAGS) $(OBJECTS) -o $(DIST_DIR)edificle$(EXEC_EXT)
+
+.cpp.o:
+	$(CXX) -c $(CXXFLAGS) $(WX_CXXFLAGS) $< -o $@

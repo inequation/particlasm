@@ -33,8 +33,11 @@
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
 		</Compiler>
+		<Unit filename="MainFrame.cpp" />
+		<Unit filename="MainFrame.h" />
 		<Unit filename="Makefile" />
 		<Unit filename="main.cpp" />
+		<Unit filename="main.h" />
 		<Extensions>
 			<code_completion />
 			<envvars />
