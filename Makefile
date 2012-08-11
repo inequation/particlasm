@@ -13,10 +13,14 @@ DOXYGEN = doxygen
 
 # =============================================================================
 
-all: libparticlasm hostapp headless doc
+all: libparticlasm edificle hostapp headless doc
 
 libparticlasm:
 	cd libparticlasm
+	$(MAKE)
+
+edificle:
+	cd edificle
 	$(MAKE)
 
 hostapp:

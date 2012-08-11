@@ -6,6 +6,7 @@
 		</Project>
 		<Project filename="libparticlasm/libparticlasm.cbp" />
 		<Project filename="headless/headless.cbp" />
-		<Project filename="doc/doc.cbp" active="1" />
+		<Project filename="doc/doc.cbp" />
+		<Project filename="edificle/edificle.cbp" />
 	</Workspace>
 </CodeBlocks_workspace_file>
