@@ -74,7 +74,7 @@ mod_SimulatePreCompile:
 	mov		eax, [esp + 8]
 	push	mod_SimulatePre_size
 	push	mod_SimulatePre
-	push	gax
+	push	rax
 	call	memcpy
 	add		esp, 4 * 3
 	add		eax, mod_SimulatePre_size
@@ -100,7 +100,7 @@ mod_SimulatePostCompile:
 	; copy in the postprocessing code
 	push	dword mod_SimulatePost_size
 	push	dword mod_SimulatePost
-	push	gdi
+	push	rdi
 	call	memcpy
 	add		esp, 4 * 3
 	add		edi, mod_SimulatePost_size
@@ -149,18 +149,18 @@ mod_InitialLocationCompile:
 	sub		esi, ptcMod_InitialLocation.Distr
 
 	; save off ecx
-	push	gcx
+	push	rcx
 
 	; copy our code over
 	mov		edx, mod_InitialLocationSpawn_size
-	push	gdx
+	push	rdx
 	push	dword mod_InitialLocationSpawn
-	push	gcx
+	push	rcx
 	call	memcpy
 	add		esp, 4 * 3
 
 	; restore ecx
-	pop		gcx
+	pop		rcx
 
 	; advance and save pointers
 	add		ecx, mod_InitialLocationSpawn_size
@@ -202,18 +202,18 @@ mod_InitialRotationCompile:
 	sub		esi, ptcMod_InitialRotation.Distr
 
 	; save off ecx
-	push	gcx
+	push	rcx
 
 	; copy our code over
 	mov		edx, mod_InitialRotationSpawn_size
-	push	gdx
+	push	rdx
 	push	dword mod_InitialRotationSpawn
-	push	gcx
+	push	rcx
 	call	memcpy
 	add		esp, 4 * 3
 
 	; restore ecx
-	pop		gcx
+	pop		rcx
 
 	; advance and save pointers
 	add		ecx, mod_InitialRotationSpawn_size
@@ -258,18 +258,18 @@ mod_InitialSizeCompile:
 	sub		esi, ptcMod_InitialSize.Distr
 
 	; save off ecx
-	push	gcx
+	push	rcx
 
 	; copy our code over
 	mov		edx, mod_InitialSizeSpawn_size
-	push	gdx
+	push	rdx
 	push	dword mod_InitialSizeSpawn
-	push	gcx
+	push	rcx
 	call	memcpy
 	add		esp, 4 * 3
 
 	; restore ecx
-	pop		gcx
+	pop		rcx
 
 	; advance and save pointers
 	add		ecx, mod_InitialSizeSpawn_size
@@ -311,18 +311,18 @@ mod_InitialVelocityCompile:
 	sub		esi, ptcMod_InitialVelocity.Distr
 
 	; save off ecx
-	push	gcx
+	push	rcx
 
 	; copy our code over
 	mov		edx, mod_InitialVelocitySpawn_size
-	push	gdx
+	push	rdx
 	push	dword mod_InitialVelocitySpawn
-	push	gcx
+	push	rcx
 	call	memcpy
 	add		esp, 4 * 3
 
 	; restore ecx
-	pop		gcx
+	pop		rcx
 
 	; advance and save pointers
 	add		ecx, mod_InitialVelocitySpawn_size
@@ -363,17 +363,17 @@ mod_InitialColourCompile:
 	mov		edi, [esp + 12]
 
 	; save off ecx
-	push	gcx
+	push	rcx
 
 	; copy our pre-distribution code over
 	push	dword (mod_InitialColourSpawn.predistr - mod_InitialColourSpawn)
 	push	mod_InitialColourSpawn
-	push	gcx
+	push	rcx
 	call	memcpy
 	add		esp, 4 * 3
 
 	; restore ecx
-	pop		gcx
+	pop		rcx
 	; fill in the read address
 	mov		[ecx + (mod_InitialColourSpawn.predistr - mod_InitialColourSpawn - 4)], edi
 	; put the fake flags in the data buffer
@@ -389,18 +389,18 @@ mod_InitialColourCompile:
 	sub		esi, ptcMod_InitialColour.Distr
 
 	; save off ecx
-	push	gcx
+	push	rcx
 
 	; copy our post-distribution code over
 	mov		edx, (mod_InitialColourSpawn.end - mod_InitialColourSpawn.postdistr)
-	push	gdx
+	push	rdx
 	push	dword mod_InitialColourSpawn.postdistr
-	push	gcx
+	push	rcx
 	call	memcpy
 	add		esp, 4 * 3
 
 	; restore ecx
-	pop		gcx
+	pop		rcx
 
 	; advance and save pointers
 	add		ecx, (mod_InitialColourSpawn.end - mod_InitialColourSpawn.postdistr)
@@ -442,18 +442,18 @@ mod_VelocityCompile:
 	sub		esi, ptcMod_Velocity.Distr
 
 	; save off ecx
-	push	gcx
+	push	rcx
 
 	; copy our code over
 	mov		edx, mod_VelocityProcess_size
-	push	gdx
+	push	rdx
 	push	dword mod_VelocityProcess
-	push	gcx
+	push	rcx
 	call	memcpy
 	add		esp, 4 * 3
 
 	; restore ecx
-	pop		gcx
+	pop		rcx
 
 	; advance and save pointers
 	add		ecx, mod_VelocityProcess_size
@@ -495,18 +495,18 @@ mod_AccelerationCompile:
 	sub		esi, ptcMod_Acceleration.Distr
 
 	; save off ecx
-	push	gcx
+	push	rcx
 
 	; copy our code over
 	mov		edx, mod_AccelerationProcess_size
-	push	gdx
+	push	rdx
 	push	dword mod_AccelerationProcess
-	push	gcx
+	push	rcx
 	call	memcpy
 	add		esp, 4 * 3
 
 	; restore ecx
-	pop		gcx
+	pop		rcx
 
 	; advance and save pointers
 	add		ecx, mod_AccelerationProcess_size
@@ -550,17 +550,17 @@ mod_ColourCompile:
 	mov		edi, [esp + 12]
 
 	; save off ecx
-	push	gcx
+	push	rcx
 
 	; copy our pre-distribution code over
 	push	dword (mod_ColourProcess.predistr - mod_ColourProcess)
 	push	mod_ColourProcess
-	push	gcx
+	push	rcx
 	call	memcpy
 	add		esp, 4 * 3
 
 	; restore ecx
-	pop		gcx
+	pop		rcx
 	; fill in the read address
 	mov		[ecx + (mod_ColourProcess.postmov - mod_ColourProcess - 4)], edi
 	; put the flags in the data buffer
@@ -577,18 +577,18 @@ mod_ColourCompile:
 	sub		esi, ptcMod_Colour.Distr
 
 	; save off ecx
-	push	gcx
+	push	rcx
 
 	; copy our post-distribution code over
 	mov		edx, (mod_ColourProcess.end - mod_ColourProcess.postdistr)
-	push	gdx
+	push	rdx
 	push	dword mod_ColourProcess.postdistr
-	push	gcx
+	push	rcx
 	call	memcpy
 	add		esp, 4 * 3
 
 	; restore ecx
-	pop		gcx
+	pop		rcx
 
 	; advance and save pointers
 	add		ecx, (mod_ColourProcess.end - mod_ColourProcess.postdistr)
@@ -633,18 +633,18 @@ mod_SizeCompile:
 	sub		esi, ptcMod_Size.Distr
 
 	; save off ecx
-	push	gcx
+	push	rcx
 
 	; copy our code over
 	mov		edx, mod_SizeProcess_size
-	push	gdx
+	push	rdx
 	push	dword mod_SizeProcess
-	push	gcx
+	push	rcx
 	call	memcpy
 	add		esp, 4 * 3
 
 	; restore ecx
-	pop		gcx
+	pop		rcx
 
 	; advance and save pointers
 	add		ecx, mod_SizeProcess_size

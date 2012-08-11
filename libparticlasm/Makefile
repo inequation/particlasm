@@ -43,14 +43,14 @@ clean:
 # recursively call make with proper flags
 release:
 	$(MAKE) clean
-	$(MAKE) libparticlasm.so ASFLAGS="$(ASFLAGS) -Ox" CFLAGS="$(CFLAGS) -O3" LINKERFLAGS="$(LINKERFLAGS) -S"
+	$(MAKE) libparticlasm.so ARCH=$(ARCH) ASFLAGS="$(ASFLAGS) -Ox" CFLAGS="$(CFLAGS) -O3" LINKERFLAGS="$(LINKERFLAGS) -S"
 	$(MKDIR_P) $(RELEASE_DIST_DIR)
 	mv libparticlasm.so $(RELEASE_DIST_DIR)
 
 # recursively call make with proper flags
 debug:
 	$(MAKE) clean
-	$(MAKE) libparticlasm.so ASFLAGS="$(ASFLAGS) -O0 -g -F dwarf" CFLAGS="$(CFLAGS) -O0 -g" LINKERFLAGS="$(LINKERFLAGS)"
+	$(MAKE) libparticlasm.so ARCH=$(ARCH) ASFLAGS="$(ASFLAGS) -O0 -g" CFLAGS="$(CFLAGS) -O0 -g" LINKERFLAGS="$(LINKERFLAGS)"
 	$(MKDIR_P) $(DEBUG_DIST_DIR)
 	mv libparticlasm.so $(DEBUG_DIST_DIR)
 

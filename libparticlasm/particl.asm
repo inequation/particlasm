@@ -3,16 +3,9 @@
 
 cpu PTC_ARCH
 
-; alias register names for stack interaction
+; architecture-specific defines
 %ifidni PTC_ARCH,X64
-	%define gax		rax
-	%define gbx		rbx
-	%define gcx		rcx
-	%define gdx		rdx
-	%define gsi		rsi
-	%define gdi		rdi
-
-	; also x64 doesn't have pushad/popad, so make a macro for this
+	; x64 doesn't have pushad/popad, so make a macro for this
 	%macro pushad 0
 		push		rax
 		push		rcx
@@ -34,16 +27,14 @@ cpu PTC_ARCH
 		pop			rax
 	%endmacro
 %else
-	%define gax		eax
-	%define gbx		ebx
-	%define gcx		ecx
-	%define gdx		edx
-	%define gsi		esi
-	%define gdi		edi
+	; register aliases for pushing/popping
+	%define rax		eax
+	%define rbx		ebx
+	%define rcx		ecx
+	%define rdx		edx
+	%define rsi		esi
+	%define rdi		edi
 %endif
-
-; put EVERYTHING in the code section
-section .text
 
 ; declarations
 %include "libparticlasm.inc"
@@ -260,20 +251,20 @@ ptcInternalCompileModule:
 	enter   %$localsize, 0
 
 	; save off working registers
-	push	gbx
-	push	gsi
-	push	gdi
+	push	rbx
+	push	rsi
+	push	rdi
 
 	; place the pointers on the stack in the convention that modules expect them
 	mov		eax, [dataBufPtr]
 	mov		eax, [eax]
-	push	gax
+	push	rax
 	mov		eax, [processCodeBufPtr]
 	mov		eax, [eax]
-	push	gax
+	push	rax
 	mov		eax, [spawnCodeBufPtr]
 	mov		eax, [eax]
-	push	gax
+	push	rax
 	mov		esi, [module]
 
 	; check for simulation pre- and post-processing modules
@@ -305,20 +296,20 @@ ptcInternalCompileModule:
 
 .end:
 	; return pointers after advancing
-	pop		gdx
+	pop		rdx
 	mov		eax, [spawnCodeBufPtr]
 	mov		[eax], edx
-	pop		gdx
+	pop		rdx
 	mov		eax, [processCodeBufPtr]
 	mov		[eax], edx
-	pop		gdx
+	pop		rdx
 	mov		eax, [dataBufPtr]
 	mov		[eax], edx
 
 	; restore working registers
-	pop		gdi
-	pop		gsi
-	pop		gbx
+	pop		rdi
+	pop		rsi
+	pop		rbx
 
 	leave
 	ret
@@ -334,9 +325,9 @@ ptcInternalSpawnParticles:
 
 	enter	%$localsize, 0
 
-	push	gbx
-	push	gsi
-	push	gdi
+	push	rbx
+	push	rsi
+	push	rdi
 
 	; initialize the FPU to make sure the stack is clear and there are no
 	; exceptions
@@ -375,8 +366,8 @@ ptcInternalSpawnParticles:
 	fld		dword [ebx + ptcEmitter.LifeTimeFixed]
 	fld		dword [ebx + ptcEmitter.LifeTimeRandom]
 	; save off ecx and edx
-	push	gcx
-	push	gdx
+	push	rcx
+	push	rdx
 	; need the function address and inverse RAND_MAX on the stack
 	push	dword INV_RAND_MAX
 	push	rand
@@ -384,8 +375,8 @@ ptcInternalSpawnParticles:
 	frand	0
 	add		esp, 4 * 3
 	; restore ecx and edx
-	pop		gdx
-	pop		gcx
+	pop		rdx
+	pop		rcx
 	; st0=frand(), st1=LTR, st2=LTF, st3=1.0
 	fmulp	st1, st0
 	; st0=frand()*LTR, st1=LTF, st2=1.0
@@ -417,9 +408,9 @@ ptcInternalSpawnParticles:
 	mov		[esi + (ptcParticle.Accel + 4)], dword 0
 	mov		[esi + (ptcParticle.Accel + 8)], dword 0
 	; save off working registers
-	push	gbx
-	push	gcx
-	push	gsi
+	push	rbx
+	push	rcx
+	push	rsi
 	; load particle data into registers
 	load_particle
 	push_step [step]
@@ -442,9 +433,9 @@ ptcInternalSpawnParticles:
 	; store new particle state
 	store_particle
 	; restore working registers
-	pop		gsi
-	pop		gcx
-	pop		gbx
+	pop		rsi
+	pop		rcx
+	pop		rbx
 
 	advance_particle_ptr
 
@@ -453,9 +444,9 @@ ptcInternalSpawnParticles:
 	jmp		.find_spot
 
 .end:
-	pop		gdi
-	pop		gsi
-	pop		gbx
+	pop		rdi
+	pop		rsi
+	pop		rbx
 
 	leave
 	ret
@@ -476,9 +467,9 @@ ptcInternalProcessParticles:
 
 	enter   %$localsize, 0
 
-	push	gbx
-	push	gsi
-	push	gdi
+	push	rbx
+	push	rsi
+	push	rdi
 
 	mov		ebx, [maxVertices]
 	mov		[verts], ebx
@@ -491,10 +482,10 @@ ptcInternalProcessParticles:
 	; kick off the loop
 .loop:
 	; save off working registers
-	push	gbx
-	push	gcx
-	push	gsi
-	push	gdi
+	push	rbx
+	push	rcx
+	push	rsi
+	push	rdi
 	; load particle data into registers
 	load_particle
 	push_step [step]
@@ -514,16 +505,16 @@ ptcInternalProcessParticles:
 	; store new particle state
 	store_particle
 	; restore working registers
-	pop		gdi
-	pop		gsi
-	pop		gcx
-	pop		gbx
+	pop		rdi
+	pop		rsi
+	pop		rcx
+	pop		rbx
 
 	; skip vertex emitting if there's nothing to emit it for
 	test	edx, edx
 	jz		.cont
 
-	push	gdi
+	push	rdi
 
 	; emit vertices
 	mov		edx, [maxVertices]
@@ -543,11 +534,11 @@ ptcInternalProcessParticles:
 	add		esp, 4
 	shufps	xmm4, xmm4, 0x00
 	; load in the camera coordinate system
-	push	gsi
+	push	rsi
 	mov		esi, [cameraCS]
 	movups	xmm1, [esi + 3 * 4]
 	movups	xmm2, [esi + 6 * 4]
-	pop		gsi
+	pop		rsi
 	; multiply by particle size and 0.5
 	mulps	xmm1, xmm3
 	mulps	xmm1, xmm4
@@ -609,7 +600,7 @@ ptcInternalProcessParticles:
 	mov		[maxVertices], edx
 	add		edi, ptcVertex_size * 4
 	mov		[buffer], edi
-	pop		gdi
+	pop		rdi
 .cont:
 	add		esi, ptcParticle_size
 	cmp		esi, edi
@@ -620,8 +611,8 @@ ptcInternalProcessParticles:
 	mov		eax, [verts]
 	sub		eax, ebx
 
-	pop		gdi
-	pop		gbx
+	pop		rdi
+	pop		rbx
 
 	leave
 	ret
