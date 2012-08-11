@@ -8,7 +8,7 @@ Copyright (C) 2012, Leszek Godlewski <lg@inequation.org>
 #include <stdbool.h>
 #include <dlfcn.h>
 #include <time.h>
-#include <SDL/SDL.h>
+#include <sys/time.h>
 
 // particlasm functions
 #include "../libparticlasm/libparticlasm.h"
@@ -17,7 +17,7 @@ PFNPTCPROCESSEMITTER	ptcProcessEmitter;
 PFNPTCRELEASEEMITTER	ptcReleaseEmitter;
 
 // test parameters
-#define USE_CPP_REFERENCE_IMPLEMENTATION
+//#define USE_CPP_REFERENCE_IMPLEMENTATION
 #define TEST_TIME		30
 #define TEST_FRAMERATE	60
 
@@ -73,6 +73,22 @@ void FreeParticlasm() {
 #endif // USE_CPP_REFERENCE_IMPLEMENTATION
 }
 
+struct timeval start;
+
+void InitTicks() {
+	gettimeofday(&start, NULL);
+}
+
+unsigned int GetTicks() {
+	unsigned int ticks;
+	struct timeval now;
+
+	gettimeofday(&now, NULL);
+	ticks = (now.tv_sec - start.tv_sec) * 1000 + (now.tv_usec -
+		start.tv_usec) / 1000;
+    return (ticks);
+}
+
 int main(int argc, char *argv[]) {
 	size_t i, j;
 	static ptcVector cameraCS[3] = {
@@ -87,15 +103,12 @@ int main(int argc, char *argv[]) {
 	ptc_particles = malloc(sizeof(*ptc_particles) * MAX_PARTICLES);
 	ptc_vertices = malloc(sizeof(*ptc_vertices) * MAX_PARTICLES * 4);
 
-	if (SDL_Init(SDL_INIT_TIMER) < 0) {
-	    fprintf(stderr, "SDL initialization failed: %s\n", SDL_GetError());
-	    return 1;
-	}
-
 	if (!InitParticlasm()) {
 		fprintf(stderr, "Could not initialize particlasm.\n");
 		return 1;
 	}
+
+	InitTicks();
 
 	// initialize random number generator
 	srand((unsigned int)time(NULL));
@@ -127,7 +140,7 @@ int main(int argc, char *argv[]) {
 
 	printf("Starting test... ");
 	fflush(stdout);
-	test_start_msec = SDL_GetTicks();
+	test_start_msec = GetTicks();
 	for (i = 0; i < (TEST_TIME * TEST_FRAMERATE); ++i) {
 		ptc_nvertices = 0;
 		for (j = 0; j < ptc_nemitters; ++j) {
@@ -137,7 +150,7 @@ int main(int argc, char *argv[]) {
 				(MAX_PARTICLES * 4) - ptc_nvertices);
 		}
 	}
-	test_start_msec = SDL_GetTicks() - test_start_msec;
+	test_start_msec = GetTicks() - test_start_msec;
 	printf("Done simulating %d frames.\n%d ms, avg. %3.2f ms/frame\n",
 		i, test_start_msec, (float)test_start_msec
 			/ (float)(TEST_TIME * TEST_FRAMERATE));

@@ -1,9 +1,46 @@
 ; particlasm main module
 ; Copyright (C) 2011-2012, Leszek Godlewski <lg@inequation.org>
 
-; we're targeting a 32-bit Pentium M
-bits 32
-cpu p3
+cpu PTC_ARCH
+
+; alias register names for stack interaction
+%ifidni PTC_ARCH,X64
+	%define gax		rax
+	%define gbx		rbx
+	%define gcx		rcx
+	%define gdx		rdx
+	%define gsi		rsi
+	%define gdi		rdi
+
+	; also x64 doesn't have pushad/popad, so make a macro for this
+	%macro pushad 0
+		push		rax
+		push		rcx
+		push		rdx
+		push		rbx
+		push		rsp
+		push		rbp
+		push		rsi
+		push		rdi
+	%endmacro
+	%macro popad 0
+		pop			rdi
+		pop			rsi
+		pop			rbp
+		pop			rsp
+		pop			rbx
+		pop			rdx
+		pop			rcx
+		pop			rax
+	%endmacro
+%else
+	%define gax		eax
+	%define gbx		ebx
+	%define gcx		ecx
+	%define gdx		edx
+	%define gsi		esi
+	%define gdi		edi
+%endif
 
 ; put EVERYTHING in the code section
 section .text
@@ -150,7 +187,7 @@ ptcInternalMeasureModule:
 	enter   %$localsize, 0
 
 	; save off working registers
-	pusha
+	pushad
 
 	; initialize counters
 	mov		esi, [spawnCodeBufLenPtr]
@@ -205,7 +242,7 @@ ptcInternalMeasureModule:
 	mov		[edi], edx
 
 	; restore working registers
-	popa
+	popad
 
 	leave
 	ret
@@ -223,20 +260,20 @@ ptcInternalCompileModule:
 	enter   %$localsize, 0
 
 	; save off working registers
-	push	ebx
-	push	esi
-	push	edi
+	push	gbx
+	push	gsi
+	push	gdi
 
 	; place the pointers on the stack in the convention that modules expect them
 	mov		eax, [dataBufPtr]
 	mov		eax, [eax]
-	push	eax
+	push	gax
 	mov		eax, [processCodeBufPtr]
 	mov		eax, [eax]
-	push	eax
+	push	gax
 	mov		eax, [spawnCodeBufPtr]
 	mov		eax, [eax]
-	push	eax
+	push	gax
 	mov		esi, [module]
 
 	; check for simulation pre- and post-processing modules
@@ -268,20 +305,20 @@ ptcInternalCompileModule:
 
 .end:
 	; return pointers after advancing
-	pop		edx
+	pop		gdx
 	mov		eax, [spawnCodeBufPtr]
 	mov		[eax], edx
-	pop		edx
+	pop		gdx
 	mov		eax, [processCodeBufPtr]
 	mov		[eax], edx
-	pop		edx
+	pop		gdx
 	mov		eax, [dataBufPtr]
 	mov		[eax], edx
 
 	; restore working registers
-	pop		edi
-	pop		esi
-	pop		ebx
+	pop		gdi
+	pop		gsi
+	pop		gbx
 
 	leave
 	ret
@@ -297,9 +334,9 @@ ptcInternalSpawnParticles:
 
 	enter	%$localsize, 0
 
-	push	ebx
-	push	esi
-	push	edi
+	push	gbx
+	push	gsi
+	push	gdi
 
 	; initialize the FPU to make sure the stack is clear and there are no
 	; exceptions
@@ -338,8 +375,8 @@ ptcInternalSpawnParticles:
 	fld		dword [ebx + ptcEmitter.LifeTimeFixed]
 	fld		dword [ebx + ptcEmitter.LifeTimeRandom]
 	; save off ecx and edx
-	push	ecx
-	push	edx
+	push	gcx
+	push	gdx
 	; need the function address and inverse RAND_MAX on the stack
 	push	dword INV_RAND_MAX
 	push	rand
@@ -347,8 +384,8 @@ ptcInternalSpawnParticles:
 	frand	0
 	add		esp, 4 * 3
 	; restore ecx and edx
-	pop		edx
-	pop		ecx
+	pop		gdx
+	pop		gcx
 	; st0=frand(), st1=LTR, st2=LTF, st3=1.0
 	fmulp	st1, st0
 	; st0=frand()*LTR, st1=LTF, st2=1.0
@@ -380,9 +417,9 @@ ptcInternalSpawnParticles:
 	mov		[esi + (ptcParticle.Accel + 4)], dword 0
 	mov		[esi + (ptcParticle.Accel + 8)], dword 0
 	; save off working registers
-	push	ebx
-	push	ecx
-	push	esi
+	push	gbx
+	push	gcx
+	push	gsi
 	; load particle data into registers
 	load_particle
 	push_step [step]
@@ -405,9 +442,9 @@ ptcInternalSpawnParticles:
 	; store new particle state
 	store_particle
 	; restore working registers
-	pop		esi
-	pop		ecx
-	pop		ebx
+	pop		gsi
+	pop		gcx
+	pop		gbx
 
 	advance_particle_ptr
 
@@ -416,9 +453,9 @@ ptcInternalSpawnParticles:
 	jmp		.find_spot
 
 .end:
-	pop		edi
-	pop		esi
-	pop		ebx
+	pop		gdi
+	pop		gsi
+	pop		gbx
 
 	leave
 	ret
@@ -439,9 +476,9 @@ ptcInternalProcessParticles:
 
 	enter   %$localsize, 0
 
-	push	ebx
-	push	esi
-	push	edi
+	push	gbx
+	push	gsi
+	push	gdi
 
 	mov		ebx, [maxVertices]
 	mov		[verts], ebx
@@ -454,10 +491,10 @@ ptcInternalProcessParticles:
 	; kick off the loop
 .loop:
 	; save off working registers
-	push	ebx
-	push	ecx
-	push	esi
-	push	edi
+	push	gbx
+	push	gcx
+	push	gsi
+	push	gdi
 	; load particle data into registers
 	load_particle
 	push_step [step]
@@ -477,16 +514,16 @@ ptcInternalProcessParticles:
 	; store new particle state
 	store_particle
 	; restore working registers
-	pop		edi
-	pop		esi
-	pop		ecx
-	pop		ebx
+	pop		gdi
+	pop		gsi
+	pop		gcx
+	pop		gbx
 
 	; skip vertex emitting if there's nothing to emit it for
 	test	edx, edx
 	jz		.cont
 
-	push	edi
+	push	gdi
 
 	; emit vertices
 	mov		edx, [maxVertices]
@@ -506,11 +543,11 @@ ptcInternalProcessParticles:
 	add		esp, 4
 	shufps	xmm4, xmm4, 0x00
 	; load in the camera coordinate system
-	push	esi
+	push	gsi
 	mov		esi, [cameraCS]
 	movups	xmm1, [esi + 3 * 4]
 	movups	xmm2, [esi + 6 * 4]
-	pop		esi
+	pop		gsi
 	; multiply by particle size and 0.5
 	mulps	xmm1, xmm3
 	mulps	xmm1, xmm4
@@ -572,7 +609,7 @@ ptcInternalProcessParticles:
 	mov		[maxVertices], edx
 	add		edi, ptcVertex_size * 4
 	mov		[buffer], edi
-	pop		edi
+	pop		gdi
 .cont:
 	add		esi, ptcParticle_size
 	cmp		esi, edi
@@ -583,8 +620,8 @@ ptcInternalProcessParticles:
 	mov		eax, [verts]
 	sub		eax, ebx
 
-	pop		edi
-	pop		ebx
+	pop		gdi
+	pop		gbx
 
 	leave
 	ret

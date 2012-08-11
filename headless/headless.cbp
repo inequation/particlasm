@@ -11,7 +11,7 @@
 				<Option object_output="../obj/Debug/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
-				<Option parameters="1000" />
+				<Option parameters="1000000" />
 				<Compiler>
 					<Add option="-g" />
 				</Compiler>
@@ -31,10 +31,13 @@
 		</Build>
 		<Compiler>
 			<Add option="-Wall" />
+			<Add option="-m32" />
 		</Compiler>
 		<Linker>
+			<Add option="-Wl,-melf_i386 -m32" />
 			<Add library="dl" />
-			<Add library="SDL" />
+			<Add directory="/usr/lib32" />
+			<Add directory="/usr/lib/gcc/x86_64-linux-gnu/4.6/32" />
 		</Linker>
 		<Unit filename="../hostapp/emitters.cpp" />
 		<Unit filename="../libparticlasm/ref_impl.cpp" />

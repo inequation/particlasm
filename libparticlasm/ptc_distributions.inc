@@ -28,7 +28,7 @@ extern memcpy
 	; different memory block
 	call	[esp + (4 + %1)]
 	; temp variable - the fild instruction needs to read from memory
-	push	eax
+	push	gax
 	fild	dword [esp]
 	add		esp, 4
 	; load in the inverse RAND_MAX
@@ -43,7 +43,7 @@ extern memcpy
 ; ========================================
 
 sdistr_Constant:
-	fld		dword [0xFFFFFFFF]	; val; this address is filled upon compilation
+	fld		dword [0xBAD]		; val; this address is filled upon compilation
 .end:
 sdistr_Constant_size		equ	(sdistr_Constant.end - sdistr_Constant)
 sdistr_ConstantData_size	equ	4
@@ -54,17 +54,17 @@ sdistr_ConstantCompile:
 	mov		[edi], edx
 
 	; save off ecx
-	push	ecx
+	push	gcx
 
 	; now, memcpy the code
 	push	dword sdistr_Constant_size
 	push	dword sdistr_Constant
-	push	ecx
+	push	gcx
 	call	memcpy
 	add		esp, 4 * 3
 
 	; restore ecx
-	pop		ecx
+	pop		gcx
 
 	; fix the fld instruction operand
 	mov		[ecx + sdistr_Constant.end - sdistr_Constant - 4], edi
@@ -79,15 +79,15 @@ sdistr_ConstantCompile:
 ; ========================================
 
 sdistr_Uniform:
-	fld		dword [0xFFFFFFFF]	; range[0]; this address is filled upon compilation
+	fld		dword [0xBAD]	; range[0]; this address is filled upon compilation
 .postrange0:
-	fld		dword [0xFFFFFFFF]	; range[1]; this address is filled upon compilation
+	fld		dword [0xBAD]	; range[1]; this address is filled upon compilation
 .postrange1:
 	; exchange the registers - FPU is stupid...
 	fxch	st1
 	; save off eax and edx
-	push	eax
-	push	edx
+	push	gax
+	push	gdx
 	; temp variable
 	sub		esp, 4
 	; st1=range[1], st0=range[0]
@@ -107,8 +107,8 @@ sdistr_Uniform:
 	faddp	st1, st0
 	add		esp, 4
 	; restore eax and edx
-	pop		edx
-	pop		eax
+	pop		gdx
+	pop		gax
 	; st0=distribution result
 .end:
 sdistr_Uniform_size		equ	(sdistr_Uniform.end - sdistr_Uniform)
@@ -122,17 +122,17 @@ sdistr_UniformCompile:
 	mov		[edi + 4], edx
 
 	; save off ecx
-	push	ecx
+	push	gcx
 
 	; now, memcpy the code
 	push	dword sdistr_Uniform_size
 	push	dword sdistr_Uniform
-	push	ecx
+	push	gcx
 	call	memcpy
 	add		esp, 4 * 3
 
 	; restore ecx
-	pop		ecx
+	pop		gcx
 
 	; fix the fld instructions operands
 	mov		[ecx + sdistr_Uniform.postrange0 - sdistr_Uniform - 4], edi
@@ -165,20 +165,20 @@ sdistr_BicubicInterpCompile:
 ; ========================================
 
 vdistr_Constant:
-	movups	xmm5, [0xFFFFFFFF]	; val; this address is filled upon compilation
+	movups	xmm5, [0xBAD]	; val; this address is filled upon compilation
 .end:
 vdistr_Constant_size		equ	(vdistr_Constant.end - vdistr_Constant)
 vdistr_ConstantData_size	equ	(4 * 4)
 
 vdistr_ConstantCompile:
 	; save ecx, memcpy resets it
-	push	ecx
+	push	gcx
 
 	; first, memcpy data to data buffer
 	push	dword 4 * 3
 	lea		edx, [esi + ptcVDistr_Constant.Val]
-	push	edx
-	push	edi
+	push	gdx
+	push	gdi
 	call	memcpy
 	add		esp, 4 * 3
 
@@ -188,12 +188,12 @@ vdistr_ConstantCompile:
 	; now, memcpy the code
 	push	dword vdistr_Constant_size
 	push	dword vdistr_Constant
-	push	ecx
+	push	gcx
 	call	memcpy
 	add		esp, 4 * 3
 
 	; restore ecx
-	pop		ecx
+	pop		gcx
 
 	; fix the movups instruction operand
 	mov		[ecx + vdistr_Constant.end - vdistr_Constant - 4], edi
@@ -208,14 +208,14 @@ vdistr_ConstantCompile:
 ; ========================================
 
 vdistr_Uniform:
-	movups	xmm6, [0xFFFFFFFF]	; range[0]; this address is filled upon compilation
+	movups	xmm6, [0xBAD]	; range[0]; this address is filled upon compilation
 .postrange0:
-	movups	xmm7, [0xFFFFFFFF]	; range[1]; this address is filled upon compilation
+	movups	xmm7, [0xBAD]	; range[1]; this address is filled upon compilation
 .postrange1:
 	subps	xmm7, xmm6
 	; save off eax and edx
-	push	eax
-	push	edx
+	push	gax
+	push	gdx
 	; get 3 random numbers and store them on the stack, leave one float of slack
 	; (oh, the rhyme!)
 	sub		esp, 4 * 4
@@ -233,8 +233,8 @@ vdistr_Uniform:
 	; pop the temp variables off the stack
 	add		esp, 4 * 4
 	; restore eax and edx
-	pop		edx
-	pop		eax
+	pop		gdx
+	pop		gax
 	mulps	xmm5, xmm7
 	addps	xmm5, xmm6
 .end:
@@ -243,24 +243,24 @@ vdistr_UniformData_size	equ	(4 * 4 * 2)
 
 vdistr_UniformCompile:
 	; save ecx, memcpy resets it
-	push	ecx
+	push	gcx
 
 	; first, memcpy data to data buffer
 	; have to do this twice since we have two vectors: range[0]...
 	push	dword 4 * 3
 	lea		edx, [esi + ptcVDistr_Uniform.Ranges]
-	push	edx
-	push	edi
+	push	gdx
+	push	gdi
 	call	memcpy
 	add		esp, 4 * 3
 	; ...and range[1]
 	push	dword 4 * 3
 	lea		edx, [esi + ptcVDistr_Uniform.Ranges + 4 * 3]
-	push	edx
+	push	gdx
 	; copy 16 bytes after the first one - source has 3 components, but SSE
 	; registers are 4-component anyway, we'll take those 4 bytes of slack...
 	lea		edx, [edi + 4 * 4]
-	push	edx
+	push	gdx
 	call	memcpy
 	add		esp, 4 * 3
 
@@ -270,12 +270,12 @@ vdistr_UniformCompile:
 	; now, memcpy the code
 	push	dword vdistr_Uniform_size
 	push	dword vdistr_Uniform
-	push	ecx
+	push	gcx
 	call	memcpy
 	add		esp, 4 * 3
 
 	; restore ecx
-	pop		ecx
+	pop		gcx
 
 	; fix the movups instructions operands
 	mov		[ecx + vdistr_Uniform.postrange0 - vdistr_Uniform - 4], edi
@@ -341,7 +341,7 @@ vdistr_BicubicInterpCompile:
 ; ========================================
 
 cdistr_Constant:
-	movups	xmm6, [0xFFFFFFFF]	; val; this address is filled upon compilation
+	movups	xmm6, [0xBAD]	; val; this address is filled upon compilation
 .postval:
 	cdistr_mix
 .end:
@@ -350,13 +350,13 @@ cdistr_ConstantData_size	equ	(4 * 4)
 
 cdistr_ConstantCompile:
 	; save off ecx
-	push	ecx
+	push	gcx
 
 	; first, memcpy data to data buffer
 	push	dword cdistr_ConstantData_size
 	lea		edx, [esi + ptcCDistr_Constant.Val]
-	push	edx
-	push	edi
+	push	gdx
+	push	gdi
 	call	memcpy
 	add		esp, 4 * 3
 
@@ -366,12 +366,12 @@ cdistr_ConstantCompile:
 	; now, memcpy the code
 	push	dword cdistr_Constant_size
 	push	dword cdistr_Constant
-	push	ecx
+	push	gcx
 	call	memcpy
 	add		esp, 4 * 3
 
 	; restore ecx
-	pop		ecx
+	pop		gcx
 
 	; fix the movups instruction operand
 	mov		[ecx + cdistr_Constant.postval - cdistr_Constant - 4], edi
@@ -387,14 +387,14 @@ cdistr_ConstantCompile:
 ; ========================================
 
 cdistr_Uniform:
-	movups	xmm6, [0xFFFFFFFF]	; range[0]; this address is filled upon compilation
+	movups	xmm6, [0xBAD]	; range[0]; this address is filled upon compilation
 .postrange0:
-	movups	xmm7, [0xFFFFFFFF]	; range[1]; this address is filled upon compilation
+	movups	xmm7, [0xBAD]	; range[1]; this address is filled upon compilation
 .postrange1:
 	subps	xmm7, xmm6
 	; save off eax and edx
-	push	eax
-	push	edx
+	push	gax
+	push	gdx
 	; reserve some space on the stack - we need to lay off the original colour
 	; as well as random floats
 	sub		esp, (4 * 4 * 2)
@@ -424,8 +424,8 @@ cdistr_Uniform:
 	; pop the temp variables off the stack
 	add		esp, (4 * 4 * 2)
 	; restore eax and edx
-	pop		edx
-	pop		eax
+	pop		gdx
+	pop		gax
 	; mix the colours
 	cdistr_mix
 .end:
@@ -434,13 +434,13 @@ cdistr_UniformData_size	equ	(4 * 4 * 2)
 
 cdistr_UniformCompile:
 	; save off ecx
-	push	ecx
+	push	gcx
 
 	; first, memcpy data to data buffer
 	push	dword cdistr_UniformData_size
 	lea		edx, [esi + ptcVDistr_Constant.Val]
-	push	edx
-	push	edi
+	push	gdx
+	push	gdi
 	call	memcpy
 	add		esp, 4 * 3
 
@@ -450,12 +450,12 @@ cdistr_UniformCompile:
 	; now, memcpy the code
 	push	dword cdistr_Uniform_size
 	push	dword cdistr_Uniform
-	push	ecx
+	push	gcx
 	call	memcpy
 	add		esp, 4 * 3
 
 	; restore ecx
-	pop		ecx
+	pop		gcx
 
 	; fix the movups instructions operands
 	mov		[ecx + (cdistr_Uniform.postrange0 - cdistr_Uniform - 4)], edi
