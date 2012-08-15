@@ -1,10 +1,10 @@
 ; particlasm main module
 ; Copyright (C) 2011-2012, Leszek Godlewski <lg@inequation.org>
 
-cpu PTC_ARCH
-
 ; architecture-specific defines
 %ifidni PTC_ARCH,X64
+	cpu X64
+
 	; x64 doesn't have pushad/popad, so make a macro for this
 	%macro pushad 0
 		push		rax
@@ -30,6 +30,8 @@ cpu PTC_ARCH
 	; pointer type macro - quad word
 	%define resp	resq
 %else
+	cpu P3
+
 	; register aliases for pushing/popping
 	%define rax		eax
 	%define rbx		ebx
