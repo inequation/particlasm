@@ -26,6 +26,9 @@ cpu PTC_ARCH
 		pop			rcx
 		pop			rax
 	%endmacro
+
+	; pointer type macro - quad word
+	%define resp	resq
 %else
 	; register aliases for pushing/popping
 	%define rax		eax
@@ -34,6 +37,9 @@ cpu PTC_ARCH
 	%define rdx		edx
 	%define rsi		esi
 	%define rdi		edi
+
+	; pointer type macro - double word
+	%define resp	resd
 %endif
 
 ; declarations
@@ -363,8 +369,8 @@ ptcInternalSpawnParticles:
 	mov		[esi + ptcParticle.Active], dword 1
 	; calculate time scale: 1 / (LifeTimeFixed + frand() * LifeTimeRandom)
 	fld1
-	fld		dword [ebx + ptcEmitter.LifeTimeFixed]
-	fld		dword [ebx + ptcEmitter.LifeTimeRandom]
+	fld		dword [ebx + ptcEmitterConfig.LifeTimeFixed]
+	fld		dword [ebx + ptcEmitterConfig.LifeTimeRandom]
 	; save off ecx and edx
 	push	rcx
 	push	rdx

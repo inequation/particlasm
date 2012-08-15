@@ -8,6 +8,8 @@
 
 # architecture: "x86" for 32-bit, "x64" for 64-bit
 ARCH = x64
+# platform: "windows" or "linux"
+PLATFORM = linux
 # path to make
 MAKE = make
 # mkdir command with arguments to create all missing directories in the path
@@ -35,6 +37,29 @@ RELEASE_DIST_DIR = ../bin/Release
 # End of configuration
 # =============================================================================
 
+# architecture/platform translation to tool flags
+ifeq ($(ARCH), x64)
+	ifeq ($(PLATFORM), linux)
+		REAL_ASFLAGS = $(ASFLAGS) -dPTC_ARCH=X64 -f elf64
+		REAL_CFLAGS = $(CFLAGS) -march=core2 -m64
+		REAL_LINKERFLAGS = $(LINKERFLAGS) -melf_x86_64
+	else
+		REAL_ACTUAL_ASFLAGS = $(ASFLAGS) -dPTC_ARCH=X64 -f win64
+		REAL_CFLAGS = $(CFLAGS) -march=core2 -m64
+		REAL_LINKERFLAGS = $(LINKERFLAGS) -mi386pe
+	endif
+else
+	ifeq ($(PLATFORM), linux)
+		REAL_ASFLAGS = $(ASFLAGS) -dPTC_ARCH=P3 -f elf32
+		REAL_CFLAGS = $(CFLAGS) -march=pentium-m -m32
+		REAL_LINKERFLAGS = $(LINKERFLAGS) -melf_i386
+	else
+		REAL_ASFLAGS = $(ASFLAGS) -dPTC_ARCH=P3 -f win32
+		REAL_CFLAGS = $(CFLAGS) -march=pentium-m -m32
+		REAL_LINKERFLAGS = $(LINKERFLAGS) -mi386pe
+	endif
+endif
+
 all: release
 
 clean:
@@ -55,27 +80,14 @@ debug:
 	mv libparticlasm.so $(DEBUG_DIST_DIR)
 
 libparticlasm.so: particlasm.o ptc_highlevel.o
-ifeq ($(ARCH), x64)
-	$(LINKER) $(LINKERFLAGS) -melf_x86_64 particlasm.o ptc_highlevel.o -o libparticlasm.so
-else
-	$(LINKER) $(LINKERFLAGS) -melf_i386 particlasm.o ptc_highlevel.o -o libparticlasm.so
-endif
+	$(LINKER) $(REAL_LINKERFLAGS) particlasm.o ptc_highlevel.o -o libparticlasm.so
 
 particlasm.o: particl.asm ptc_modules.inc ptc_distributions.inc libparticlasm.inc
-	echo "Assembling (ARCH=$(ARCH))..."
-ifeq ($(ARCH), x64)
-	$(AS) $(ASFLAGS) -dPTC_ARCH=X64 -f elf64 particl.asm -o particlasm.o
-else
-	$(AS) $(ASFLAGS) -dPTC_ARCH=P3 -f elf32 particl.asm -o particlasm.o
-endif
+	$(AS) $(REAL_ASFLAGS) particl.asm -o particlasm.o
 
 ptc_highlevel.o: ptc_highlevel.c libparticlasm.h
 	echo "Compiling high level code..."
-ifeq ($(ARCH), x64)
-	$(CC) $(CFLAGS) -march=core2 -m64 ptc_highlevel.c -o ptc_highlevel.o
-else
-	$(CC) $(CFLAGS) -march=pentium-m -m32 ptc_highlevel.c -o ptc_highlevel.o
-endif
+	$(CC) $(REAL_CFLAGS) ptc_highlevel.c -o ptc_highlevel.o
 
 libparticlasm.inc: libparticlasm.h gen_asm_decls.py
 	$(PYTHON) gen_asm_decls.py

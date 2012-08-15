@@ -269,28 +269,45 @@ typedef struct {
 	int16_t		TexCoords[2];	///< texture coordinates
 } ptcVertex;
 
-/// Entire emitter configuration.
+/// Emitter configuration.
 typedef struct {
 	float			SpawnRate;		///< particle spawn rate in bursts per second
 	uint32_t		BurstCount;		///< number of particles per burst
-	float			SpawnTimer;		///< working variable that keeps track of when to spawn new particles
 	float			LifeTimeFixed;	///< life time of a particle (fixed part)
 	float			LifeTimeRandom;	///< life time of a particle (random part)
+} ptcEmitterConfig;
+
+/// Entire emitter structure.
+typedef struct {
+	ptcEmitterConfig	Config;		///< platform-independent emitter configuration
+
+	float			SpawnTimer;		///< working variable that keeps track of when to spawn new particles
+	uint32_t		NumParticles;	///< current number of particles
+	uint32_t		MaxParticles;	///< maximum number of particles (size of the particle buffer)
+
+	// pointer size varies (32 or 64 bits) per platform
 	void			*InternalPtr1;	///< pointer to internal particlasm data structure
 	void			*InternalPtr2;	///< pointer to internal particlasm data structure
 	void			*InternalPtr3;	///< pointer to internal particlasm data structure
 	ptcModule		*Head;			///< pointer to first module
 	ptcParticle		*ParticleBuf;	///< pointer to particle buffer
-	uint32_t		NumParticles;	///< current number of particles
-	uint32_t		MaxParticles;	///< maximum number of particles (size of the particle buffer)
 } ptcEmitter;
 
 /// Function attribute declaration - here, we're explicitly declaring the
-/// calling convention as cdecl with 16-byte stack alignment.
+/// calling convention as cdecl (for 32-bit platforms; there is only one
+/// convention on x86-64) with 16-byte stack alignment.
 #ifdef __GNUC__
-	#define PTC_ATTRIBS	__attribute__((cdecl))
+	#if __x86_64__
+		#define PTC_ATTRIBS
+	#else
+		#define PTC_ATTRIBS	__attribute__((cdecl))
+	#endif // __x86_64__
 #else
-	#define PTC_ATTRIBS	__declspec(cdecl)
+	#if _WIN64
+		#define PTC_ATTRIBS
+	#else
+		#define PTC_ATTRIBS	__declspec(cdecl)
+	#endif // _WIN64
 #endif // __GNUC__
 
 /// Compiles a particle emitter given the emitter settings. Sets

@@ -21,10 +21,10 @@ size_t Fire(ptcEmitter **emitters) {
 	static ptcEmitter emit[2];
 
 	// fire emitter
-	emit[0].SpawnRate = 500.f;
-	emit[0].BurstCount = 15;
-	emit[0].LifeTimeFixed = 1;
-	emit[0].LifeTimeRandom = 1;
+	emit[0].Config.SpawnRate = 500.f;
+	emit[0].Config.BurstCount = 15;
+	emit[0].Config.LifeTimeFixed = 1;
+	emit[0].Config.LifeTimeRandom = 1;
 	emit[0].InternalPtr1 = NULL;
 	emit[0].InternalPtr2 = NULL;
 	emit[0].InternalPtr3 = NULL;
@@ -87,10 +87,10 @@ size_t Fire(ptcEmitter **emitters) {
 	gravity.Flags = ptcGF_AxisX | ptcGF_AxisZ | ptcGF_LinearAtt;
 
 	// smoke emitter
-	emit[1].SpawnRate = 200.f;
-	emit[1].BurstCount = 8;
-	emit[1].LifeTimeFixed = 1;
-	emit[1].LifeTimeRandom = 1;
+	emit[1].Config.SpawnRate = 200.f;
+	emit[1].Config.BurstCount = 8;
+	emit[1].Config.LifeTimeFixed = 1;
+	emit[1].Config.LifeTimeRandom = 1;
 	emit[1].InternalPtr1 = NULL;
 	emit[1].InternalPtr2 = NULL;
 	emit[1].InternalPtr3 = NULL;

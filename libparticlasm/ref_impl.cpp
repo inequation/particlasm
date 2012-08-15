@@ -131,9 +131,10 @@ uint32_t ref_ptcProcessEmitter(ptcEmitter *emitter, float step,
 		ptcVector cameraCS[3], ptcVertex *buffer, uint32_t maxVertices) {
 	// particle spawning
 	emitter->SpawnTimer += step;
-	size_t count = (size_t)floorf(emitter->SpawnTimer * emitter->SpawnRate);
-	emitter->SpawnTimer -= (float)count / emitter->SpawnRate;
-	count *= emitter->BurstCount;
+	size_t count = (size_t)floorf(emitter->SpawnTimer
+								* emitter->Config.SpawnRate);
+	emitter->SpawnTimer -= (float)count / emitter->Config.SpawnRate;
+	count *= emitter->Config.BurstCount;
 	if (count > emitter->MaxParticles - emitter->NumParticles)
 		count = emitter->MaxParticles - emitter->NumParticles;
 	for (size_t i = 0; i < count; ++i)
@@ -175,7 +176,8 @@ static bool SpawnParticle(ptcEmitter *e) {
 	++e->NumParticles;
 	ptcParticle *p = &e->ParticleBuf[i];
 	p->Active = 1;
-	p->TimeScale = 1.f / (e->LifeTimeFixed + FRand() * e->LifeTimeRandom);
+	p->TimeScale = 1.f / (e->Config.LifeTimeFixed + FRand()
+						* e->Config.LifeTimeRandom);
 	p->Time = 0.f;
 	p->Colour[0] = p->Colour[1] = p->Colour[2] = p->Colour[3] = 1.f;
 	p->Location[0] = p->Location[1] = p->Location[2] = 0.f;

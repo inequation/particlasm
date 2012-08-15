@@ -162,9 +162,9 @@ uint32_t EXPORTDECL ptcProcessEmitter(ptcEmitter *emitter, float step,
 	uint32_t count;
 
 	emitter->SpawnTimer += step;
-	count = (size_t)floorf(emitter->SpawnTimer * emitter->SpawnRate);
-	emitter->SpawnTimer -= (float)count / emitter->SpawnRate;
-	count *= emitter->BurstCount;
+	count = (size_t)floorf(emitter->SpawnTimer * emitter->Config.SpawnRate);
+	emitter->SpawnTimer -= (float)count / emitter->Config.SpawnRate;
+	count *= emitter->Config.BurstCount;
 	if (count > emitter->MaxParticles - emitter->NumParticles)
 		count = emitter->MaxParticles - emitter->NumParticles;
 	if (count > 0) {

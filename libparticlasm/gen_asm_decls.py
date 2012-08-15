@@ -38,6 +38,7 @@ config = {
 		"ptcMod_Gravity",
 		"ptcParticle",
 		"ptcVertex",
+		"ptcEmitterConfig",
 		"ptcEmitter"
 	},
 	# unions to extract
@@ -60,8 +61,9 @@ typemap = {
 	"uint32_t":		["resd",	1],
 	"ptcVector":	["resd",	3],
 	"ptcColour":	["resd",	4],
-	"*":			["resd",	1],
-	"ptcModulePtr":	["resd",	1]
+	# pointer types - "resp" is a platform-dependent (32 vs 64-bit) macro
+	"*":			["resp",	1],
+	"ptcModulePtr":	["resp",	1]
 }
 
 enums = []
@@ -179,6 +181,9 @@ while (line != ''):
 			state = 0
 			continue
 		tokens = l.split()
+		# skip empty lines and comments
+		if (len(tokens) == 0 or tokens[0] == "//"):
+			continue
 		vtype = tokens[0]
 		symbol = tokens[1][0 : tokens[1].find(";")]
 		if (symbol[0] == "*" or vtype[-1] == "*"):

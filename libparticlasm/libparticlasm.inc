@@ -86,7 +86,7 @@ endstruc
 
 struc ptcModuleHeader
 	.ModuleID:		resd	1
-	.Next:		resd	1
+	.Next:		resp	1
 endstruc
 
 struc ptcMod_InitialLocation
@@ -161,19 +161,23 @@ struc ptcVertex
 	.TexCoords:		resw	2
 endstruc
 
-struc ptcEmitter
+struc ptcEmitterConfig
 	.SpawnRate:		resd	1
 	.BurstCount:		resd	1
-	.SpawnTimer:		resd	1
 	.LifeTimeFixed:		resd	1
 	.LifeTimeRandom:		resd	1
-	.InternalPtr1:		resd	1
-	.InternalPtr2:		resd	1
-	.InternalPtr3:		resd	1
-	.Head:		resd	1
-	.ParticleBuf:		resd	1
+endstruc
+
+struc ptcEmitter
+	.Config:		resb	ptcEmitterConfig_size
+	.SpawnTimer:		resd	1
 	.NumParticles:		resd	1
 	.MaxParticles:		resd	1
+	.InternalPtr1:		resp	1
+	.InternalPtr2:		resp	1
+	.InternalPtr3:		resp	1
+	.Head:		resp	1
+	.ParticleBuf:		resp	1
 endstruc
 
 %endif ; LIBPARTICLASM_INC
