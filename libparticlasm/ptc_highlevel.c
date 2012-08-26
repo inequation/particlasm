@@ -28,8 +28,8 @@ Copyright (C) 2011-2012, Leszek Godlewski <lg@inequation.org>
 /// \param	processCodeBufLenPtr	pointer to processing code buffer length
 /// \param	dataBufLenPtr			pointer to spawn code buffer length
 extern void ptcInternalMeasureModule(ptcModule *module,
-	uint32_t *spawnCodeBufLenPtr, uint32_t *processCodeBufLenPtr,
-	uint32_t *dataBufLenPtr);
+	size_t *spawnCodeBufLenPtr, size_t *processCodeBufLenPtr,
+	size_t *dataBufLenPtr);
 
 /// Internal assembly module compilation procedure. Puts the resulting code and
 /// data in the indicated buffers and advances the indicated pointers.
@@ -47,7 +47,7 @@ extern void ptcInternalCompileModule(ptcModule *module,
 /// \param	step					simulation step time
 /// \param	count					number of particles to spawn
 extern void ptcInternalSpawnParticles(ptcEmitter *emitter, float step,
-	uint32_t count);
+	size_t count);
 
 /// Internal particle processing procedure. Performs the control logic and calls
 /// the processing code buffer accordingly, emitting vertices to the given
@@ -59,20 +59,20 @@ extern void ptcInternalSpawnParticles(ptcEmitter *emitter, float step,
 /// \param	cameraCS				camera coordinate system - 3 unit-length vectors: forward, right and up
 /// \param	buffer					buffer to emit vertices to
 /// \param	maxVertices				maximum number of vertices to emit
-extern uint32_t ptcInternalProcessParticles(ptcEmitter *emitter,
+extern size_t ptcInternalProcessParticles(ptcEmitter *emitter,
 	ptcParticle *startPtr, ptcParticle *endPtr, float step,
-	ptcVector cameraCS[3], ptcVertex *buffer, uint32_t maxVertices);
+	ptcVector cameraCS[3], ptcVertex *buffer, size_t maxVertices);
 
 /// \sa PFNPTCCOMPILEEMITTER
 uint32_t EXPORTDECL ptcCompileEmitter(ptcEmitter *emitter) {
 	ptcModule	*m;
-	uint32_t	spawnCodeBufLen = 0,
-				procCodeBufLen = 0,
-				dataBufLen = 0;
-	void		*spawnCodeBuf, *scbcopy,
-				*procCodeBuf, *pcbcopy,
-				*dataBuf, *dbcopy,
-				*codepage;
+	size_t	spawnCodeBufLen = 0,
+			procCodeBufLen = 0,
+			dataBufLen = 0;
+	void	*spawnCodeBuf, *scbcopy,
+			*procCodeBuf, *pcbcopy,
+			*dataBuf, *dbcopy,
+			*codepage;
 
 	// start with the simulation module
 	ptcInternalMeasureModule(NULL, &spawnCodeBufLen, &procCodeBufLen,
@@ -157,9 +157,9 @@ uint32_t EXPORTDECL ptcCompileEmitter(ptcEmitter *emitter) {
 // entry point to the particle processing routine
 // responsible for some high level organization
 /// \sa PFNPTCPROCESSEMITTER
-uint32_t EXPORTDECL ptcProcessEmitter(ptcEmitter *emitter, float step,
-		ptcVector cameraCS[3], ptcVertex *buffer, uint32_t maxVertices) {
-	uint32_t count;
+size_t EXPORTDECL ptcProcessEmitter(ptcEmitter *emitter, float step,
+		ptcVector cameraCS[3], ptcVertex *buffer, size_t maxVertices) {
+	size_t count;
 
 	emitter->SpawnTimer += step;
 	count = (size_t)floorf(emitter->SpawnTimer * emitter->Config.SpawnRate);
@@ -181,9 +181,8 @@ uint32_t EXPORTDECL ptcProcessEmitter(ptcEmitter *emitter, float step,
 }
 
 /// \sa PFNPTCRELEASEEMITTER
-uint32_t EXPORTDECL ptcReleaseEmitter(ptcEmitter *emitter) {
+void EXPORTDECL ptcReleaseEmitter(ptcEmitter *emitter) {
 	free(emitter->InternalPtr1);
 	munmap(emitter->InternalPtr2, 0);
 	munmap(emitter->InternalPtr3, 0);
-	return 1;
 }

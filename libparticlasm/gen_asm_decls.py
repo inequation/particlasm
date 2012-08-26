@@ -52,18 +52,19 @@ config = {
 
 # explicit type map
 typemap = {
-	# C type		primitive	count
-	"ptcID":		["resd",	1],
-	"float":		["resd",	1],
-	"int16_t":		["resw",	1],
-	"int32_t":		["resd",	1],
-	"uint16_t":		["resw",	1],
-	"uint32_t":		["resd",	1],
-	"ptcVector":	["resd",	3],
-	"ptcColour":	["resd",	4],
-	# pointer types - "resp" is a platform-dependent (32 vs 64-bit) macro
-	"*":			["resp",	1],
-	"ptcModulePtr":	["resp",	1]
+	# C type		primitive   	count
+	"ptcID":		["resd",	    1],
+	"float":		["resd",	    1],
+	"int16_t":		["resw",	    1],
+	"int32_t":		["resd",	    1],
+	"uint16_t":		["resw",	    1],
+	"uint32_t":		["resd",	    1],
+	"ptcVector":	["resd",	    3],
+	"ptcColour":	["resd",	    4],
+	# platform-dependent (32 vs 64-bit) type macros
+	"*":			["resp",	    1],
+	"size_t":       ["ressize_t",   1],
+	"ptcModulePtr":	["resp",	    1]
 }
 
 enums = []

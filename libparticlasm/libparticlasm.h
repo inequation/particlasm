@@ -16,6 +16,7 @@ extern "C" {
 #endif
 
 #include <inttypes.h>
+#include <stddef.h>
 
 /// 3-dimensional float vector (XYZ).
 typedef float		ptcVector[3];
@@ -249,7 +250,7 @@ typedef union ptcModule_u {
 
 /// @}
 
-/// Single particle structure.
+/// Individual run-time particle structure.
 typedef struct {
 	uint32_t	Active;			///< zero - particle is inactive, non-zero - active
 	float		TimeScale;		///< multiplier by which simulation step time is scaled for this particle (effectively controls life time)
@@ -277,13 +278,13 @@ typedef struct {
 	float			LifeTimeRandom;	///< life time of a particle (random part)
 } ptcEmitterConfig;
 
-/// Entire emitter structure.
+/// Entire run-time emitter structure.
 typedef struct {
 	ptcEmitterConfig	Config;		///< platform-independent emitter configuration
 
 	float			SpawnTimer;		///< working variable that keeps track of when to spawn new particles
-	uint32_t		NumParticles;	///< current number of particles
-	uint32_t		MaxParticles;	///< maximum number of particles (size of the particle buffer)
+	size_t			NumParticles;	///< current number of particles
+	size_t			MaxParticles;	///< maximum number of particles (size of the particle buffer)
 
 	// pointer size varies (32 or 64 bits) per platform
 	void			*InternalPtr1;	///< pointer to internal particlasm data structure
@@ -311,7 +312,7 @@ typedef struct {
 #endif // __GNUC__
 
 /// Compiles a particle emitter given the emitter settings. Sets
-/// emitter->InternalPtr.
+/// emitter->InternalPtr*.
 /// \param	emitter				emitter to compile
 /// \return	non-zero on success, zero on failure
 typedef PTC_ATTRIBS uint32_t (* PFNPTCCOMPILEEMITTER)(ptcEmitter *emitter);
@@ -325,8 +326,8 @@ typedef PTC_ATTRIBS uint32_t (* PFNPTCCOMPILEEMITTER)(ptcEmitter *emitter);
 /// \param	buffer		pointer to the vertex buffer to emit particle vertices to
 /// \param	maxVertices	maximum number of vertices to emit
 /// \return	number of particle vertices emitted
-typedef PTC_ATTRIBS uint32_t (* PFNPTCPROCESSEMITTER)(ptcEmitter *emitter,
-	float step, ptcVector cameraCS[3], ptcVertex *buffer, uint32_t maxVertices);
+typedef PTC_ATTRIBS size_t (* PFNPTCPROCESSEMITTER)(ptcEmitter *emitter,
+	float step, ptcVector cameraCS[3], ptcVertex *buffer, size_t maxVertices);
 
 /// Releases all resources related to this emitter.
 /// \param	emitter				emitter to release

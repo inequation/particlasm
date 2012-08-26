@@ -71,11 +71,16 @@ mod_SimulatePre:
 mod_SimulatePre_size	equ	(mod_SimulatePre.end - mod_SimulatePre)
 
 mod_SimulatePreCompile:
-	mov		eax, [esp + 8]
+	mov		rax, [rsp + 8]
 	push	mod_SimulatePre_size
+%ifidni PTC_ARCH,X64
+	lea		rdx, [rel mod_SimulatePre]
+	push	rdx
+%else
 	push	mod_SimulatePre
+%endif
 	push	rax
-	call	memcpy
+	libc_call memcpy
 	add		esp, 4 * 3
 	add		eax, mod_SimulatePre_size
 	mov		[esp + 8], eax
@@ -99,16 +104,26 @@ mod_SimulatePostCompile:
 	mov		edi, [esp + 8]
 	; copy in the postprocessing code
 	push	dword mod_SimulatePost_size
+%ifidni PTC_ARCH,X64
+	lea		rax, [rel mod_SimulatePost]
+	push	rax
+%else
 	push	dword mod_SimulatePost
+%endif
 	push	rdi
-	call	memcpy
+	libc_call memcpy
 	add		esp, 4 * 3
 	add		edi, mod_SimulatePost_size
 	mov		[esp + 8], edi
 
 	; also drop in a ret instruction at the end of spawn code
 	mov		edi, [esp + 4]
+%ifidni PTC_ARCH,X64
+	lea		rdx, [rel mod_SimulatePostCompile.ret_instruction]
+	mov		rdx, [rdx]
+%else
 	mov		edx, [mod_SimulatePostCompile.ret_instruction]
+%endif
 	mov		[edi], byte dl
 	inc		edi
 	mov		[esp + 4], edi
@@ -152,11 +167,16 @@ mod_InitialLocationCompile:
 	push	rcx
 
 	; copy our code over
-	mov		edx, mod_InitialLocationSpawn_size
+	mov		rdx, mod_InitialLocationSpawn_size
 	push	rdx
-	push	dword mod_InitialLocationSpawn
+%ifidni PTC_ARCH,X64
+	lea		rax, [rel mod_InitialLocationSpawn]
+	push	rax
+%else
+	push	mod_InitialLocationSpawn
+%endif
 	push	rcx
-	call	memcpy
+	libc_call memcpy
 	add		esp, 4 * 3
 
 	; restore ecx
@@ -207,18 +227,23 @@ mod_InitialRotationCompile:
 	; copy our code over
 	mov		edx, mod_InitialRotationSpawn_size
 	push	rdx
-	push	dword mod_InitialRotationSpawn
+%ifidni PTC_ARCH,X64
+	lea		rax, [rel mod_InitialRotationSpawn]
+	push	rax
+%else
+	push	ptr mod_InitialRotationSpawn
+%endif
 	push	rcx
-	call	memcpy
+	libc_call memcpy
 	add		esp, 4 * 3
 
 	; restore ecx
 	pop		rcx
 
 	; advance and save pointers
-	add		ecx, mod_InitialRotationSpawn_size
-	mov		[esp + 12], edi
-	mov		[esp + 4], ecx
+	add		rcx, mod_InitialRotationSpawn_size
+	mov		[rsp + 12], rdi
+	mov		[rsp + 4], rcx
 	ret
 
 ; ========================================
@@ -263,9 +288,14 @@ mod_InitialSizeCompile:
 	; copy our code over
 	mov		edx, mod_InitialSizeSpawn_size
 	push	rdx
+%ifidni PTC_ARCH,X64
+	lea		rax, [rel mod_InitialSizeSpawn]
+	push	rax
+%else
 	push	dword mod_InitialSizeSpawn
+%endif
 	push	rcx
-	call	memcpy
+	libc_call memcpy
 	add		esp, 4 * 3
 
 	; restore ecx
@@ -316,9 +346,14 @@ mod_InitialVelocityCompile:
 	; copy our code over
 	mov		edx, mod_InitialVelocitySpawn_size
 	push	rdx
+%ifidni PTC_ARCH,X64
+	lea		rax, [rel mod_InitialVelocitySpawn]
+	push	rax
+%else
 	push	dword mod_InitialVelocitySpawn
+%endif
 	push	rcx
-	call	memcpy
+	libc_call memcpy
 	add		esp, 4 * 3
 
 	; restore ecx
@@ -336,7 +371,7 @@ mod_InitialVelocityCompile:
 
 mod_InitialColourSpawn:
 	; load colour flags
-	mov eax, [0xBAD]	; filled upon compilation
+	mov eax, [0xBADADD]	; filled upon compilation
 .predistr:
 	; distribution code goes here
 .postdistr:
@@ -367,9 +402,14 @@ mod_InitialColourCompile:
 
 	; copy our pre-distribution code over
 	push	dword (mod_InitialColourSpawn.predistr - mod_InitialColourSpawn)
+%ifidni PTC_ARCH,X64
+	lea		rax, [rel mod_InitialColourSpawn]
+	push	rax
+%else
 	push	mod_InitialColourSpawn
+%endif
 	push	rcx
-	call	memcpy
+	libc_call memcpy
 	add		esp, 4 * 3
 
 	; restore ecx
@@ -394,9 +434,14 @@ mod_InitialColourCompile:
 	; copy our post-distribution code over
 	mov		edx, (mod_InitialColourSpawn.end - mod_InitialColourSpawn.postdistr)
 	push	rdx
-	push	dword mod_InitialColourSpawn.postdistr
+%ifidni PTC_ARCH,X64
+	lea		rax, [rel mod_InitialColourSpawn.postdistr]
+	push	rax
+%else
+	push	mod_InitialColourSpawn.postdistr
+%endif
 	push	rcx
-	call	memcpy
+	libc_call memcpy
 	add		esp, 4 * 3
 
 	; restore ecx
@@ -447,9 +492,14 @@ mod_VelocityCompile:
 	; copy our code over
 	mov		edx, mod_VelocityProcess_size
 	push	rdx
-	push	dword mod_VelocityProcess
+%ifidni PTC_ARCH,X64
+	lea		rax, [rel mod_VelocityProcess]
+	push	rax
+%else
+	push	mod_VelocityProcess
+%endif
 	push	rcx
-	call	memcpy
+	libc_call memcpy
 	add		esp, 4 * 3
 
 	; restore ecx
@@ -500,9 +550,14 @@ mod_AccelerationCompile:
 	; copy our code over
 	mov		edx, mod_AccelerationProcess_size
 	push	rdx
-	push	dword mod_AccelerationProcess
+%ifidni PTC_ARCH,X64
+	lea		rax, [rel mod_AccelerationProcess]
+	push	rax
+%else
+	push	mod_AccelerationProcess
+%endif
 	push	rcx
-	call	memcpy
+	libc_call memcpy
 	add		esp, 4 * 3
 
 	; restore ecx
@@ -524,7 +579,7 @@ mod_ColourSpawn:
 
 mod_ColourProcess:
 	; load colour flags
-	mov		eax, [0xBAD]	; filled upon compilation
+	mov		eax, [0xBADADD]	; filled upon compilation
 .postmov:
 	; load previous colour (colour distributions require this)
 	movaps	xmm5, xmm1
@@ -554,9 +609,14 @@ mod_ColourCompile:
 
 	; copy our pre-distribution code over
 	push	dword (mod_ColourProcess.predistr - mod_ColourProcess)
+%ifidni PTC_ARCH,X64
+	lea		rax, [rel mod_ColourProcess]
+	push	rax
+%else
 	push	mod_ColourProcess
+%endif
 	push	rcx
-	call	memcpy
+	libc_call memcpy
 	add		esp, 4 * 3
 
 	; restore ecx
@@ -582,9 +642,14 @@ mod_ColourCompile:
 	; copy our post-distribution code over
 	mov		edx, (mod_ColourProcess.end - mod_ColourProcess.postdistr)
 	push	rdx
-	push	dword mod_ColourProcess.postdistr
+%ifidni PTC_ARCH,X64
+	lea		rax, [rel mod_ColourProcess.postdistr]
+	push	rax
+%else
+	push	mod_ColourProcess.postdistr
+%endif
 	push	rcx
-	call	memcpy
+	libc_call memcpy
 	add		esp, 4 * 3
 
 	; restore ecx
@@ -638,9 +703,14 @@ mod_SizeCompile:
 	; copy our code over
 	mov		edx, mod_SizeProcess_size
 	push	rdx
-	push	dword mod_SizeProcess
+%ifidni PTC_ARCH,X64
+	lea		rax, [rel mod_SizeProcess]
+	push	rax
+%else
+	push	mod_SizeProcess
+%endif
 	push	rcx
-	call	memcpy
+	libc_call memcpy
 	add		esp, 4 * 3
 
 	; restore ecx

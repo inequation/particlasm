@@ -171,8 +171,8 @@ endstruc
 struc ptcEmitter
 	.Config:		resb	ptcEmitterConfig_size
 	.SpawnTimer:		resd	1
-	.NumParticles:		resd	1
-	.MaxParticles:		resd	1
+	.NumParticles:		ressize_t	1
+	.MaxParticles:		ressize_t	1
 	.InternalPtr1:		resp	1
 	.InternalPtr2:		resp	1
 	.InternalPtr3:		resp	1
