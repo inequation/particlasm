@@ -17,18 +17,15 @@ PFNPTCPROCESSEMITTER	ptcProcessEmitter;
 PFNPTCRELEASEEMITTER	ptcReleaseEmitter;
 
 // test parameters
-//#define USE_CPP_REFERENCE_IMPLEMENTATION
 #define TEST_TIME		30
 #define TEST_FRAMERATE	60
 
-#ifdef USE_CPP_REFERENCE_IMPLEMENTATION
 extern PTC_ATTRIBS unsigned int ref_ptcCompileEmitter(ptcEmitter *emitter);
 extern PTC_ATTRIBS uint32_t ref_ptcProcessEmitter(ptcEmitter *emitter,
 	float step, ptcVector cameraCS[3], ptcVertex *buffer, uint32_t maxVertices);
 extern PTC_ATTRIBS void ref_ptcReleaseEmitter(ptcEmitter *emitter);
-#else
+
 void *libparticlasmHandle = NULL;
-#endif // USE_CPP_REFERENCE_IMPLEMENTATION
 
 extern size_t Fire(ptcEmitter **emitters);
 
@@ -42,35 +39,35 @@ ptcVertex *ptc_vertices;
 
 size_t test_start_msec;
 
-bool InitParticlasm() {
-#ifdef USE_CPP_REFERENCE_IMPLEMENTATION
-	ptcCompileEmitter = ref_ptcCompileEmitter;
-	ptcProcessEmitter = ref_ptcProcessEmitter;
-	ptcReleaseEmitter = ref_ptcReleaseEmitter;
-	return true;
-#else
-	libparticlasmHandle = dlopen("/home/inequation/projects/particlasm/bin/Debug/libparticlasm.so", RTLD_NOW);
-	if (!libparticlasmHandle) {
+bool InitParticlasm(bool cpp) {
+	if (cpp) {
+		ptcCompileEmitter = ref_ptcCompileEmitter;
+		ptcProcessEmitter = ref_ptcProcessEmitter;
+		ptcReleaseEmitter = ref_ptcReleaseEmitter;
+		return true;
+	} else {
+		libparticlasmHandle = dlopen("/home/inequation/projects/particlasm/bin/Debug/libparticlasm.so", RTLD_NOW);
+		if (!libparticlasmHandle) {
+			printf("dlerror: %s\n", dlerror());
+			return false;
+		}
+		ptcCompileEmitter = (PFNPTCCOMPILEEMITTER)dlsym(libparticlasmHandle, "ptcCompileEmitter");
+		ptcProcessEmitter = (PFNPTCPROCESSEMITTER)dlsym(libparticlasmHandle, "ptcProcessEmitter");
+		ptcReleaseEmitter = (PFNPTCRELEASEEMITTER)dlsym(libparticlasmHandle, "ptcReleaseEmitter");
+		if (ptcCompileEmitter && ptcProcessEmitter && ptcReleaseEmitter)
+			return true;
 		printf("dlerror: %s\n", dlerror());
+		dlclose(libparticlasmHandle);
 		return false;
 	}
-	ptcCompileEmitter = (PFNPTCCOMPILEEMITTER)dlsym(libparticlasmHandle, "ptcCompileEmitter");
-	ptcProcessEmitter = (PFNPTCPROCESSEMITTER)dlsym(libparticlasmHandle, "ptcProcessEmitter");
-	ptcReleaseEmitter = (PFNPTCRELEASEEMITTER)dlsym(libparticlasmHandle, "ptcReleaseEmitter");
-	if (ptcCompileEmitter && ptcProcessEmitter && ptcReleaseEmitter)
-		return true;
-	printf("dlerror: %s\n", dlerror());
-	dlclose(libparticlasmHandle);
-	return false;
-#endif // USE_CPP_REFERENCE_IMPLEMENTATION
 }
 
 void FreeParticlasm() {
-#ifdef USE_CPP_REFERENCE_IMPLEMENTATION
-#else
 	if (libparticlasmHandle)
 		dlclose(libparticlasmHandle);
-#endif // USE_CPP_REFERENCE_IMPLEMENTATION
+	ptcCompileEmitter = NULL;
+	ptcProcessEmitter = NULL;
+	ptcReleaseEmitter = NULL;
 }
 
 struct timeval start;
@@ -89,42 +86,28 @@ unsigned int GetTicks() {
     return (ticks);
 }
 
-int main(int argc, char *argv[]) {
+bool Benchmark(bool cpp) {
 	size_t i, j;
 	static ptcVector cameraCS[3] = {
 		{1, 0, 0}, {0, 1, 0}, {0, 0, 1}
 	};
 
-	if (argc < 2) {
-		fprintf(stderr, "Please provide max particle count as argument.\n");
-		return 1;
-	}
-	MAX_PARTICLES = atoi(argv[1]);
-	ptc_particles = malloc(sizeof(*ptc_particles) * MAX_PARTICLES);
-	ptc_vertices = malloc(sizeof(*ptc_vertices) * MAX_PARTICLES * 4);
-
-	if (!InitParticlasm()) {
-		fprintf(stderr, "Could not initialize particlasm.\n");
-		return 1;
+	if (!InitParticlasm(cpp)) {
+		fprintf(stderr, "Could not initialize %s implementation.\n",
+			cpp ? "C++" : "assembly");
+		return false;
 	}
 
-	InitTicks();
+	memset(ptc_particles, 0, sizeof(*ptc_particles) * MAX_PARTICLES);
+	memset(ptc_vertices, 0, sizeof(*ptc_vertices) * MAX_PARTICLES * 4);
 
-	// initialize random number generator
-	srand((unsigned int)time(NULL));
-
-	printf("particlasm headless benchmark\n"
-		"Test parameters:\n"
-		"    Implementation: "
-#ifdef USE_CPP_REFERENCE_IMPLEMENTATION
-			"C++\n"
-#else
-			"assembly\n"
-#endif
+	printf("\nTest parameters:\n"
+		"    Implementation: %s\n"
 		"    Sim. time:      %3.2f\n"
 		"    Sim. framerate: %3.2f\n"
 		"    Max particles:  %d\n"
 		"    Max vertices:   %d\n\n",
+		cpp ? "C++" : "assembly",
 		(float)TEST_TIME, (float)TEST_FRAMERATE, MAX_PARTICLES,
 			MAX_PARTICLES * 4);
 
@@ -134,7 +117,7 @@ int main(int argc, char *argv[]) {
 		ptc_emitters[i].MaxParticles = MAX_PARTICLES;
 		if (!ptcCompileEmitter(&ptc_emitters[i])) {
 			fprintf(stderr, "Could not compile emitter.\n");
-			return 2;
+			return false;
 		}
 	}
 
@@ -159,6 +142,26 @@ int main(int argc, char *argv[]) {
 		ptcReleaseEmitter(&ptc_emitters[i]);
 	// clean up particlasm
 	FreeParticlasm();
+	return true;
+}
+
+int main(int argc, char *argv[]) {
+	if (argc < 2) {
+		fprintf(stderr, "Please provide max particle count as argument.\n");
+		return 1;
+	}
+	MAX_PARTICLES = atoi(argv[1]);
+	ptc_particles = malloc(sizeof(*ptc_particles) * MAX_PARTICLES);
+	ptc_vertices = malloc(sizeof(*ptc_vertices) * MAX_PARTICLES * 4);
+
+	InitTicks();
+
+	// initialize random number generator
+	srand((unsigned int)time(NULL));
+
+	printf("particlasm headless benchmark\n");
+	Benchmark(true);
+	Benchmark(false);
 
 	free(ptc_vertices);
 	free(ptc_particles);

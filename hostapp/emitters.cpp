@@ -1,4 +1,5 @@
 #include <cstdlib>
+#include <cstring>
 #include "../libparticlasm/libparticlasm.h"
 
 // returns an array of emitter definitions for the fire effect
@@ -19,6 +20,8 @@ size_t Fire(ptcEmitter **emitters) {
 	static ptcMod_Acceleration s_acc;
 	static ptcMod_Colour s_alpha;
 	static ptcEmitter emit[2];
+
+	memset(emit, 0, sizeof(emit));
 
 	// fire emitter
 	emit[0].Config.SpawnRate = 500.f;
