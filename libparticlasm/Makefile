@@ -41,24 +41,24 @@ RELEASE_DIST_DIR = ../bin/Release
 # $(ASFLAGS) comes last so that nasm learns about the target platform first
 ifeq ($(ARCH), x64)
 	ifeq ($(PLATFORM), linux)
-		REAL_ASFLAGS = -dPTC_ARCH=X64 -dPTC_PLATFORM=LINUX -f elf64 $(ASFLAGS)
+		REAL_ASFLAGS = -f elf64 $(ASFLAGS)
 		REAL_CFLAGS = $(CFLAGS) -march=core2 -m64
 		REAL_LINKERFLAGS = $(LINKERFLAGS) -melf_x86_64
 		DEBUG_FORMAT = dwarf
 	else
-		REAL_ACTUAL_ASFLAGS = -dPTC_ARCH=X64 -dPTC_PLATFORM=WINDOWS -f win64 $(ASFLAGS)
+		REAL_ACTUAL_ASFLAGS = -f win64 $(ASFLAGS)
 		REAL_CFLAGS = $(CFLAGS) -march=core2 -m64
 		REAL_LINKERFLAGS = $(LINKERFLAGS) -mi386pe
 		DEBUG_FORMAT = null
 	endif
 else
 	ifeq ($(PLATFORM), linux)
-		REAL_ASFLAGS = -dPTC_ARCH=X86 -dPTC_PLATFORM=LINUX -f elf32 $(ASFLAGS)
+		REAL_ASFLAGS = -f elf32 $(ASFLAGS)
 		REAL_CFLAGS = $(CFLAGS) -march=pentium-m -m32
 		REAL_LINKERFLAGS = $(LINKERFLAGS) -melf_i386
 		DEBUG_FORMAT = dwarf
 	else
-		REAL_ASFLAGS = -dPTC_ARCH=X86 -dPTC_PLATFORM=WINDOWS -f win32 $(ASFLAGS)
+		REAL_ASFLAGS = -f win32 $(ASFLAGS)
 		REAL_CFLAGS = $(CFLAGS) -march=pentium-m -m32
 		REAL_LINKERFLAGS = $(LINKERFLAGS) -mi386pe
 		DEBUG_FORMAT = null
