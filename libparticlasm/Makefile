@@ -46,7 +46,7 @@ ifeq ($(ARCH), x64)
 		REAL_LINKERFLAGS = $(LINKERFLAGS) -melf_x86_64
 		DEBUG_FORMAT = dwarf
 	else
-		REAL_ACTUAL_ASFLAGS = -f win64 $(ASFLAGS)
+		REAL_ASFLAGS = -f win64 $(ASFLAGS)
 		REAL_CFLAGS = $(CFLAGS) -march=core2 -m64
 		REAL_LINKERFLAGS = $(LINKERFLAGS) -mi386pe
 		DEBUG_FORMAT = null
