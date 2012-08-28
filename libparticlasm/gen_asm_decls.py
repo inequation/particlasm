@@ -62,9 +62,9 @@ typemap = {
 	"ptcVector":	["resd",	    3],
 	"ptcColour":	["resd",	    4],
 	# platform-dependent (32 vs 64-bit) type macros
-	"*":			["resp",	    1],
-	"size_t":       ["ressize_t",   1],
-	"ptcModulePtr":	["resp",	    1]
+	"*":			["reserve(ptr_t)",	1],
+	"size_t":       ["reserve(size_t)", 1],
+	"ptcModulePtr":	["reserve(ptr_t)",	1]
 }
 
 enums = []

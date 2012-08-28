@@ -1,77 +1,23 @@
 ; particlasm main module
 ; Copyright (C) 2011-2012, Leszek Godlewski <lg@inequation.org>
 
-; architecture-specific defines
-%ifidni PTC_ARCH,X64
-	cpu X64
+; NASMX base include
+%include 'nasmx.inc'
 
-	; x64 doesn't have pushad/popad, so make a macro for this
-	%macro pushad 0
-		push		rax
-		push		rcx
-		push		rdx
-		push		rbx
-		push		rsp
-		push		rbp
-		push		rsi
-		push		rdi
-	%endmacro
-	%macro popad 0
-		pop			rdi
-		pop			rsi
-		pop			rbp
-		pop			rsp
-		pop			rbx
-		pop			rdx
-		pop			rcx
-		pop			rax
-	%endmacro
+; some NASMX supplements
+%ixdefine ptr_t				ptrdiff_t			; platform-specific pointer type
+%ixdefine float_s_reserve	__nxfloat_reserve	; 32-bit float reservation
+%ixdefine float_s			dword
 
-	; data type macros - quad word
-	%define resp	resq
-	%define ressize_t	resq
-	%define ptr		qword
-	%define size_t	qword
-
-	; libc call wrapper
-	; %1 - function name
-	%macro libc_call 1
-		call	%1 wrt ..plt
-	%endmacro
-%else
-	cpu P3
-
-	; register aliases for pushing/popping
-	%define rax		eax
-	%define rbx		ebx
-	%define rcx		ecx
-	%define rdx		edx
-	%define rsi		esi
-	%define rdi		edi
-	%define rsp		esp
-
-	; data type macros - double word
-	%define resp	resd
-	%define ressize_t	resd
-	%define ptr		dword
-	%define size_t	dword
-
-	; libc call wrapper
-	%macro libc_call 1
-		call	%1
-	%endmacro
-%endif
-; floats are always 32-bit
-%define float		dword
+; libparticlasm declarations generated from the C header
+%include "libparticlasm.inc"
 
 ; by default, all addresses are absolute
 default abs
 
-; declarations
-%include "libparticlasm.inc"
-
-; libc import
+; libc imports
 extern rand
+extern memcpy
 
 ; declare the GOT symbol
 extern _GLOBAL_OFFSET_TABLE_
@@ -79,8 +25,8 @@ extern _GLOBAL_OFFSET_TABLE_
 %macro get_GOT 0
 	call	%%getgot
 %%getgot:
-	pop		rbx
-	add		rbx, _GLOBAL_OFFSET_TABLE_+$$-%%getgot wrt ..gotpc
+	pop		__bx
+	add		__bx, _GLOBAL_OFFSET_TABLE_+$$-%%getgot wrt ..gotpc
 %endmacro
 
 ; entry points to the library
@@ -97,13 +43,13 @@ global ptcInternalProcessParticles:function
 %macro frand 0-1 0
 	; need to make the call a far one since the code will live in a totally
 	; different memory block
-	call	[rsp + (4 + %1)]
+	call	[__sp + (4 + %1)]
 	; temp variable - the fild instruction needs to read from memory
-	push	rax
-	fild	float [rsp]
-	add		rsp, 4
+	push	__ax
+	fild	float_s [__sp]
+	add		__sp, 4
 	; load in the inverse RAND_MAX
-	fld		float [rsp + (8 + %1)]
+	fld		float_s [__sp + (8 + %1)]
 	; pop the rand() result off the stack
 	; rand() * (1.f / RAND_MAX)
 	fmulp	st1, st0
@@ -126,15 +72,15 @@ MASK_ALPHA		dd	0x00000000
 	cmp		edx, ptcMID_ %+ %1
 	jne		%%skip
 	call	mod_ %+ %1 %+ Measure
-	mov		rax, [spawnbuf_len]
-	add		rax, rbx
-	mov		[spawnbuf_len], rax
-	mov		rax, [procbuf_len]
-	add		rax, rcx
-	mov		[procbuf_len], rax
-	mov		rax, [databuf_len]
-	add		rax, rdx
-	mov		[databuf_len], rax
+	mov		__ax, [var(.spawnbuf_len)]
+	add		__ax, __bx
+	mov		[var(.spawnbuf_len)], __ax
+	mov		__ax, [var(.procbuf_len)]
+	add		__ax, __cx
+	mov		[var(.procbuf_len)], __ax
+	mov		__ax, [var(.databuf_len)]
+	add		__ax, __dx
+	mov		[var(.databuf_len)], __ax
 	jmp		.end
 %%skip:
 %endmacro
@@ -150,15 +96,15 @@ MASK_ALPHA		dd	0x00000000
 
 ; loads particle data into registers; assumes pointer in rsi
 %macro load_particle 0
-	mov		edx, [rsi + ptcParticle.Active]
-	fld		float [rsi + ptcParticle.Size]
-	fld		float [rsi + ptcParticle.Rotation]
-	fld		float [rsi + ptcParticle.Time]
-	fld		float [rsi + ptcParticle.TimeScale]
-	movups	xmm1, [rsi + ptcParticle.Colour]
-	movups	xmm2, [rsi + ptcParticle.Location]
-	movups	xmm3, [rsi + ptcParticle.Velocity]
-	movups	xmm4, [rsi + ptcParticle.Accel]
+	mov		edx, [__si + ptcParticle.Active]
+	fld		float_s [__si + ptcParticle.Size]
+	fld		float_s [__si + ptcParticle.Rotation]
+	fld		float_s [__si + ptcParticle.Time]
+	fld		float_s [__si + ptcParticle.TimeScale]
+	movups	xmm1, [__si + ptcParticle.Colour]
+	movups	xmm2, [__si + ptcParticle.Location]
+	movups	xmm3, [__si + ptcParticle.Velocity]
+	movups	xmm4, [__si + ptcParticle.Accel]
 %endmacro
 
 ; stores particle data into memory; assumes pointer in esi
@@ -166,22 +112,22 @@ MASK_ALPHA		dd	0x00000000
 	; our vectors are 12 bytes wide, so these stores require some SSE magic:
 	; first store the low order half of the register, then broadcast the 3rd
 	; float onto the entire register and store it as a scalar at an offset
-	movlps	[rsi + ptcParticle.Accel], xmm4
+	movlps	[__si + ptcParticle.Accel], xmm4
 	shufps	xmm4, xmm4, 0xAA
-	movss	[rsi + ptcParticle.Accel + 8], xmm4
-	movlps	[rsi + ptcParticle.Velocity], xmm3
+	movss	[__si + ptcParticle.Accel + 8], xmm4
+	movlps	[__si + ptcParticle.Velocity], xmm3
 	shufps	xmm3, xmm3, 0xAA
-	movss	[rsi + ptcParticle.Velocity + 8], xmm3
-	movlps	[rsi + ptcParticle.Location], xmm2
+	movss	[__si + ptcParticle.Velocity + 8], xmm3
+	movlps	[__si + ptcParticle.Location], xmm2
 	shufps	xmm2, xmm2, 0xAA
-	movss	[rsi + ptcParticle.Location + 8], xmm2
+	movss	[__si + ptcParticle.Location + 8], xmm2
 	; colour is 16 bytes wide, no magic required
-	movups	[rsi + ptcParticle.Colour], xmm1
-	fstp	float [rsi + ptcParticle.TimeScale]
-	fstp	float [rsi + ptcParticle.Time]
-	fstp	float [rsi + ptcParticle.Rotation]
-	fstp	float [rsi + ptcParticle.Size]
-	mov		[rsi + ptcParticle.Active], edx
+	movups	[__si + ptcParticle.Colour], xmm1
+	fstp	float_s [__si + ptcParticle.TimeScale]
+	fstp	float_s [__si + ptcParticle.Time]
+	fstp	float_s [__si + ptcParticle.Rotation]
+	fstp	float_s [__si + ptcParticle.Size]
+	mov		[__si + ptcParticle.Active], edx
 %endmacro
 
 ; macro that pushes the time step into the correct registers
@@ -200,62 +146,68 @@ MASK_ALPHA		dd	0x00000000
 
 ; macro that advances and wraps the particle pointer around buffer size
 %macro advance_particle_ptr 0
-	add		rsi, ptcParticle_size
-	mov		rdx, [rbx + ptcEmitter.MaxParticles]
-	mov		rax, ptcParticle_size
-	mul		rdx
-	mov		rdx, [rbx + ptcEmitter.ParticleBuf]
-	add		rax, rdx
-	cmp		rsi, rax
+	add		__si, ptcParticle_size
+	mov		__dx, [__bx + ptcEmitter.MaxParticles]
+	mov		__ax, ptcParticle_size
+	mul		__dx
+	mov		__dx, [__bx + ptcEmitter.ParticleBuf]
+	add		__ax, __dx
+	cmp		__si, __ax
 	jl		%%skip
-	mov		rsi, rdx
+	mov		__si, __dx
 %%skip:
 %endmacro
 
-ptcInternalMeasureModule:
-	%push		ptcInternalMeasureModuleContext
-	%stacksize	flat
-	%assign		%$localsize 0
-	%arg		module:ptr
-	%arg		spawnCodeBufLenPtr:ptr
-	%arg		processCodeBufLenPtr:ptr
-	%arg		dataBufLenPtr:ptr
-	%local		spawnbuf_len:size_t	; particle spawn code buffer size
-	%local		procbuf_len:size_t	; pointer particle processing code buffer size
-	%local		databuf_len:size_t	; pointer particle data buffer size
+proc ptcInternalMeasureModule, ptr_t module, ptr_t spawnCodeBufLenPtr, ptr_t processCodeBufLenPtr, ptr_t dataBufLenPtr
+uses __ax, __bx, __cx, __dx, __si, __di	; every register is guaranteed to be used sooner or later
+locals
+	local spawnbuf_len,	size_t	; particle spawn code buffer size
+	local procbuf_len,	size_t	; particle processing code buffer size
+	local databuf_len,	size_t	; particle data buffer size
+endlocals
 
-	enter   %$localsize, 0
-
-	; save off working registers
-	pushad
+; spill registers to stack on x64
+%ifidn __OUTPUT_FORMAT__,elf64
+	; rdi = module, rsi = spawn..., rdx = process..., rcx = data...
+	mov		[argv(.module)], rdi
+	mov		[argv(.spawnCodeBufLenPtr)], rsi
+	mov		[argv(.processCodeBufLenPtr)], rdx
+	mov		[argv(.dataBufLenPtr)], rcx
+%elifidn __OUTPUT_FORMAT__,win64
+	; rcx = module, rdx = spawn..., r8 = process..., r9 = data...
+	mov		[argv(.module)], rcx
+	mov		[argv(.spawnCodeBufLenPtr)], rdx
+	mov		[argv(.processCodeBufLenPtr)], r8
+	mov		[argv(.dataBufLenPtr)], r9
+%endif
 
 	; initialize counters
-	mov		rsi, [spawnCodeBufLenPtr]
-	mov		rdx, [rsi]
-	mov		[spawnbuf_len], rdx
-	mov		rsi, [processCodeBufLenPtr]
-	mov		rdx, [rsi]
-	mov		[procbuf_len], rdx
-	mov		rsi, [dataBufLenPtr]
-	mov		rdx, [esi]
-	mov		[databuf_len], rdx
+	mov		__si, [argv(.spawnCodeBufLenPtr)]
+	mov		__dx, [__si]
+	mov		[var(.spawnbuf_len)], __dx
+	mov		__si, [argv(.processCodeBufLenPtr)]
+	mov		__dx, [__si]
+	mov		[var(.procbuf_len)], __dx
+	mov		__si, [argv(.dataBufLenPtr)]
+	mov		__dx, [__si]
+	mov		[var(.databuf_len)], __dx
 
-	mov		rsi, [module]
+	mov		__si, [argv(.module)]
 
 	; if module == NULL, add in the simulation module
-	test	rsi, rsi
+	test	__si, __si
 	jnz		.normal
 
-	mov		rax, [spawnbuf_len]
-	inc		rax	; add in 1 byte for a ret instruction
-	mov		[spawnbuf_len], rax
-	mov		rax, [procbuf_len]
-	add		rax, mod_SimulatePre_size + mod_SimulatePost_size
-	mov		[procbuf_len], rax
+	mov		__ax, [var(.spawnbuf_len)]
+	inc		__ax	; add in 1 byte for a ret instruction
+	mov		[var(.spawnbuf_len)], __ax
+	mov		__ax, [var(.procbuf_len)]
+	add		__ax, mod_SimulatePre_size + mod_SimulatePost_size
+	mov		[var(.procbuf_len)], __ax
 	jmp		.end
 
 .normal:
-	mov		rdx, [rsi + ptcModuleHeader.ModuleID]
+	mov		__dx, [__si + ptcModuleHeader.ModuleID]
 
 	; detect modules and add in their sizes
 	MeasureModBuf InitialLocation
@@ -271,65 +223,63 @@ ptcInternalMeasureModule:
 
 .end:
 	; copy measured length to the provided pointers
-	mov		rdx, [spawnbuf_len]
-	mov		rdi, [spawnCodeBufLenPtr]
-	mov		[rdi], rdx
-	mov		rdx, [procbuf_len]
-	mov		rdi, [processCodeBufLenPtr]
-	mov		[rdi], rdx
-	mov		rdx, [databuf_len]
-	mov		rdi, [dataBufLenPtr]
-	mov		[rdi], rdx
+	mov		__dx, [var(.spawnbuf_len)]
+	mov		__di, [argv(.spawnCodeBufLenPtr)]
+	mov		[__di], __dx
+	mov		__dx, [var(.procbuf_len)]
+	mov		__di, [argv(.processCodeBufLenPtr)]
+	mov		[__di], __dx
+	mov		__dx, [var(.databuf_len)]
+	mov		__di, [argv(.dataBufLenPtr)]
+	mov		[__di], __dx
 
-	; restore working registers
-	popad
+endproc
 
-	leave
-	ret
-	%pop
+proc ptcInternalCompileModule, ptr_t module, ptr_t spawnCodeBufPtr, ptr_t processCodeBufPtr, ptr_t dataBufPtr
+uses __bx, __si, __di
+locals none
 
-ptcInternalCompileModule:
-	%push		ptcCompileEmitterContext
-	%stacksize	flat
-	%assign		%$localsize 0
-	%arg		module:ptr
-	%arg		spawnCodeBufPtr:ptr
-	%arg		processCodeBufPtr:ptr
-	%arg		dataBufPtr:ptr
-
-	enter   %$localsize, 0
-
-	; save off working registers
-	push	rbx
-	push	rsi
-	push	rdi
+; spill registers to stack on x64
+%ifidn __OUTPUT_FORMAT__,elf64
+	; rdi = module, rsi = spawn..., rdx = process..., rcx = data...
+	mov		[argv(.module)], rdi
+	mov		[argv(.spawnCodeBufPtr)], rsi
+	mov		[argv(.processCodeBufPtr)], rdx
+	mov		[argv(.dataBufPtr)], rcx
+%elifidn __OUTPUT_FORMAT__,win64
+	; rcx = module, rdx = spawn..., r8 = process..., r9 = data...
+	mov		[argv(.module)], rcx
+	mov		[argv(.spawnCodeBufPtr)], rdx
+	mov		[argv(.processCodeBufPtr)], r8
+	mov		[argv(.dataBufPtr)], r9
+%endif
 
 	; place the pointers on the stack in the convention that modules expect them
-	mov		rax, [dataBufPtr]
-	mov		rax, [rax]
-	push	rax
-	mov		rax, [processCodeBufPtr]
-	mov		rax, [rax]
-	push	rax
-	mov		rax, [spawnCodeBufPtr]
-	mov		rax, [rax]
-	push	rax
-	mov		rsi, [module]
+	mov		__ax, [argv(.dataBufPtr)]
+	mov		__ax, [__ax]
+	push	__ax
+	mov		__ax, [argv(.processCodeBufPtr)]
+	mov		__ax, [__ax]
+	push	__ax
+	mov		__ax, [argv(.spawnCodeBufPtr)]
+	mov		__ax, [__ax]
+	push	__ax
+	mov		__si, [argv(.module)]
 
 	; check for simulation pre- and post-processing modules
-	cmp		rsi, ptr -1
+	cmp		__si, ptr_t -1
 	jne		.try_post
 	; add in the simulation preprocessing module
 	call	mod_SimulatePreCompile
 	jmp		.end
 .try_post:
-	cmp		rsi, ptr -2
+	cmp		__si, ptr_t -2
 	jne		.normal
 	; add in the simulation postprocessing module
 	call	mod_SimulatePostCompile
 	jmp		.end
 .normal:
-	mov		rdx, [rsi + ptcModuleHeader.ModuleID]
+	mov		__dx, [__si + ptcModuleHeader.ModuleID]
 
 	; detect modules and copy in their code and data
 	CompileMod InitialLocation
@@ -345,38 +295,34 @@ ptcInternalCompileModule:
 
 .end:
 	; return pointers after advancing
-	pop		rdx
-	mov		rax, [spawnCodeBufPtr]
-	mov		[rax], rdx
-	pop		rdx
-	mov		rax, [processCodeBufPtr]
-	mov		[rax], rdx
-	pop		rdx
-	mov		rax, [dataBufPtr]
-	mov		[rax], rdx
+	pop		__dx
+	mov		__ax, [argv(.spawnCodeBufPtr)]
+	mov		[__ax], __dx
+	pop		__dx
+	mov		__ax, [argv(.processCodeBufPtr)]
+	mov		[__ax], __dx
+	pop		__dx
+	mov		__ax, [argv(.dataBufPtr)]
+	mov		[__ax], __dx
 
-	; restore working registers
-	pop		rdi
-	pop		rsi
-	pop		rbx
+endproc
 
-	leave
-	ret
-	%pop
+proc ptcInternalSpawnParticles, ptr_t emitter, float_t step, size_t count
+uses __bx, __si, __di
+locals none
 
-ptcInternalSpawnParticles:
-	%push		ptcInternalSpawnParticlesContext
-	%stacksize	flat
-	%assign		%$localsize 0
-	%arg		emitter:ptr
-	%arg		step:float
-	%arg		count:size_t
-
-	enter	%$localsize, 0
-
-	push	rbx
-	push	rsi
-	push	rdi
+; spill registers to stack on x64
+%ifidn __OUTPUT_FORMAT__,elf64
+	; rdi = emitter, xmm0 = step, rsi = count
+	mov		[argv(.emitter)], rdi
+	movss	[argv(.step)], xmm0
+	mov		[argv(.count)], rsi
+%elifidn __OUTPUT_FORMAT__,win64
+	; rcx = emitter, xmm1 = step, r8 = count
+	mov		[argv(.emitter)], rcx
+	movss	[argv(.step)], xmm1
+	mov		[argv(.count)], r8
+%endif
 
 	; initialize the FPU to make sure the stack is clear and there are no
 	; exceptions
@@ -384,52 +330,52 @@ ptcInternalSpawnParticles:
 	fwait
 
 	; start at a random index to reduce chances of a collision
-	libc_call rand
-	mov		rbx, [emitter]
-	xor		rdx, rdx
-	mov		rcx, [rbx + ptcEmitter.MaxParticles]
-	div		rcx
-	mov		rax, ptcParticle_size
-	mul		rdx
-	mov		rsi, rax
+	call	rand wrt ..plt
+	mov		__bx, [argv(.emitter)]
+	xor		__dx, __dx
+	mov		__cx, [__bx + ptcEmitter.MaxParticles]
+	div		__cx
+	mov		__ax, ptcParticle_size
+	mul		__dx
+	mov		__si, __ax
 
-	mov		rcx, [count]
-	add		rsi, [rbx + ptcEmitter.ParticleBuf]
+	mov		__cx, [argv(.count)]
+	add		__si, [__bx + ptcEmitter.ParticleBuf]
 
 	; kick off the loop - find a free spot in the buffer
 .find_spot:
-	mov		edx, [rsi + ptcParticle.Active]
+	mov		edx, [__si + ptcParticle.Active]
 	test	edx, edx	; intentionally always 32-bit
 	jz		.cont
 	advance_particle_ptr
 	jmp		.find_spot
 .cont:
 	; increase particle counter
-	mov		rdx, [rbx + ptcEmitter.NumParticles]
-	inc		rdx;
-	mov		[rbx + ptcEmitter.NumParticles], rdx
+	mov		__dx, [__bx + ptcEmitter.NumParticles]
+	inc		__dx;
+	mov		[__bx + ptcEmitter.NumParticles], __dx
 	; clear particle data
-	mov		[rsi + ptcParticle.Active], dword 1
+	mov		[__si + ptcParticle.Active], dword 1
 	; calculate time scale: 1 / (LifeTimeFixed + frand() * LifeTimeRandom)
 	fld1
-	fld		float [rbx + ptcEmitterConfig.LifeTimeFixed]
-	fld		float [rbx + ptcEmitterConfig.LifeTimeRandom]
+	fld		float_s [__bx + ptcEmitterConfig.LifeTimeFixed]
+	fld		float_s [__bx + ptcEmitterConfig.LifeTimeRandom]
 	; save off rcx and rdx
-	push	rcx
-	push	rdx
+	push	__cx
+	push	__dx
 	; need the function address and inverse RAND_MAX on the stack
 	push	dword INV_RAND_MAX
-%ifidni PTC_ARCH,X64
-	push	ptr [rel rand wrt ..plt]
+%ifidn __BITS__,64
+	push	ptr_t [rel rand wrt ..plt]
 %else
 	push	rand
 %endif
 	push	0	; dummy value
 	frand
-	add		rsp, 4 * 3
+	add		__sp, 4 * 3
 	; restore ecx and edx
-	pop		rdx
-	pop		rcx
+	pop		__dx
+	pop		__cx
 	; st0=frand(), st1=LTR, st2=LTF, st3=1.0
 	fmulp	st1, st0
 	; st0=frand()*LTR, st1=LTF, st2=1.0
@@ -437,179 +383,178 @@ ptcInternalSpawnParticles:
 	; st0=LTF+frand()*LTR, st1=1.0
 	fdivp	st1, st0
 	; st0=1.0/t
-	fstp	float [rsi + ptcParticle.TimeScale]
+	fstp	float_s [__si + ptcParticle.TimeScale]
 	; sync
 	fwait
-	mov		[rsi + ptcParticle.Time], float 0
+	mov		[__si + ptcParticle.Time], float_s 0
 	fld1
-	fstp	float [rsi + ptcParticle.Colour]
+	fstp	float_s [__si + ptcParticle.Colour]
 	fwait
 	; reuse the 1.0 float we've just stored
-	mov		eax, float [rsi + ptcParticle.Colour]
-	mov		float [esi + (ptcParticle.Colour + 4)], eax
-	mov		float [esi + (ptcParticle.Colour + 8)], eax
-	mov		float [esi + (ptcParticle.Colour + 12)], eax
-	mov		[rsi + ptcParticle.Location], float 0
-	mov		[rsi + (ptcParticle.Location + 4)], float 0
-	mov		[rsi + (ptcParticle.Location + 8)], float 0
-	mov		[rsi + ptcParticle.Rotation], float 0
-	mov		float [rsi + ptcParticle.Size], eax
-	mov		[rsi + ptcParticle.Velocity], float 0
-	mov		[rsi + (ptcParticle.Velocity + 4)], float 0
-	mov		[rsi + (ptcParticle.Velocity + 8)], float 0
-	mov		[rsi + ptcParticle.Accel], float 0
-	mov		[rsi + (ptcParticle.Accel + 4)], float 0
-	mov		[rsi + (ptcParticle.Accel + 8)], float 0
+	mov		eax, float_s [__si + ptcParticle.Colour]
+	mov		float_s [esi + (ptcParticle.Colour + 4)], eax
+	mov		float_s [esi + (ptcParticle.Colour + 8)], eax
+	mov		float_s [esi + (ptcParticle.Colour + 12)], eax
+	mov		[__si + ptcParticle.Location], float_s 0
+	mov		[__si + (ptcParticle.Location + 4)], float_s 0
+	mov		[__si + (ptcParticle.Location + 8)], float_s 0
+	mov		[__si + ptcParticle.Rotation], float_s 0
+	mov		float_s [__si + ptcParticle.Size], eax
+	mov		[__si + ptcParticle.Velocity], float_s 0
+	mov		[__si + (ptcParticle.Velocity + 4)], float_s 0
+	mov		[__si + (ptcParticle.Velocity + 8)], float_s 0
+	mov		[__si + ptcParticle.Accel], float_s 0
+	mov		[__si + (ptcParticle.Accel + 4)], float_s 0
+	mov		[__si + (ptcParticle.Accel + 8)], float_s 0
 	; save off working registers
-	push	rbx
-	push	rcx
-	push	rsi
+	push	__bx
+	push	__cx
+	push	__si
 	; load particle data into registers
 	load_particle
-	push_step [step]
+	push_step [argv(.step)]
 	; load the pointers that we need
-%ifidni PTC_ARCH,X64
-	push	ptr [rel MASK_ALPHA]
-	push	ptr [rel MASK_RGB]
+%ifidn __BITS__,64
+	push	ptr_t [rel MASK_ALPHA]
+	push	ptr_t [rel MASK_RGB]
 %else
 	push	MASK_ALPHA
 	push	MASK_RGB
 %endif
 	push	dword INV_RAND_MAX
-%ifidni PTC_ARCH,X64
-	push	ptr [rel rand wrt ..plt]
+%ifidn __BITS__,64
+	push	ptr_t [rel rand wrt ..plt]
 %else
 	push	rand
 %endif
-	mov		rbx, [emitter]
+	mov		__bx, [argv(.emitter)]
 
 	; call the spawn code
-	call	[rbx + ptcEmitter.InternalPtr2]
+	call	[__bx + ptcEmitter.InternalPtr2]
 
 	; mark as active
 	mov		edx, dword 1
 
 	; restore previous state
-	add		rsp, 4 * 4
+	add		__sp, 4 * 4
 	pop_step
 	; store new particle state
 	store_particle
 	; restore working registers
-	pop		rsi
-	pop		rcx
-	pop		rbx
+	pop		__si
+	pop		__cx
+	pop		__bx
 
 	advance_particle_ptr
 
-	dec		rcx
+	dec		__cx
 	jecxz	.end
 	jmp		.find_spot
-
 .end:
-	pop		rdi
-	pop		rsi
-	pop		rbx
 
-	leave
-	ret
-	%pop
+endproc
 
-ptcInternalProcessParticles:
-	%push		ptcInternalProcessParticlesContext
-	%stacksize	flat
-	%assign		%$localsize 0
-	%arg		emitter:ptr
-	%arg		startPtr:ptr
-	%arg		endPtr:ptr
-	%arg		step:float
-	%arg		cameraCS:ptr
-	%arg		buffer:ptr
-	%arg		maxVertices:size_t
-	%local		verts:ptr
+proc ptcInternalProcessParticles, ptr_t emitter, ptr_t startPtr, ptr_t endPtr, float_t step, ptr_t cameraCS, ptr_t buffer, ptr_t maxVertices
+uses __bx, __si, __di
+locals
+	local	verts, ptr_t
+endlocals
 
-	enter   %$localsize, 0
+; spill registers to stack on x64
+%ifidn __OUTPUT_FORMAT__,elf64
+	; rdi = emitter, rsi = startPtr, rdx = endPtr, xmm0 = step, rcx = cameraCS, r8 = buffer, r9 = maxVertices
+	mov		[argv(.emitter)], rdi
+	mov		[argv(.startPtr)], rsi
+	mov		[argv(.endPtr)], rdx
+	movss	[argv(.step)], xmm0
+	mov		[argv(.cameraCS)], rcx
+	mov		[argv(.buffer)], r8
+	mov		[argv(.maxVertices)], r9
+%elifidn __OUTPUT_FORMAT__,win64
+	; rcx = emitter, rdx = startPtr, r8 = endPtr, xmm3 = step, the rest is on the stack already
+	mov		[argv(.emitter)], rcx
+	mov		[argv(.startPtr)], rdx
+	mov		[argv(.endPtr)], r8
+	movss	[argv(.step)], xmm3
+%endif
 
-	push	rbx
-	push	rsi
-	push	rdi
-
-	mov		rbx, [maxVertices]
-	mov		[verts], rbx
+	mov		__bx, [argv(.maxVertices)]
+	mov		[var(.verts)], __bx
 
 	; initialize pointers
-	mov		rsi, [startPtr]
-	mov		rdi, [endPtr]
-	mov		rbx, [emitter]
+	mov		__si, [argv(.startPtr)]
+	mov		__di, [argv(.endPtr)]
+	mov		__bx, [argv(.emitter)]
 
 	; kick off the loop
 .loop:
 	; save off working registers
-	push	rbx
-	push	rcx
-	push	rsi
-	push	rdi
+	push	__bx
+	push	__cx
+	push	__si
+	push	__di
 	; load particle data into registers
 	load_particle
-	push_step [step]
+	push_step [argv(.step)]
 	; load the pointers that we need
-%ifidni PTC_ARCH,X64
-	push	ptr [rel MASK_ALPHA]
-	push	ptr [rel MASK_RGB]
+%ifidn __BITS__,64
+	push	ptr_t [rel MASK_ALPHA]
+	push	ptr_t [rel MASK_RGB]
 %else
 	push	MASK_ALPHA
 	push	MASK_RGB
 %endif
 	push	dword INV_RAND_MAX
-%ifidni PTC_ARCH,X64
-	push	ptr [rel rand wrt ..plt]
+%ifidn __BITS__,64
+	push	ptr_t [rel rand wrt ..plt]
 %else
 	push	rand
 %endif
-	mov		rbx, [emitter]
+	mov		__bx, [argv(.emitter)]
 
 	; call the processing code
-	call	[rbx + ptcEmitter.InternalPtr3]
+	call	[__bx + ptcEmitter.InternalPtr3]
 
 	; restore previous state
-	add		rsp, 4 * 4
+	add		__sp, 4 * 4
 	pop_step
 	; store new particle state
 	store_particle
 	; restore working registers
-	pop		rdi
-	pop		rsi
-	pop		rcx
-	pop		rbx
+	pop		__di
+	pop		__si
+	pop		__cx
+	pop		__bx
 
 	; skip vertex emitting if there's nothing to emit it for
 	test	edx, edx
 	jz		.cont
 
-	push	rdi
+	push	__di
 
 	; emit vertices
-	mov		rdx, [maxVertices]
-	test	rdx, rdx
+	mov		__dx, [argv(.maxVertices)]
+	test	__dx, __dx
 	jz		.end
-	mov		rdi, [buffer]
+	mov		__di, [argv(.buffer)]
 	; just copy the colour into an xmm
-	movups	xmm7, [rsi + ptcParticle.Colour]
+	movups	xmm7, [__si + ptcParticle.Colour]
 	; find the vertices of the particle
-	movups	xmm0, [rsi + ptcParticle.Location]
+	movups	xmm0, [__si + ptcParticle.Location]
 	; load in the particle size and broadcast it to all components
-	movss	xmm3, [rsi + ptcParticle.Size]
+	movss	xmm3, [__si + ptcParticle.Size]
 	shufps	xmm3, xmm3, 0x00
 	; load in 0.5 and broadcast it to all components
-	push	float 0x3F000000
-	movss	xmm4, [rsp]
-	add		rsp, 4
+	push	float_s 0x3F000000
+	movss	xmm4, [__sp]
+	add		__sp, 4
 	shufps	xmm4, xmm4, 0x00
 	; load in the camera coordinate system
-	push	rsi
-	mov		rsi, [cameraCS]
-	movups	xmm1, [rsi + 3 * 4]
-	movups	xmm2, [rsi + 6 * 4]
-	pop		rsi
+	push	__si
+	mov		__si, [argv(.cameraCS)]
+	movups	xmm1, [__si + 3 * sizeof(float_t)]
+	movups	xmm2, [__si + 6 * sizeof(float_t)]
+	pop		__si
 	; multiply by particle size and 0.5
 	mulps	xmm1, xmm3
 	mulps	xmm1, xmm4
@@ -638,53 +583,48 @@ ptcInternalProcessParticles:
 	subps	xmm6, xmm2
 
 	; save vertex data
-	movups	[rdi + ptcVertex_size * 0 + ptcVertex.Colour], xmm7
-	movlps	[rdi + ptcVertex_size * 0 + ptcVertex.Location], xmm3
+	movups	[__di + ptcVertex_size * 0 + ptcVertex.Colour], xmm7
+	movlps	[__di + ptcVertex_size * 0 + ptcVertex.Location], xmm3
 	shufps	xmm3, xmm3, 0xAA
-	movss	[rdi + ptcVertex_size * 0 + ptcVertex.Location + 8], xmm3
-	mov		[rdi + ptcVertex_size * 0 + ptcVertex.TexCoords], word 1
-	mov		[rdi + ptcVertex_size * 0 + ptcVertex.TexCoords + 2], word 0
+	movss	[__di + ptcVertex_size * 0 + ptcVertex.Location + 8], xmm3
+	mov		[__di + ptcVertex_size * 0 + ptcVertex.TexCoords], word 1
+	mov		[__di + ptcVertex_size * 0 + ptcVertex.TexCoords + 2], word 0
 
-	movups	[rdi + ptcVertex_size * 1 + ptcVertex.Colour], xmm7
-	movlps	[rdi + ptcVertex_size * 1 + ptcVertex.Location], xmm4
+	movups	[__di + ptcVertex_size * 1 + ptcVertex.Colour], xmm7
+	movlps	[__di + ptcVertex_size * 1 + ptcVertex.Location], xmm4
 	shufps	xmm4, xmm4, 0xAA
-	movss	[rdi + ptcVertex_size * 1 + ptcVertex.Location + 8], xmm4
-	mov		[rdi + ptcVertex_size * 1 + ptcVertex.TexCoords], word 0
-	mov		[rdi + ptcVertex_size * 1 + ptcVertex.TexCoords + 2], word 0
+	movss	[__di + ptcVertex_size * 1 + ptcVertex.Location + 8], xmm4
+	mov		[__di + ptcVertex_size * 1 + ptcVertex.TexCoords], word 0
+	mov		[__di + ptcVertex_size * 1 + ptcVertex.TexCoords + 2], word 0
 
-	movups	[rdi + ptcVertex_size * 2 + ptcVertex.Colour], xmm7
-	movlps	[rdi + ptcVertex_size * 2 + ptcVertex.Location], xmm5
+	movups	[__di + ptcVertex_size * 2 + ptcVertex.Colour], xmm7
+	movlps	[__di + ptcVertex_size * 2 + ptcVertex.Location], xmm5
 	shufps	xmm5, xmm5, 0xAA
-	movss	[rdi + ptcVertex_size * 2 + ptcVertex.Location + 8], xmm5
-	mov		[rdi + ptcVertex_size * 2 + ptcVertex.TexCoords], word 0
-	mov		[rdi + ptcVertex_size * 2 + ptcVertex.TexCoords + 2], word 1
+	movss	[__di + ptcVertex_size * 2 + ptcVertex.Location + 8], xmm5
+	mov		[__di + ptcVertex_size * 2 + ptcVertex.TexCoords], word 0
+	mov		[__di + ptcVertex_size * 2 + ptcVertex.TexCoords + 2], word 1
 
-	movups	[rdi + ptcVertex_size * 3 + ptcVertex.Colour], xmm7
-	movlps	[rdi + ptcVertex_size * 3 + ptcVertex.Location], xmm6
+	movups	[__di + ptcVertex_size * 3 + ptcVertex.Colour], xmm7
+	movlps	[__di + ptcVertex_size * 3 + ptcVertex.Location], xmm6
 	shufps	xmm6, xmm6, 0xAA
-	movss	[rdi + ptcVertex_size * 3 + ptcVertex.Location + 8], xmm6
-	mov		[rdi + ptcVertex_size * 3 + ptcVertex.TexCoords], word 1
-	mov		[rdi + ptcVertex_size * 3 + ptcVertex.TexCoords + 2], word 1
+	movss	[__di + ptcVertex_size * 3 + ptcVertex.Location + 8], xmm6
+	mov		[__di + ptcVertex_size * 3 + ptcVertex.TexCoords], word 1
+	mov		[__di + ptcVertex_size * 3 + ptcVertex.TexCoords + 2], word 1
 
 	; advance pointers
-	sub		rdx, 4
-	mov		[maxVertices], rdx
-	add		rdi, ptcVertex_size * 4
-	mov		[buffer], rdi
-	pop		rdi
+	sub		__dx, 4
+	mov		[argv(.maxVertices)], __dx
+	add		__di, ptcVertex_size * 4
+	mov		[argv(.buffer)], __di
+	pop		__di
 .cont:
-	add		rsi, ptcParticle_size
-	cmp		rsi, rdi
+	add		__si, ptcParticle_size
+	cmp		__si, __di
 	jl		.loop
 
 .end:
-	mov		rbx, [maxVertices]
-	mov		rax, [verts]
-	sub		rax, rbx
+	mov		__bx, [argv(.maxVertices)]
+	mov		__ax, [var(.verts)]
+	sub		__ax, __bx
 
-	pop		rdi
-	pop		rbx
-
-	leave
-	ret
-	%pop
+endproc

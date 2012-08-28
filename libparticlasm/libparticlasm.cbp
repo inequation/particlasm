@@ -39,6 +39,7 @@
 		<Unit filename="gen_asm_decls.py" />
 		<Unit filename="libparticlasm.h" />
 		<Unit filename="libparticlasm.inc" />
+		<Unit filename="nasmx.inc" />
 		<Unit filename="particl.asm" />
 		<Unit filename="ptc_distributions.inc" />
 		<Unit filename="ptc_highlevel.c">

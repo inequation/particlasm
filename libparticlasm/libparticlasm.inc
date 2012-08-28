@@ -86,7 +86,7 @@ endstruc
 
 struc ptcModuleHeader
 	.ModuleID:		resd	1
-	.Next:		resp	1
+	.Next:		reserve(ptr_t)	1
 endstruc
 
 struc ptcMod_InitialLocation
@@ -171,13 +171,13 @@ endstruc
 struc ptcEmitter
 	.Config:		resb	ptcEmitterConfig_size
 	.SpawnTimer:		resd	1
-	.NumParticles:		ressize_t	1
-	.MaxParticles:		ressize_t	1
-	.InternalPtr1:		resp	1
-	.InternalPtr2:		resp	1
-	.InternalPtr3:		resp	1
-	.Head:		resp	1
-	.ParticleBuf:		resp	1
+	.NumParticles:		reserve(size_t)	1
+	.MaxParticles:		reserve(size_t)	1
+	.InternalPtr1:		reserve(ptr_t)	1
+	.InternalPtr2:		reserve(ptr_t)	1
+	.InternalPtr3:		reserve(ptr_t)	1
+	.Head:		reserve(ptr_t)	1
+	.ParticleBuf:		reserve(ptr_t)	1
 endstruc
 
 %endif ; LIBPARTICLASM_INC

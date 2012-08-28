@@ -6,6 +6,7 @@ Copyright (C) 2012, Leszek Godlewski <lg@inequation.org>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <string.h>
 #include <dlfcn.h>
 #include <time.h>
 #include <sys/time.h>
@@ -38,6 +39,8 @@ ptcParticle *ptc_particles;
 ptcVertex *ptc_vertices;
 
 size_t test_start_msec;
+
+size_t cpp_msec, asm_msec;
 
 bool InitParticlasm(bool cpp) {
 	if (cpp) {
@@ -92,16 +95,18 @@ bool Benchmark(bool cpp) {
 		{1, 0, 0}, {0, 1, 0}, {0, 0, 1}
 	};
 
+	printf("\nInitializing %s implementation: ", cpp ? "C++" : "assembly");
+	fflush(stdout);
 	if (!InitParticlasm(cpp)) {
-		fprintf(stderr, "Could not initialize %s implementation.\n",
-			cpp ? "C++" : "assembly");
+		fprintf(stderr, "Could not initialize implementation.\n");
 		return false;
 	}
+	printf("Done.\n");
 
 	memset(ptc_particles, 0, sizeof(*ptc_particles) * MAX_PARTICLES);
 	memset(ptc_vertices, 0, sizeof(*ptc_vertices) * MAX_PARTICLES * 4);
 
-	printf("\nTest parameters:\n"
+	printf("Test parameters:\n"
 		"    Implementation: %s\n"
 		"    Sim. time:      %3.2f\n"
 		"    Sim. framerate: %3.2f\n"
@@ -112,6 +117,8 @@ bool Benchmark(bool cpp) {
 			MAX_PARTICLES * 4);
 
 	ptc_nemitters = Fire(&ptc_emitters);
+	printf("Compiling emitter... ");
+	fflush(stdout);
 	for (i = 0; i < ptc_nemitters; ++i) {
 		ptc_emitters[i].ParticleBuf = ptc_particles;
 		ptc_emitters[i].MaxParticles = MAX_PARTICLES;
@@ -121,7 +128,8 @@ bool Benchmark(bool cpp) {
 		}
 	}
 
-	printf("Starting test... ");
+	printf("Done.\n"
+		"Starting test... ");
 	fflush(stdout);
 	test_start_msec = GetTicks();
 	for (i = 0; i < (TEST_TIME * TEST_FRAMERATE); ++i) {
@@ -137,6 +145,10 @@ bool Benchmark(bool cpp) {
 	printf("Done simulating %d frames.\n%d ms, avg. %3.2f ms/frame\n",
 		i, test_start_msec, (float)test_start_msec
 			/ (float)(TEST_TIME * TEST_FRAMERATE));
+	if (cpp)
+		cpp_msec = test_start_msec;
+	else
+		asm_msec = test_start_msec;
 
 	for (i = 0; i < ptc_nemitters; ++i)
 		ptcReleaseEmitter(&ptc_emitters[i]);
@@ -162,6 +174,7 @@ int main(int argc, char *argv[]) {
 	printf("particlasm headless benchmark\n");
 	Benchmark(true);
 	Benchmark(false);
+	printf("\nAssembly speed-up ratio: %3.4f\n", (float)cpp_msec / (float)asm_msec);
 
 	free(ptc_vertices);
 	free(ptc_particles);

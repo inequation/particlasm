@@ -3,11 +3,6 @@
 
 %ifndef PTC_DISTRIBUTIONS
 %define PTC_DISTRIBUTIONS
-; declarations
-%include "libparticlasm.inc"
-
-; libc import
-extern memcpy
 
 ; scalar distributions put their result into st0
 ; vector and colour - into xmm5
@@ -21,75 +16,45 @@ extern memcpy
 ; Other than that, same calling conventions apply for spawning and processing as
 ; for modules.
 
-; handles memcpy transparently through platforms
-;%ifidni PTC_ARCH,X64
-;	%ifidni PTC_PLATFORM,LINUX
-;		%macro memcpy_code 1
-;			push	dword %1%+_size
-;			push	dword %1
-;			push	rcx
-;			libc_call memcpy
-;			pop		rcx
-;			add		rsp, 4 * 3
-;		%endmacro
-;	%else
-;		%macro memcpy_code 1
-;			push	dword %1%+_size
-;			push	dword %1
-;			push	rcx
-;			libc_call memcpy
-;			add		rsp, 4 * 3
-;		%endmacro
-;	%endif
-;%else
-;	%macro memcpy_code 1
-;		push	dword %1%+_size
-;		push	dword %1
-;		push	rcx
-;		libc_call memcpy
-;		add		rsp, 4 * 3
-;	%endmacro
-;%endif
-
 ; ========================================
 ; Scalar Constant
 ; ========================================
 
 sdistr_Constant:
-	fld		float [0xBADADD]		; val; this address is filled upon compilation
+	fld		float_s [0xBADADD]	; val; this address is filled upon compilation
 .end:
 sdistr_Constant_size		equ	(sdistr_Constant.end - sdistr_Constant)
 sdistr_ConstantData_size	equ	4	; one 32-bit float
 
 sdistr_ConstantCompile:
 	; first, copy data to data buffer
-	mov		edx, [rsi + ptcSDistr_Constant.Val]
-	mov		[rdi], edx
+	mov		edx, [__si + ptcSDistr_Constant.Val]
+	mov		[__di], edx
 
 	; save off ecx
-	push	rcx
+	push	__cx
 
 	; now, memcpy the code
 	push	dword sdistr_Constant_size
-%ifidni PTC_ARCH,X64
-	lea		rax, [rel sdistr_Constant]
-	push	rax
+%ifidn __BITS__,64
+	lea		__ax, [rel sdistr_Constant]
+	push	__ax
 %else
 	push	dword sdistr_Constant
 %endif
-	push	rcx
-	libc_call memcpy
-	add		rsp, 4 * 3
+	push	__cx
+	call	memcpy wrt ..plt
+	add		__sp, 4 * 3
 
 	; restore ecx
-	pop		rcx
+	pop		__cx
 
 	; fix the fld instruction operand
-	mov		[rcx + sdistr_Constant.end - sdistr_Constant - 4], rdi
+	mov		[__cx + sdistr_Constant.end - sdistr_Constant - 4], __di
 
 	; advance the pointers
-	add		rcx, sdistr_Constant_size
-	add		rdi, sdistr_ConstantData_size
+	add		__cx, sdistr_Constant_size
+	add		__di, sdistr_ConstantData_size
 	ret
 
 ; ========================================
@@ -97,22 +62,22 @@ sdistr_ConstantCompile:
 ; ========================================
 
 sdistr_Uniform:
-	fld		float [0xBADADD]	; range[0]; this address is filled upon compilation
+	fld		float_s [0xBADADD]	; range[0]; this address is filled upon compilation
 .postrange0:
-	fld		float [0xBADADD]	; range[1]; this address is filled upon compilation
+	fld		float_s [0xBADADD]	; range[1]; this address is filled upon compilation
 .postrange1:
 	; exchange the registers - FPU is stupid...
 	fxch	st1
 	; save off eax and edx
-	push	rax
-	push	rdx
+	push	__ax
+	push	__dx
 	; temp variable
-	sub		rsp, 4
+	sub		__sp, 4
 	; st1=range[1], st0=range[0]
 	; range[1] - range[0]
 	fsub	st1, st0
 	; save range[0] to temp var
-	fstp	float [rsp]
+	fstp	float_s [__sp]
 	; st0=range[1] - range[0]
 	fwait
 	frand	12
@@ -125,8 +90,8 @@ sdistr_Uniform:
 	faddp	st1, st0
 	add		esp, 4
 	; restore eax and edx
-	pop		rdx
-	pop		rax
+	pop		__dx
+	pop		__ax
 	; st0=distribution result
 .end:
 sdistr_Uniform_size		equ	(sdistr_Uniform.end - sdistr_Uniform)
@@ -140,22 +105,22 @@ sdistr_UniformCompile:
 	mov		[edi + 4], edx
 
 	; save off ecx
-	push	rcx
+	push	__cx
 
 	; now, memcpy the code
 	push	dword sdistr_Uniform_size
-%ifidni PTC_ARCH,X64
-	lea		rax, [rel sdistr_Uniform]
-	push	rax
+%ifidn __BITS__,64
+	lea		__ax, [rel sdistr_Uniform]
+	push	__ax
 %else
 	push	dword sdistr_Uniform
 %endif
-	push	rcx
-	libc_call memcpy
-	add		rsp, 4 * 3
+	push	__cx
+	call	memcpy wrt ..plt
+	add		__sp, 4 * 3
 
 	; restore ecx
-	pop		rcx
+	pop		__cx
 
 	; fix the fld instructions operands
 	mov		[ecx + sdistr_Uniform.postrange0 - sdistr_Uniform - 4], edi
@@ -195,33 +160,33 @@ vdistr_ConstantData_size	equ	(4 * 4)
 
 vdistr_ConstantCompile:
 	; save ecx, memcpy resets it
-	push	rcx
+	push	__cx
 
 	; first, memcpy data to data buffer
 	push	dword 4 * 3
-	lea		rdx, [esi + ptcVDistr_Constant.Val]
-	push	rdx
-	push	rdi
-	libc_call memcpy
+	lea		__dx, [esi + ptcVDistr_Constant.Val]
+	push	__dx
+	push	__di
+	call	memcpy wrt ..plt
 	add		esp, 4 * 3
 
 	; restore ecx but also keep a copy on the stack
-	mov		rcx, [rsp]
+	mov		__cx, [__sp]
 
 	; now, memcpy the code
 	push	dword vdistr_Constant_size
-%ifidni PTC_ARCH,X64
-	lea		rax, [rel vdistr_Constant]
-	push	rax
+%ifidn __BITS__,64
+	lea		__ax, [rel vdistr_Constant]
+	push	__ax
 %else
 	push	dword vdistr_Constant
 %endif
-	push	rcx
-	libc_call memcpy
-	add		rsp, 4 * 3
+	push	__cx
+	call	memcpy wrt ..plt
+	add		__sp, 4 * 3
 
 	; restore ecx
-	pop		rcx
+	pop		__cx
 
 	; fix the movups instruction operand
 	mov		[ecx + vdistr_Constant.end - vdistr_Constant - 4], edi
@@ -242,8 +207,8 @@ vdistr_Uniform:
 .postrange1:
 	subps	xmm7, xmm6
 	; save off eax and edx
-	push	rax
-	push	rdx
+	push	__ax
+	push	__dx
 	; get 3 random numbers and store them on the stack, leave one float of slack
 	; (oh, the rhyme!)
 	sub		esp, 4 * 4
@@ -261,8 +226,8 @@ vdistr_Uniform:
 	; pop the temp variables off the stack
 	add		esp, 4 * 4
 	; restore eax and edx
-	pop		rdx
-	pop		rax
+	pop		__dx
+	pop		__ax
 	mulps	xmm5, xmm7
 	addps	xmm5, xmm6
 .end:
@@ -271,25 +236,25 @@ vdistr_UniformData_size	equ	(4 * 4 * 2)
 
 vdistr_UniformCompile:
 	; save ecx, memcpy resets it
-	push	rcx
+	push	__cx
 
 	; first, memcpy data to data buffer
 	; have to do this twice since we have two vectors: range[0]...
 	push	dword 4 * 3
 	lea		edx, [esi + ptcVDistr_Uniform.Ranges]
-	push	rdx
-	push	rdi
-	libc_call memcpy
+	push	__dx
+	push	__di
+	call	memcpy wrt ..plt
 	add		esp, 4 * 3
 	; ...and range[1]
 	push	dword 4 * 3
 	lea		edx, [esi + ptcVDistr_Uniform.Ranges + 4 * 3]
-	push	rdx
+	push	__dx
 	; copy 16 bytes after the first one - source has 3 components, but SSE
 	; registers are 4-component anyway, we'll take those 4 bytes of slack...
 	lea		edx, [edi + 4 * 4]
-	push	rdx
-	libc_call memcpy
+	push	__dx
+	call	memcpy wrt ..plt
 	add		esp, 4 * 3
 
 	; restore ecx but also keep a copy on the stack
@@ -297,18 +262,18 @@ vdistr_UniformCompile:
 
 	; now, memcpy the code
 	push	dword vdistr_Uniform_size
-%ifidni PTC_ARCH,X64
-	lea		rax, [rel vdistr_Uniform]
-	push	rax
+%ifidn __BITS__,64
+	lea		__ax, [rel vdistr_Uniform]
+	push	__ax
 %else
 	push	dword vdistr_Uniform
 %endif
-	push	rcx
-	libc_call memcpy
+	push	__cx
+	call	memcpy wrt ..plt
 	add		esp, 4 * 3
 
 	; restore ecx
-	pop		rcx
+	pop		__cx
 
 	; fix the movups instructions operands
 	mov		[ecx + vdistr_Uniform.postrange0 - vdistr_Uniform - 4], edi
@@ -383,14 +348,14 @@ cdistr_ConstantData_size	equ	(4 * 4)
 
 cdistr_ConstantCompile:
 	; save off ecx
-	push	rcx
+	push	__cx
 
 	; first, memcpy data to data buffer
 	push	dword cdistr_ConstantData_size
-	lea		rdx, [esi + ptcCDistr_Constant.Val]
-	push	rdx
-	push	rdi
-	libc_call memcpy
+	lea		__dx, [esi + ptcCDistr_Constant.Val]
+	push	__dx
+	push	__di
+	call	memcpy wrt ..plt
 	add		esp, 4 * 3
 
 	; restore ecx but also keep a copy on the stack
@@ -398,25 +363,25 @@ cdistr_ConstantCompile:
 
 	; now, memcpy the code
 	push	dword cdistr_Constant_size
-%ifidni PTC_ARCH,X64
-	lea		rax, [rel cdistr_Constant]
-	push	rax
+%ifidn __BITS__,64
+	lea		__ax, [rel cdistr_Constant]
+	push	__ax
 %else
 	push	dword cdistr_Constant
 %endif
-	push	rcx
-	libc_call memcpy
+	push	__cx
+	call	memcpy wrt ..plt
 	add		esp, 4 * 3
 
 	; restore ecx
-	pop		rcx
+	pop		__cx
 
 	; fix the movups instruction operand
 	mov		[ecx + cdistr_Constant.postval - cdistr_Constant - 4], edi
 
 	; advance the pointers
-	add		rcx, cdistr_Constant_size
-	add		rdi, cdistr_ConstantData_size
+	add		__cx, cdistr_Constant_size
+	add		__di, cdistr_ConstantData_size
 	ret
 
 
@@ -431,39 +396,39 @@ cdistr_Uniform:
 .postrange1:
 	subps	xmm7, xmm6
 	; save off eax and edx
-	push	rax
-	push	rdx
+	push	__ax
+	push	__dx
 	; reserve some space on the stack - we need to lay off the original colour
 	; as well as random floats
-	sub		rsp, (4 * 4 * 2)
+	sub		__sp, (4 * 4 * 2)
 	; save off the original colour
-	movups	[rsp], xmm5
+	movups	[__sp], xmm5
 	; get 4 random numbers and store them on the stack, leave one float of slack
 	; (oh, the rhyme!)
 	frand 4 * 4 * 2 + 4 * 2
-	fstp	dword [rsp + 16]
+	fstp	dword [__sp + 16]
 	fwait
 	frand 4 * 4 * 2 + 4 * 2
-	fstp	dword [rsp + 20]
+	fstp	dword [__sp + 20]
 	fwait
 	frand 4 * 4 * 2 + 4 * 2
-	fstp	dword [rsp + 24]
+	fstp	dword [__sp + 24]
 	fwait
 	frand 4 * 4 * 2 + 4 * 2
-	fstp	dword [rsp + 28]
+	fstp	dword [__sp + 28]
 	fwait
 	; load the random numbers into xmm
-	movups	xmm5, [rsp + 16]
+	movups	xmm5, [__sp + 16]
 	; get distribution value
 	mulps	xmm5, xmm7
 	addps	xmm6, xmm5
 	; restore original colour in xmm5
-	movups	xmm5, [rsp]
+	movups	xmm5, [__sp]
 	; pop the temp variables off the stack
-	add		rsp, (4 * 4 * 2)
+	add		__sp, (4 * 4 * 2)
 	; restore eax and edx
-	pop		rdx
-	pop		rax
+	pop		__dx
+	pop		__ax
 	; mix the colours
 	cdistr_mix
 .end:
@@ -472,43 +437,43 @@ cdistr_UniformData_size	equ	(4 * 4 * 2)
 
 cdistr_UniformCompile:
 	; save off ecx
-	push	rcx
+	push	__cx
 
 	; first, memcpy data to data buffer
 	push	dword cdistr_UniformData_size
-	lea		rdx, [rsi + ptcVDistr_Constant.Val]
-	push	rdx
-	push	rdi
-	libc_call memcpy
-	add		rsp, 4 * 3
+	lea		__dx, [__si + ptcVDistr_Constant.Val]
+	push	__dx
+	push	__di
+	call	memcpy wrt ..plt
+	add		__sp, 4 * 3
 
 	; restore ecx but also keep a copy on the stack
-	mov		rcx, ptr [rsp]
+	mov		__cx, ptr_t [__sp]
 
 	; now, memcpy the code
 	push	dword cdistr_Uniform_size
-%ifidni PTC_ARCH,X64
-	lea		rax, [rel cdistr_Uniform]
-	push	rax
+%ifidn __BITS__,64
+	lea		__ax, [rel cdistr_Uniform]
+	push	__ax
 %else
 	push	dword cdistr_Uniform
 %endif
-	push	rcx
-	libc_call memcpy
-	add		rsp, 4 * 3
+	push	__cx
+	call	memcpy wrt ..plt
+	add		__sp, 4 * 3
 
 	; restore ecx
-	pop		rcx
+	pop		__cx
 
 	; fix the movups instructions operands
-	mov		[rcx + (cdistr_Uniform.postrange0 - cdistr_Uniform - 4)], rdi
-	add		rdi, 4 * 4
-	mov		[rcx + (cdistr_Uniform.postrange1 - cdistr_Uniform - 4)], rdi
-	sub		rdi, 4 * 4
+	mov		[__cx + (cdistr_Uniform.postrange0 - cdistr_Uniform - 4)], __di
+	add		__di, 4 * 4
+	mov		[__cx + (cdistr_Uniform.postrange1 - cdistr_Uniform - 4)], __di
+	sub		__di, 4 * 4
 
 	; advance the pointers
-	add		rcx, cdistr_Uniform_size
-	add		rdi, cdistr_UniformData_size
+	add		__cx, cdistr_Uniform_size
+	add		__di, cdistr_UniformData_size
 	ret
 
 ; ========================================
