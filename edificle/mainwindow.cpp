@@ -1,44 +1,3 @@
- /****************************************************************************
- **
- ** Copyright (C) 2011 Nokia Corporation and/or its subsidiary(-ies).
- ** All rights reserved.
- ** Contact: Nokia Corporation (qt-info@nokia.com)
- **
- ** This file is part of the demonstration applications of the Qt Toolkit.
- **
- ** $QT_BEGIN_LICENSE:LGPL$
- ** GNU Lesser General Public License Usage
- ** This file may be used under the terms of the GNU Lesser General Public
- ** License version 2.1 as published by the Free Software Foundation and
- ** appearing in the file LICENSE.LGPL included in the packaging of this
- ** file. Please review the following information to ensure the GNU Lesser
- ** General Public License version 2.1 requirements will be met:
- ** http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
- **
- ** In addition, as a special exception, Nokia gives you certain additional
- ** rights. These rights are described in the Nokia Qt LGPL Exception
- ** version 1.1, included in the file LGPL_EXCEPTION.txt in this package.
- **
- ** GNU General Public License Usage
- ** Alternatively, this file may be used under the terms of the GNU General
- ** Public License version 3.0 as published by the Free Software Foundation
- ** and appearing in the file LICENSE.GPL included in the packaging of this
- ** file. Please review the following information to ensure the GNU General
- ** Public License version 3.0 requirements will be met:
- ** http://www.gnu.org/copyleft/gpl.html.
- **
- ** Other Usage
- ** Alternatively, this file may be used in accordance with the terms and
- ** conditions contained in a signed written agreement between you and Nokia.
- **
- **
- **
- **
- **
- ** $QT_END_LICENSE$
- **
- ****************************************************************************/
-
  #include "mainwindow.h"
  #include "colorswatch.h"
  #include "toolbar.h"
@@ -64,22 +23,9 @@
  #include <qdebug.h>
 
  static const char * const message =
-     "<p><b>Qt Main Window Demo</b></p>"
+     "<p><b>Placeholder Edificle window</b></p>"
 
-     "<p>This is a demonstration of the QMainWindow, QToolBar and "
-     "QDockWidget classes.</p>"
-
-     "<p>The tool bar and dock widgets can be dragged around and rearranged "
-     "using the mouse or via the menu.</p>"
-
-     "<p>Each dock widget contains a colored frame and a context "
-     "(right-click) menu.</p>"
-
- #ifdef Q_WS_MAC
-     "<p>On Mac OS X, the \"Black\" dock widget has been created as a "
-     "<em>Drawer</em>, which is a special kind of QDockWidget.</p>"
- #endif
-     ;
+     "<p>This is a placeholder for the Particlasm editor.</p>";
 
  Q_DECLARE_METATYPE(QDockWidget::DockWidgetFeatures)
 
