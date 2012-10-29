@@ -8,6 +8,12 @@
 %ixdefine ptr_t				ptrdiff_t			; platform-specific pointer type
 %ixdefine float_s_reserve	__nxfloat_reserve	; 32-bit float reservation
 %ixdefine float_s			dword
+%ixdefine float_size		__nxfloat_size
+%ifidn __BITS__,64
+	%ixdefine ptr_t_size	qword_size
+%else
+	%ixdefine ptr_t_size	dword_size
+%endif
 
 ; libparticlasm declarations generated from the C header
 %include "libparticlasm.inc"
