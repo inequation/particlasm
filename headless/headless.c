@@ -21,14 +21,18 @@ PFNPTCRELEASEEMITTER	ptcReleaseEmitter;
 #define TEST_TIME		30
 #define TEST_FRAMERATE	60
 
-extern PTC_ATTRIBS unsigned int ref_ptcCompileEmitter(ptcEmitter *emitter);
-extern PTC_ATTRIBS uint32_t ref_ptcProcessEmitter(ptcEmitter *emitter,
-	float step, ptcVector cameraCS[3], ptcVertex *buffer, uint32_t maxVertices);
+extern "C" {
+
+extern PTC_ATTRIBS uint32_t ref_ptcCompileEmitter(ptcEmitter *emitter);
+extern PTC_ATTRIBS size_t ref_ptcProcessEmitter(ptcEmitter *emitter,
+	float step, ptcVector cameraCS[3], ptcVertex *buffer, size_t maxVertices);
 extern PTC_ATTRIBS void ref_ptcReleaseEmitter(ptcEmitter *emitter);
 
-void *libparticlasmHandle = NULL;
-
 extern size_t Fire(ptcEmitter **emitters);
+
+}
+
+void *libparticlasmHandle = NULL;
 
 size_t MAX_PARTICLES;
 
@@ -42,6 +46,19 @@ size_t test_start_msec;
 
 size_t cpp_msec, asm_msec;
 
+#ifndef SO_EXT
+	#define SO_EXT
+	#warning No SO_EXT defined!
+#endif
+
+#if defined(WIN32) || defined(_WIN32) || defined(_WIN32_WINNT)
+	#define PATH_SEPARATOR	"\\"
+	#define LOCAL_PATH
+#else
+	#define PATH_SEPARATOR	"/"
+	#define LOCAL_PATH		"./"
+#endif // WIN32
+
 bool InitParticlasm(bool cpp) {
 	if (cpp) {
 		ptcCompileEmitter = ref_ptcCompileEmitter;
@@ -49,7 +66,7 @@ bool InitParticlasm(bool cpp) {
 		ptcReleaseEmitter = ref_ptcReleaseEmitter;
 		return true;
 	} else {
-		libparticlasmHandle = dlopen("/home/inequation/projects/particlasm/bin/Debug/libparticlasm.so", RTLD_NOW);
+		libparticlasmHandle = dlopen(LOCAL_PATH "libparticlasm-" PLATFORM "-" ARCH SO_EXT, RTLD_NOW);
 		if (!libparticlasmHandle) {
 			printf("dlerror: %s\n", dlerror());
 			return false;
@@ -113,8 +130,8 @@ bool Benchmark(bool cpp) {
 		"    Max particles:  %d\n"
 		"    Max vertices:   %d\n\n",
 		cpp ? "C++" : "assembly",
-		(float)TEST_TIME, (float)TEST_FRAMERATE, MAX_PARTICLES,
-			MAX_PARTICLES * 4);
+		(float)TEST_TIME, (float)TEST_FRAMERATE, (int)MAX_PARTICLES,
+			(int)MAX_PARTICLES * 4);
 
 	ptc_nemitters = Fire(&ptc_emitters);
 	printf("Compiling emitter... ");
@@ -143,7 +160,7 @@ bool Benchmark(bool cpp) {
 	}
 	test_start_msec = GetTicks() - test_start_msec;
 	printf("Done simulating %d frames.\n%d ms, avg. %3.2f ms/frame\n",
-		i, test_start_msec, (float)test_start_msec
+		(int)i, (int)test_start_msec, (float)test_start_msec
 			/ (float)(TEST_TIME * TEST_FRAMERATE));
 	if (cpp)
 		cpp_msec = test_start_msec;
@@ -163,8 +180,8 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 	MAX_PARTICLES = atoi(argv[1]);
-	ptc_particles = malloc(sizeof(*ptc_particles) * MAX_PARTICLES);
-	ptc_vertices = malloc(sizeof(*ptc_vertices) * MAX_PARTICLES * 4);
+	ptc_particles = (ptcParticle *)malloc(sizeof(*ptc_particles) * MAX_PARTICLES);
+	ptc_vertices = (ptcVertex *)malloc(sizeof(*ptc_vertices) * MAX_PARTICLES * 4);
 
 	InitTicks();
 

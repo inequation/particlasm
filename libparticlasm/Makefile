@@ -7,31 +7,33 @@
 # =============================================================================
 
 # architecture: "x86" for 32-bit, "x64" for 64-bit
-ARCH = x64
+ARCH=x64
 # platform: "windows" or "linux"
-PLATFORM = linux
+PLATFORM=linux
 # path to make
-MAKE = make
+MAKE=make
 # mkdir command with arguments to create all missing directories in the path
-MKDIR_P = mkdir -p
+MKDIR_P=mkdir -p
 # path to the Python interpreter
-PYTHON = python
+PYTHON=python
 # path to the nasm executable
-AS = nasm
+AS=nasm
 # additional nasm flags
 ASFLAGS =
 # path to the C compiler
-CC = gcc
+CC=gcc
 # additional CC flags
-CFLAGS = -fPIC -c -Wall -Wextra -mfpmath=sse
+CFLAGS=-fPIC -c -Wall -Wextra -mfpmath=sse
 # path to the linker executable
-LINKER = ld
+LD=ld
 # additional linker flags
-LINKERFLAGS = -shared -lc
+LDFLAGS=-shared -lc
 # debug dist directory
-DEBUG_DIST_DIR = ../bin/Debug
+DEBUG_DIST_DIR=../bin/Debug
 # release dist directory
-RELEASE_DIST_DIR = ../bin/Release
+RELEASE_DIST_DIR=../bin/Release
+# output library file name
+OUTPUT_NAME=libparticlasm
 
 # =============================================================================
 # End of configuration
@@ -41,29 +43,35 @@ RELEASE_DIST_DIR = ../bin/Release
 # $(ASFLAGS) comes last so that nasm learns about the target platform first
 ifeq ($(ARCH), x64)
 	ifeq ($(PLATFORM), linux)
-		REAL_ASFLAGS = -f elf64 $(ASFLAGS)
-		REAL_CFLAGS = $(CFLAGS) -march=core2 -m64
-		REAL_LINKERFLAGS = $(LINKERFLAGS) -melf_x86_64
-		DEBUG_FORMAT = dwarf
+		REAL_ASFLAGS=-f elf64 $(ASFLAGS)
+		REAL_CFLAGS=$(CFLAGS) -march=core2 -m64
+		REAL_LDFLAGS=$(LDFLAGS) -melf_x86_64
+		DEBUG_FORMAT=dwarf
+		SO_EXT=.so
 	else
-		REAL_ASFLAGS = -f win64 $(ASFLAGS)
-		REAL_CFLAGS = $(CFLAGS) -march=core2 -m64
-		REAL_LINKERFLAGS = $(LINKERFLAGS) -mi386pe
-		DEBUG_FORMAT = null
+		REAL_ASFLAGS=-f win64 $(ASFLAGS)
+		REAL_CFLAGS=$(CFLAGS) -march=core2 -m64
+		REAL_LDFLAGS=$(LDFLAGS) -mi386pe
+		DEBUG_FORMAT=null
+		SO_EXT=.dll
 	endif
 else
 	ifeq ($(PLATFORM), linux)
-		REAL_ASFLAGS = -f elf32 $(ASFLAGS)
-		REAL_CFLAGS = $(CFLAGS) -march=pentium-m -m32
-		REAL_LINKERFLAGS = $(LINKERFLAGS) -melf_i386
-		DEBUG_FORMAT = dwarf
+		REAL_ASFLAGS=-f elf32 $(ASFLAGS)
+		REAL_CFLAGS=$(CFLAGS) -march=pentium-m -m32
+		REAL_LDFLAGS=$(LDFLAGS) -melf_i386
+		DEBUG_FORMAT=dwarf
+		SO_EXT=.so
 	else
-		REAL_ASFLAGS = -f win32 $(ASFLAGS)
-		REAL_CFLAGS = $(CFLAGS) -march=pentium-m -m32
-		REAL_LINKERFLAGS = $(LINKERFLAGS) -mi386pe
-		DEBUG_FORMAT = null
+		REAL_ASFLAGS=-f win32 $(ASFLAGS)
+		REAL_CFLAGS=$(CFLAGS) -march=pentium-m -m32
+		REAL_LDFLAGS=$(LDFLAGS) -mi386pe
+		DEBUG_FORMAT=null
+		SO_EXT=.dll
 	endif
 endif
+
+OUTPUT_FULL_NAME=$(OUTPUT_NAME)-$(PLATFORM)-$(ARCH)$(SO_EXT)
 
 all: release
 
@@ -73,19 +81,19 @@ clean:
 # recursively call make with proper flags
 release:
 	$(MAKE) clean
-	$(MAKE) libparticlasm.so ARCH=$(ARCH) ASFLAGS="$(ASFLAGS) -Ox" CFLAGS="$(CFLAGS) -O3" LINKERFLAGS="$(LINKERFLAGS) -S"
+	$(MAKE) libparticlasm ARCH=$(ARCH) ASFLAGS="$(ASFLAGS) -Ox" CFLAGS="$(CFLAGS) -O3" LDFLAGS="$(LDFLAGS) -S"
 	$(MKDIR_P) $(RELEASE_DIST_DIR)
-	mv libparticlasm.so $(RELEASE_DIST_DIR)
+	mv $(OUTPUT_FULL_NAME) $(RELEASE_DIST_DIR)
 
 # recursively call make with proper flags
 debug:
 	$(MAKE) clean
-	$(MAKE) libparticlasm.so ARCH=$(ARCH) ASFLAGS="$(ASFLAGS) -O0 -g -F $(DEBUG_FORMAT)" CFLAGS="$(CFLAGS) -O0 -g" LINKERFLAGS="$(LINKERFLAGS)"
+	$(MAKE) libparticlasm ARCH=$(ARCH) ASFLAGS="$(ASFLAGS) -O0 -g -F $(DEBUG_FORMAT)" CFLAGS="$(CFLAGS) -O0 -g" LDFLAGS="$(LDFLAGS)"
 	$(MKDIR_P) $(DEBUG_DIST_DIR)
-	mv libparticlasm.so $(DEBUG_DIST_DIR)
+	mv $(OUTPUT_FULL_NAME) $(DEBUG_DIST_DIR)
 
-libparticlasm.so: particlasm.o ptc_highlevel.o
-	$(LINKER) $(REAL_LINKERFLAGS) particlasm.o ptc_highlevel.o -o libparticlasm.so
+libparticlasm: particlasm.o ptc_highlevel.o
+	$(LD) $(REAL_LDFLAGS) particlasm.o ptc_highlevel.o -o $(OUTPUT_FULL_NAME)
 
 particlasm.o: particl.asm ptc_modules.inc ptc_distributions.inc libparticlasm.inc
 	echo "Assembling..."
