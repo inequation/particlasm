@@ -7,6 +7,7 @@ Copyright (C) 2011-2012, Leszek Godlewski <lg@inequation.org>
 #include <stdlib.h>
 #include <math.h>
 #include <errno.h>
+#include <string.h>
 #include <sys/mman.h>
 #include "libparticlasm.h"
 
@@ -77,32 +78,34 @@ uint32_t EXPORTDECL ptcCompileEmitter(ptcEmitter *emitter) {
 	// start with the simulation module
 	ptcInternalMeasureModule(NULL, &spawnCodeBufLen, &procCodeBufLen,
 		&dataBufLen);
-	/*printf("libparticlasm: simulation module measurement:\n"
+	printf("libparticlasm: simulation module measurement:\n"
 			"\tspawn code: %d bytes\n"
 			"\tprocessing code: %d bytes\n"
 			"\tdata: %d bytes\n",
-			spawnCodeBufLen, procCodeBufLen, dataBufLen);*/
+			spawnCodeBufLen, procCodeBufLen, dataBufLen);
 	for (m = emitter->Head; m; m = m->Header.Next) {
 		ptcInternalMeasureModule(m, &spawnCodeBufLen, &procCodeBufLen,
 			&dataBufLen);
-		/*printf("libparticlasm: module %d measurement:\n"
+		printf("libparticlasm: module %d measurement:\n"
 			"\tspawn code: %d bytes\n"
 			"\tprocessing code: %d bytes\n"
 			"\tdata: %d bytes\n", m->Header.ModuleID,
-			spawnCodeBufLen, procCodeBufLen, dataBufLen);*/
+			spawnCodeBufLen, procCodeBufLen, dataBufLen);
 	}
-	/*printf("libparticlasm: total measurements in bytes:\n"
+	printf("libparticlasm: total measurements in bytes:\n"
 			"\tspawn code: %d bytes\n"
 			"\tprocessing code: %d bytes\n"
 			"\tdata: %d bytes\n",
-			spawnCodeBufLen, procCodeBufLen, dataBufLen);*/
+			spawnCodeBufLen, procCodeBufLen, dataBufLen);
 
 	// allocate a memory page for our code
 	codepage = mmap(NULL, spawnCodeBufLen + procCodeBufLen,
 					PROT_READ | PROT_WRITE | PROT_EXEC,
 					MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
 	if (codepage == MAP_FAILED) {
-		printf("libparticlasm: code memory page allocation failed: %d\n", errno);
+		printf("libparticlasm: code memory page allocation of %lu+%lu bytes "
+			"failed: %d %s\n",
+			spawnCodeBufLen, procCodeBufLen, errno, strerror(errno));
 		return 0;
 	}
 

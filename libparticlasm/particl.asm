@@ -6,13 +6,16 @@
 
 ; some NASMX supplements
 %ixdefine ptr_t				ptrdiff_t			; platform-specific pointer type
+%ixdefine ptr_t_reserver	ptrdiff_t_reserve
 %ixdefine float_s_reserve	__nxfloat_reserve	; 32-bit float reservation
 %ixdefine float_s			dword
 %ixdefine float_size		__nxfloat_size
 %ifidn __BITS__,64
 	%ixdefine ptr_t_size	qword_size
+	%ixdefine dummy_addr	0x175ABADADD		; 40-bit address just to make sure we overflow a dword
 %else
 	%ixdefine ptr_t_size	dword_size
+	%ixdefine dummy_addr	0x15BADADD		; 32-bit address just to make sure we utilize a whole dword
 %endif
 
 ; libparticlasm declarations generated from the C header
@@ -35,11 +38,20 @@ extern _GLOBAL_OFFSET_TABLE_
 	add		__bx, _GLOBAL_OFFSET_TABLE_+$$-%%getgot wrt ..gotpc
 %endmacro
 
-; entry points to the library
-global ptcInternalMeasureModule:function
-global ptcInternalCompileModule:function
-global ptcInternalSpawnParticles:function
-global ptcInternalProcessParticles:function
+%ifidni __OUTPUT_FORMAT__,win64
+	%ixdefine __WINDOWS__	1
+%elifidni __OUTPUT_FORMAT__,win32
+	%ixdefine __WINDOWS__	1
+%else
+	%ixdefine __WINDOWS__	0
+%endif
+%if !(__WINDOWS__)
+	; entry points to the library
+	global ptcInternalMeasureModule:function
+	global ptcInternalCompileModule:function
+	global ptcInternalSpawnParticles:function
+	global ptcInternalProcessParticles:function
+%endif
 
 ; equal to 1.f / RAND_MAX (as per the stdlib.h declaration) in hex representation
 %define INV_RAND_MAX	0x30000000	;4.65661287524579692411e-10
@@ -95,7 +107,7 @@ MASK_ALPHA		dd	0x00000000
 %macro CompileMod 1
 	cmp		edx, ptcMID_ %+ %1
 	jne		%%skip
-	call	mod_ %+ %1 %+ Compile
+	invoke	mod_ %+ %1 %+ Compile, [var(.dataBuf)], [var(.processCodeBuf)], [var(.spawnCodeBuf)]
 	jne		.end
 %%skip:
 %endmacro
@@ -243,7 +255,11 @@ endproc
 
 proc ptcInternalCompileModule, ptr_t module, ptr_t spawnCodeBufPtr, ptr_t processCodeBufPtr, ptr_t dataBufPtr
 uses __bx, __si, __di
-locals none
+locals
+	local	dataBuf,		ptr_t
+	local	processCodeBuf,	ptr_t
+	local	spawnCodeBuf,	ptr_t
+endlocals
 
 ; spill registers to stack on x64
 %ifidn __OUTPUT_FORMAT__,elf64
@@ -263,26 +279,26 @@ locals none
 	; place the pointers on the stack in the convention that modules expect them
 	mov		__ax, [argv(.dataBufPtr)]
 	mov		__ax, [__ax]
-	push	__ax
+	mov		[var(.dataBuf)], __ax
 	mov		__ax, [argv(.processCodeBufPtr)]
 	mov		__ax, [__ax]
-	push	__ax
+	mov		[var(.processCodeBuf)], __ax
 	mov		__ax, [argv(.spawnCodeBufPtr)]
 	mov		__ax, [__ax]
-	push	__ax
+	mov		[var(.spawnCodeBuf)], __ax
 	mov		__si, [argv(.module)]
 
 	; check for simulation pre- and post-processing modules
 	cmp		__si, ptr_t -1
 	jne		.try_post
 	; add in the simulation preprocessing module
-	call	mod_SimulatePreCompile
+	invoke	mod_SimulatePreCompile, [var(.dataBuf)], [var(.processCodeBuf)], [var(.spawnCodeBuf)]
 	jmp		.end
 .try_post:
 	cmp		__si, ptr_t -2
 	jne		.normal
 	; add in the simulation postprocessing module
-	call	mod_SimulatePostCompile
+	invoke	mod_SimulatePostCompile, [var(.dataBuf)], [var(.processCodeBuf)], [var(.spawnCodeBuf)]
 	jmp		.end
 .normal:
 	mov		__dx, [__si + ptcModuleHeader.ModuleID]

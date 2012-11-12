@@ -31,7 +31,7 @@ size_t Fire(ptcEmitter **emitters) {
 	emit[0].InternalPtr1 = NULL;
 	emit[0].InternalPtr2 = NULL;
 	emit[0].InternalPtr3 = NULL;
-	emit[0].Head = (ptcModule *)&initvel;
+	emit[0].Head = NULL;//(ptcModule *)&initvel;
 	emit[0].ParticleBuf = NULL;
 	emit[0].NumParticles = 0;
 

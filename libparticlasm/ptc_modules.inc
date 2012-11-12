@@ -36,6 +36,8 @@ extern memcpy
 ; __cx - processing code size in bytes returned
 ; __dx - data size in bytes returned
 
+; Compilation procedure signature:
+; void mod_<module name>Compile(void **dataBuf, void **processCodeBuf, void **spawnCodeBuf);
 ; Compilation calling convention:
 ; (__sp + sizeof(ptr_t)) - working pointer to spawn code buffer
 ; (__sp + 2 * sizeof(ptr_t)) - working pointer to processing code buffer
@@ -70,21 +72,18 @@ mod_SimulatePre:
 .end:
 mod_SimulatePre_size	equ	(mod_SimulatePre.end - mod_SimulatePre)
 
-mod_SimulatePreCompile:
-	mov		__ax, [__sp + 2 * sizeof(ptr_t)]
-	push	mod_SimulatePre_size
-%ifidn __BITS__,64
-	lea		__dx, [rel mod_SimulatePre]
-	push	__dx
-%else
-	push	mod_SimulatePre
-%endif
+proc mod_SimulatePreCompile, ptr_t dataBuf, ptr_t processCodeBuf, ptr_t spawnCodeBuf
+uses __ax
+locals none
+
+	mov		__ax, [argv(.processCodeBuf)]
 	push	__ax
-	call	memcpy wrt ..plt
-	add		__sp, 3 * sizeof(ptr_t)
+	invoke	memcpy wrt ..plt, [argv(.processCodeBuf)], [rel mod_SimulatePre], mod_SimulatePre_size
+	pop		__ax
 	add		__ax, mod_SimulatePre_size
-	mov		[__sp + 2 * sizeof(ptr_t)], __ax
-ret
+	mov		[argv(.processCodeBuf)], __ax
+
+endproc
 
 ; simulation module, postprocessing
 mod_SimulatePost:
@@ -100,35 +99,32 @@ mod_SimulatePost:
 .end:
 mod_SimulatePost_size	equ	(mod_SimulatePost.end - mod_SimulatePost)
 
-mod_SimulatePostCompile:
-	mov		__di, [__sp + 2 * sizeof(ptr_t)]
+proc mod_SimulatePostCompile, ptr_t dataBuf, ptr_t processCodeBuf, ptr_t spawnCodeBuf
+uses __ax
+locals none
+
 	; copy in the postprocessing code
-	push	dword mod_SimulatePost_size
-%ifidn __BITS__,64
-	lea		__ax, [rel mod_SimulatePost]
+	mov		__ax, [argv(.processCodeBuf)]
 	push	__ax
-%else
-	push	dword mod_SimulatePost
-%endif
-	push	__di
-	call	memcpy wrt ..plt
-	add		__sp, 3 * sizeof(ptr_t)
-	add		__di, mod_SimulatePost_size
-	mov		[__sp + 2 * sizeof(ptr_t)], __di
+	invoke	memcpy wrt ..plt, [argv(.processCodeBuf)], [rel mod_SimulatePost], mod_SimulatePost_size
+	pop		__ax
+	add		__ax, mod_SimulatePost_size
+	mov		[argv(.processCodeBuf)], __ax
 
 	; also drop in a ret instruction at the end of spawn code
-	mov		__di, [__sp + sizeof(ptr_t)]
-%ifidn __BITS__,64
-	lea		__dx, [rel mod_SimulatePostCompile.ret_instruction]
-	mov		dl, [__dx]
-%else
-	mov		dl, [mod_SimulatePostCompile.ret_instruction]
-%endif
-	mov		[__di], byte dl
-	inc		__di
-	mov		[__sp + sizeof(ptr_t)], __di
+	mov		__ax, [argv(.spawnCodeBuf)]
+	push	__ax
+	invoke	memcpy wrt ..plt, [argv(.processCodeBuf)], [rel mod_SimulatePostCompile.ret_instruction], mod_SimulatePost_size
+	pop		__ax
+	inc		__ax
+	mov		[argv(.spawnCodeBuf)], __ax
+
+	jmp		.post_ret_instruction
 .ret_instruction:
 	ret
+.post_ret_instruction:
+
+endproc
 
 ; ========================================
 ; InitialLocation
@@ -371,7 +367,7 @@ mod_InitialVelocityCompile:
 
 mod_InitialColourSpawn:
 	; load colour flags
-	mov __ax, [0xBADADD]	; filled upon compilation
+	mov __ax, [dummy_addr]	; filled upon compilation
 .pr__distr:
 	; distribution code goes here
 .postdistr:
@@ -579,7 +575,7 @@ mod_ColourSpawn:
 
 mod_ColourProcess:
 	; load colour flags
-	mov		__ax, [0xBADADD]	; filled upon compilation
+	mov		__ax, [dummy_addr]	; filled upon compilation
 .postmov:
 	; load previous colour (colour distributions require this)
 	movaps	xmm5, xmm1

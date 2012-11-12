@@ -3,10 +3,11 @@
 	<FileVersion major="1" minor="6" />
 	<Project>
 		<Option title="Headless benchmark" />
+		<Option makefile_is_custom="1" />
 		<Option pch_mode="2" />
 		<Option compiler="gcc" />
 		<Build>
-			<Target title="Debug">
+			<Target title="debug">
 				<Option output="../bin/Debug/headless" prefix_auto="1" extension_auto="1" />
 				<Option object_output="../obj/Debug/" />
 				<Option type="1" />
@@ -16,7 +17,7 @@
 					<Add option="-g" />
 				</Compiler>
 			</Target>
-			<Target title="Release">
+			<Target title="release">
 				<Option output="../bin/Release/headless" prefix_auto="1" extension_auto="1" />
 				<Option object_output="../obj/Release/" />
 				<Option type="1" />
@@ -40,10 +41,10 @@
 			<Add directory="/usr/lib/gcc/x86_64-linux-gnu/4.6/32" />
 		</Linker>
 		<Unit filename="../hostapp/emitters.cpp" />
+		<Unit filename="../libparticlasm/libparticlasm.h" />
 		<Unit filename="../libparticlasm/ref_impl.cpp" />
-		<Unit filename="headless.c">
-			<Option compilerVar="CC" />
-		</Unit>
+		<Unit filename="Makefile" />
+		<Unit filename="headless.cpp" />
 		<Extensions>
 			<code_completion />
 			<envvars />

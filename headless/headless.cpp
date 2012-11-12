@@ -3,13 +3,33 @@ particlasm headless benchmark
 Copyright (C) 2012, Leszek Godlewski <lg@inequation.org>
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <string.h>
-#include <dlfcn.h>
-#include <time.h>
-#include <sys/time.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
+
+#if defined(WIN32) || defined(_WIN32) || defined(_WIN32_WINNT)
+	#define WIN32_LEAN_AND_MEAN
+	#include <windows.h>
+	#include <time.h>
+	#define PATH_SEPARATOR	"\\"
+	#define LOCAL_PATH
+	#define SO_EXT			".dll"
+	typedef HMODULE			SO_HANDLE;
+	#define dlopen(a, b)	LoadLibrary(a)
+	#define dlsym(a, b)		GetProcAddress(a, b)
+	#define dlclose(a)		FreeLibrary(a)
+#else
+	#include <unistd.h>
+	#include <dlfcn.h>
+	#include <sys/time.h>
+	#define PATH_SEPARATOR	"/"
+	#define LOCAL_PATH		"./"
+	#define SO_EXT			".so"
+	typedef void			*SO_HANDLE;
+	// change this to 0 if your compiler complains about dladdr
+	#define HAVE_DLADDR		1
+#endif // WIN32
 
 // particlasm functions
 #include "../libparticlasm/libparticlasm.h"
@@ -32,7 +52,7 @@ extern size_t Fire(ptcEmitter **emitters);
 
 }
 
-void *libparticlasmHandle = NULL;
+SO_HANDLE libparticlasmHandle = NULL;
 
 size_t MAX_PARTICLES;
 
@@ -46,18 +66,37 @@ size_t test_start_msec;
 
 size_t cpp_msec, asm_msec;
 
-#ifndef SO_EXT
-	#define SO_EXT
-	#warning No SO_EXT defined!
-#endif
-
+const char *GetPathToSelf() {
 #if defined(WIN32) || defined(_WIN32) || defined(_WIN32_WINNT)
-	#define PATH_SEPARATOR	"\\"
-	#define LOCAL_PATH
+	static char path[MAX_PATH];
+	GetModuleFileName(NULL, path, sizeof(path));
+	return path;
+#elif HAVE_DLADDR
+	// this code is not exactly portable between different C libraries since it
+	// relies on an extension first introduced in SunOS/Solaris and then
+	// mirrored in Glibc/FreeBSD; if compilation fails on your system, try
+	// commenting out HAVE_DLADDR at the beginning of the file
+	static Dl_info info;
+	if (!dladdr((void *)GetPathToSelf, &info))
+		return NULL;
+	return info.dli_fname;
 #else
-	#define PATH_SEPARATOR	"/"
-	#define LOCAL_PATH		"./"
-#endif // WIN32
+	// this is more portable, but less reliable - if reading /proc/self/exe
+	// fails, current working directory is returned instead, which is not always
+	// what we need
+	static char path[256];
+	if (readlink("/proc/self/exe", path, sizeof(path) - 1) > 0) {
+		path[sizeof(path) - 1] = 0;
+		return path;
+	}
+	if (getcwd(path, sizeof(path) - 1) == NULL)
+		return NULL;
+	path[sizeof(path) - 1] = 0;
+	// tack on a trailing slash so the path may be recovered
+	strcat(path, "/");
+	return path;
+#endif
+}
 
 bool InitParticlasm(bool cpp) {
 	if (cpp) {
@@ -68,7 +107,16 @@ bool InitParticlasm(bool cpp) {
 	} else {
 		libparticlasmHandle = dlopen(LOCAL_PATH "libparticlasm-" PLATFORM "-" ARCH SO_EXT, RTLD_NOW);
 		if (!libparticlasmHandle) {
+#if defined(WIN32) || defined(_WIN32) || defined(_WIN32_WINNT)
+			TCHAR *errStr;
+			FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM
+				| FORMAT_MESSAGE_ALLOCATE_BUFFER, NULL, GetLastError(),
+				LANG_USER_DEFAULT, (LPSTR)&errStr, 0, NULL);
+			printf("GetLastError: %s\n", errStr);
+			LocalFree((HLOCAL)errStr);
+#else
 			printf("dlerror: %s\n", dlerror());
+#endif
 			return false;
 		}
 		ptcCompileEmitter = (PFNPTCCOMPILEEMITTER)dlsym(libparticlasmHandle, "ptcCompileEmitter");
@@ -76,7 +124,16 @@ bool InitParticlasm(bool cpp) {
 		ptcReleaseEmitter = (PFNPTCRELEASEEMITTER)dlsym(libparticlasmHandle, "ptcReleaseEmitter");
 		if (ptcCompileEmitter && ptcProcessEmitter && ptcReleaseEmitter)
 			return true;
+#if defined(WIN32) || defined(_WIN32) || defined(_WIN32_WINNT)
+		TCHAR *errStr;
+		FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM
+			| FORMAT_MESSAGE_ALLOCATE_BUFFER, NULL, GetLastError(),
+			LANG_USER_DEFAULT, (LPSTR)&errStr, 0, NULL);
+		printf("GetLastError: %s\n", errStr);
+		LocalFree((HLOCAL)errStr);
+#else
 		printf("dlerror: %s\n", dlerror());
+#endif
 		dlclose(libparticlasmHandle);
 		return false;
 	}
@@ -90,7 +147,26 @@ void FreeParticlasm() {
 	ptcReleaseEmitter = NULL;
 }
 
-struct timeval start;
+#if defined(WIN32) || defined(_WIN32) || defined(_WIN32_WINNT)
+static LARGE_INTEGER start;
+
+void InitTicks() {
+	QueryPerformanceCounter(&start);
+}
+
+unsigned int GetTicks() {
+	LARGE_INTEGER ticks;
+	LARGE_INTEGER now;
+	LARGE_INTEGER frequency;
+
+	QueryPerformanceCounter(&now);
+	QueryPerformanceFrequency(&frequency);
+	frequency.QuadPart /= 1000;	// seconds to milliseconds
+	ticks.QuadPart = (now.QuadPart - start.QuadPart) / frequency.QuadPart;
+    return (unsigned int)ticks.QuadPart;
+}
+#else
+static struct timeval start;
 
 void InitTicks() {
 	gettimeofday(&start, NULL);
@@ -105,6 +181,7 @@ unsigned int GetTicks() {
 		start.tv_usec) / 1000;
     return (ticks);
 }
+#endif
 
 bool Benchmark(bool cpp) {
 	size_t i, j;
@@ -182,7 +259,7 @@ int main(int argc, char *argv[]) {
 	MAX_PARTICLES = atoi(argv[1]);
 	ptc_particles = (ptcParticle *)malloc(sizeof(*ptc_particles) * MAX_PARTICLES);
 	ptc_vertices = (ptcVertex *)malloc(sizeof(*ptc_vertices) * MAX_PARTICLES * 4);
-
+printf("module path: %s\n", GetPathToSelf());
 	InitTicks();
 
 	// initialize random number generator

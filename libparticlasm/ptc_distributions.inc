@@ -21,7 +21,7 @@
 ; ========================================
 
 sdistr_Constant:
-	fld		float_s [0xBADADD]	; val; this address is filled upon compilation
+	fld		float_s [dummy_addr]	; val; this address is filled upon compilation
 .end:
 sdistr_Constant_size		equ	(sdistr_Constant.end - sdistr_Constant)
 sdistr_ConstantData_size	equ	4	; one 32-bit float
@@ -62,9 +62,9 @@ sdistr_ConstantCompile:
 ; ========================================
 
 sdistr_Uniform:
-	fld		float_s [0xBADADD]	; range[0]; this address is filled upon compilation
+	fld		float_s [dummy_addr]	; range[0]; this address is filled upon compilation
 .postrange0:
-	fld		float_s [0xBADADD]	; range[1]; this address is filled upon compilation
+	fld		float_s [dummy_addr]	; range[1]; this address is filled upon compilation
 .postrange1:
 	; exchange the registers - FPU is stupid...
 	fxch	st1
@@ -153,7 +153,7 @@ sdistr_BicubicInterpCompile:
 ; ========================================
 
 vdistr_Constant:
-	movups	xmm5, [0xBADADD]	; val; this address is filled upon compilation
+	movups	xmm5, [dummy_addr]	; val; this address is filled upon compilation
 .end:
 vdistr_Constant_size		equ	(vdistr_Constant.end - vdistr_Constant)
 vdistr_ConstantData_size	equ	(4 * sizeof(float))
@@ -201,9 +201,9 @@ vdistr_ConstantCompile:
 ; ========================================
 
 vdistr_Uniform:
-	movups	xmm6, [0xBADADD]	; range[0]; this address is filled upon compilation
+	movups	xmm6, [dummy_addr]	; range[0]; this address is filled upon compilation
 .postrange0:
-	movups	xmm7, [0xBADADD]	; range[1]; this address is filled upon compilation
+	movups	xmm7, [dummy_addr]	; range[1]; this address is filled upon compilation
 .postrange1:
 	subps	xmm7, xmm6
 	; save off __ax and __dx
@@ -339,7 +339,7 @@ vdistr_BicubicInterpCompile:
 ; ========================================
 
 cdistr_Constant:
-	movups	xmm6, [0xBADADD]	; val; this address is filled upon compilation
+	movups	xmm6, [dummy_addr]	; val; this address is filled upon compilation
 .postval:
 	cdistr_mix
 .end:
@@ -390,9 +390,9 @@ cdistr_ConstantCompile:
 ; ========================================
 
 cdistr_Uniform:
-	movups	xmm6, [0xBADADD]	; range[0]; this address is filled upon compilation
+	movups	xmm6, [dummy_addr]	; range[0]; this address is filled upon compilation
 .postrange0:
-	movups	xmm7, [0xBADADD]	; range[1]; this address is filled upon compilation
+	movups	xmm7, [dummy_addr]	; range[1]; this address is filled upon compilation
 .postrange1:
 	subps	xmm7, xmm6
 	; save off __ax and __dx

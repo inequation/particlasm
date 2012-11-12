@@ -6,9 +6,9 @@
 # Feel free to change any of these, as long as you know what you're doing.
 # =============================================================================
 
-# architecture: "x86" for 32-bit, "x64" for 64-bit
+# default architecture: "x86" for 32-bit, "x64" for 64-bit
 ARCH=x64
-# platform: "windows" or "linux"
+# default platform: "windows" or "linux"
 PLATFORM=linux
 # path to make
 MAKE=make
@@ -17,11 +17,7 @@ MKDIR_P=mkdir -p
 # path to the C++ compiler
 CXX=g++
 # additional CC flags
-CXXFLAGS=-Wall -Wextra -mfpmath=sse -ldl
-# path to the linker executable
-LD=ld
-# additional linker flags
-LDFLAGS=-shared -lc
+CXXFLAGS=-Wall -Wextra -mfpmath=sse
 # debug dist directory
 DEBUG_DIST_DIR=../bin/Debug
 # release dist directory
@@ -37,23 +33,19 @@ OUTPUT_NAME=headless
 # $(ASFLAGS) comes last so that nasm learns about the target platform first
 ifeq ($(ARCH), x64)
 	ifeq ($(PLATFORM),linux)
-		REAL_CXXFLAGS=$(CXXFLAGS) -march=core2 -m64
+		REAL_CXXFLAGS=$(CXXFLAGS) -march=core2 -m64 -Wl,-m64,-melf_x86_64 -ldl
 		EXEC_EXT=
-		SO_EXT=.so
 	else
-		REAL_CXXFLAGS = $(CXXFLAGS) -march=core2 -m64
+		REAL_CXXFLAGS = $(CXXFLAGS) -march=core2 -m64 -Wl,-m64,-mi386pep
 		EXEC_EXT=.exe
-		SO_EXT=.dll
 	endif
 else
 	ifeq ($(PLATFORM),linux)
-		REAL_CXXFLAGS=$(CXXFLAGS) -march=pentium-m -m32
+		REAL_CXXFLAGS=$(CXXFLAGS) -march=pentium-m -m32 -Wl,-m32,-melf_i386 -ldl
 		EXEC_EXT=
-		SO_EXT=.so
 	else
-		REAL_CXXFLAGS=$(CXXFLAGS) -march=pentium-m -m32
+		REAL_CXXFLAGS=$(CXXFLAGS) -march=pentium-m -m32 -Wl,-m32,-mi386pe
 		EXEC_EXT=.exe
-		SO_EXT=.dll
 	endif
 endif
 
@@ -76,5 +68,41 @@ debug:
 	$(MKDIR_P) $(DEBUG_DIST_DIR)
 	mv $(OUTPUT_FULL_NAME) $(DEBUG_DIST_DIR)
 
+debug-linux-x86:
+	$(MAKE) debug ARCH=x86 PLATFORM=linux
+
+release-linux-x86:
+	$(MAKE) release ARCH=x86 PLATFORM=linux
+
+debug-linux-x64:
+	$(MAKE) debug ARCH=x64 PLATFORM=linux
+
+release-linux-x64:
+	$(MAKE) release ARCH=x64 PLATFORM=linux
+
+debug-windows-x86:
+	$(MAKE) debug ARCH=x86 PLATFORM=windows
+
+release-windows-x86:
+	$(MAKE) release ARCH=x86 PLATFORM=windows
+
+debug-windows-x64:
+	$(MAKE) debug ARCH=x64 PLATFORM=windows
+
+release-windows-x64:
+	$(MAKE) release ARCH=x64 PLATFORM=windows
+
+debug-mingw-x86:
+	$(MAKE) debug ARCH=x86 PLATFORM=windows CXX=i686-w64-mingw32-g++
+
+release-mingw-x86:
+	$(MAKE) release ARCH=x86 PLATFORM=windows CXX=i686-w64-mingw32-g++
+
+debug-mingw-x64:
+	$(MAKE) debug ARCH=x64 PLATFORM=windows CXX=x86_64-w64-mingw32-g++
+
+release-mingw-x64:
+	$(MAKE) release ARCH=x64 PLATFORM=windows CXX=x86_64-w64-mingw32-g++
+
 headless:
-	$(CXX) $(REAL_CXXFLAGS) $(REAL_LDFLAGS) -o $(OUTPUT_FULL_NAME) -DARCH=\"$(ARCH)\" -DPLATFORM=\"$(PLATFORM)\" -DSO_EXT=\"$(SO_EXT)\" headless.c ../hostapp/emitters.cpp ../libparticlasm/ref_impl.cpp
+	$(CXX) $(REAL_CXXFLAGS) $(REAL_LDFLAGS) -o $(OUTPUT_FULL_NAME) -DARCH=\"$(ARCH)\" -DPLATFORM=\"$(PLATFORM)\" headless.cpp ../hostapp/emitters.cpp ../libparticlasm/ref_impl.cpp

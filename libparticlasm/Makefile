@@ -6,9 +6,9 @@
 # Feel free to change any of these, as long as you know what you're doing.
 # =============================================================================
 
-# architecture: "x86" for 32-bit, "x64" for 64-bit
+# default architecture: "x86" for 32-bit, "x64" for 64-bit
 ARCH=x64
-# platform: "windows" or "linux"
+# default platform: "windows" or "linux"
 PLATFORM=linux
 # path to make
 MAKE=make
@@ -51,7 +51,7 @@ ifeq ($(ARCH), x64)
 	else
 		REAL_ASFLAGS=-f win64 $(ASFLAGS)
 		REAL_CFLAGS=$(CFLAGS) -march=core2 -m64
-		REAL_LDFLAGS=$(LDFLAGS) -mi386pe
+		REAL_LDFLAGS=$(LDFLAGS) -mi386pep
 		DEBUG_FORMAT=null
 		SO_EXT=.dll
 	endif
@@ -91,6 +91,42 @@ debug:
 	$(MAKE) libparticlasm ARCH=$(ARCH) ASFLAGS="$(ASFLAGS) -O0 -g -F $(DEBUG_FORMAT)" CFLAGS="$(CFLAGS) -O0 -g" LDFLAGS="$(LDFLAGS)"
 	$(MKDIR_P) $(DEBUG_DIST_DIR)
 	mv $(OUTPUT_FULL_NAME) $(DEBUG_DIST_DIR)
+
+debug-linux-x86:
+	$(MAKE) debug ARCH=x86 PLATFORM=linux
+
+release-linux-x86:
+	$(MAKE) release ARCH=x86 PLATFORM=linux
+
+debug-linux-x64:
+	$(MAKE) debug ARCH=x64 PLATFORM=linux
+
+release-linux-x64:
+	$(MAKE) release ARCH=x64 PLATFORM=linux
+
+debug-windows-x86:
+	$(MAKE) debug ARCH=x86 PLATFORM=windows
+
+release-windows-x86:
+	$(MAKE) release ARCH=x86 PLATFORM=windows
+
+debug-windows-x64:
+	$(MAKE) debug ARCH=x64 PLATFORM=windows
+
+release-windows-x64:
+	$(MAKE) release ARCH=x64 PLATFORM=windows
+
+debug-mingw-x86:
+	$(MAKE) debug ARCH=x86 PLATFORM=windows CC=i686-w64-mingw32-gcc
+
+release-mingw-x86:
+	$(MAKE) release ARCH=x86 PLATFORM=windows CC=i686-w64-mingw32-gcc
+
+debug-mingw-x64:
+	$(MAKE) debug ARCH=x64 PLATFORM=windows CC=x86_64-w64-mingw32-gcc
+
+release-mingw-x64:
+	$(MAKE) release ARCH=x64 PLATFORM=windows CC=x86_64-w64-mingw32-gcc
 
 libparticlasm: particlasm.o ptc_highlevel.o
 	$(LD) $(REAL_LDFLAGS) particlasm.o ptc_highlevel.o -o $(OUTPUT_FULL_NAME)
