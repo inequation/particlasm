@@ -41,12 +41,9 @@
 		<Unit filename="libparticlasm.h" />
 		<Unit filename="libparticlasm.inc" />
 		<Unit filename="nasmx.inc" />
-		<Unit filename="particl.asm" />
-		<Unit filename="ptc_distributions.inc" />
 		<Unit filename="ptc_highlevel.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="ptc_modules.inc" />
 		<Unit filename="ref_impl.cpp" />
 		<Extensions>
 			<code_completion />

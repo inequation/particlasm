@@ -129,14 +129,9 @@ release-mingw-x64:
 	$(MAKE) release ARCH=x64 PLATFORM=windows CC=x86_64-w64-mingw32-gcc
 
 libparticlasm: particlasm.o ptc_highlevel.o
-	$(LD) $(REAL_LDFLAGS) particlasm.o ptc_highlevel.o -o $(OUTPUT_FULL_NAME)
-
-particlasm.o: particl.asm ptc_modules.inc ptc_distributions.inc libparticlasm.inc
-	echo "Assembling..."
-	$(AS) $(REAL_ASFLAGS) particl.asm -o particlasm.o
+	$(LD) $(REAL_LDFLAGS) particlasm.o -o $(OUTPUT_FULL_NAME)
 
 ptc_highlevel.o: ptc_highlevel.c libparticlasm.h
-	echo "Compiling high level code..."
 	$(CC) $(REAL_CFLAGS) ptc_highlevel.c -o ptc_highlevel.o
 
 libparticlasm.inc: libparticlasm.h gen_asm_decls.py
