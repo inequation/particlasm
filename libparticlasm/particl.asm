@@ -45,8 +45,14 @@ extern _GLOBAL_OFFSET_TABLE_
 %else
 	%ixdefine __WINDOWS__	0
 %endif
-%if !(__WINDOWS__)
-	; entry points to the library
+
+; entry points to the library
+%if (__WINDOWS__)
+	global ptcInternalMeasureModule
+	global ptcInternalCompileModule
+	global ptcInternalSpawnParticles
+	global ptcInternalProcessParticles
+%else
 	global ptcInternalMeasureModule:function
 	global ptcInternalCompileModule:function
 	global ptcInternalSpawnParticles:function

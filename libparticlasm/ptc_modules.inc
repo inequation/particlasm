@@ -148,7 +148,10 @@ mod_InitialLocationMeasure:
 	xor		__cx, __cx
 	ret
 
-mod_InitialLocationCompile:
+proc mod_InitialLocationCompile, ptr_t dataBuf, ptr_t processCodeBuf, ptr_t spawnCodeBuf
+uses __ax
+locals none
+
 	; prepare pointers
 	mov		__cx, [__sp + sizeof(ptr_t)]
 	mov		__di, [__sp + 3 * sizeof(ptr_t)]
@@ -182,7 +185,8 @@ mod_InitialLocationCompile:
 	add		__cx, mod_InitialLocationSpawn_size
 	mov		[__sp + 3 * sizeof(ptr_t)], __di
 	mov		[__sp + sizeof(ptr_t)], __cx
-	ret
+
+endproc
 
 ; ========================================
 ; InitialRotation
