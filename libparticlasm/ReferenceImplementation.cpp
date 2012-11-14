@@ -1,6 +1,6 @@
 /*
-particlasm reference C++ implementation
-Copyright (C) 2011-2012, Leszek Godlewski <lg@inequation.org>
+Particlasm reference C++ implementation
+Copyright (C) 2011-2012, Leszek Godlewski <github@inequation.org>
 */
 
 #include "libparticlasm.h"

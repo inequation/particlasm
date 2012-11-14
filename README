@@ -1,20 +1,30 @@
-particlasm - a modular, data-driven particle system written in x86 assembly
-Written by Leszek Godlewski
+Particlasm - a high-performance, modular, data-driven particle system
+Copyright (C) 2011-2012, Leszek Godlewski <github@inequation.org>
 
-This is a nifty little project I've written as university assignment. Inspired
-by Unreal Cascade (Unreal Engine 3's particle system editor), it combines the
+This is a nifty little project I've originally written as a university
+assignment, which later evolved into my graduation project. Inspired by Unreal
+Cascade (Unreal Engine 3's particle system editor), it combines the
 artist-friendly concept of particle-processing modules with a blazing-fast
 implementation.
 
-Processing speed is achieved by compiling the predefined emitter modules into
-two contiguous buffers of native machine code and a contiguous data buffer, thus
+Processing speed is achieved by compiling the predefined emitter modules - coded
+in raw x86 assembly language, basing heavily on SSE instructions - into two
+contiguous buffers of native machine code and a contiguous data buffer, thus
 removing most of the usual function calling overhead, significantly reducing
 memory access counts (most of the time all the necessary data fits in the
 registers) and practically eliminating cache misses. The design also displays
 potential for some awesome parallelization.
 
-Particlasm is being developed using Code::Blocks. The workspace consists of
-three projects:
+The 2.x branch brings a radical change in architecture. While 1.x's compiler was
+also written in x86 assembly, further development and maintenance of the code -
+x86-64 porting issues, in particular - was extremely difficult, to the point
+where I started looking for a higher-level alternative. I've settled for a code
+generation approach - libparticlasm will now generate assembly and call NASM to
+assemble it into a raw binary blob. As a result, both compiler code and module
+code improves in terms of readability and reliability.
+
+Particlasm is being developed using Code::Blocks, GNU make, GCC and MinGW-W64.
+The workspace consists of three projects:
 
 * libparticlasm - the actual library, written in x86 assembly plus some high-
   level glue in C, plus a reference implementation of the engine written in C++,
@@ -22,3 +32,6 @@ three projects:
   (http://nehe.gamedev.net/tutorial/particle_engine_using_triangle_strips/21001/),
 * headless - a headless (i.e. no rendering, just plain particle processing)
   application for benchmarking particlasm implementations.
+
+To build, just run make in the root directory of the project. You can also build
+individual components by running make in their respective directories.

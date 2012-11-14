@@ -4,8 +4,8 @@
 		<Project filename="hostapp/hostapp.cbp">
 			<Depends filename="libparticlasm/libparticlasm.cbp" />
 		</Project>
-		<Project filename="libparticlasm/libparticlasm.cbp" />
 		<Project filename="headless/headless.cbp" />
+		<Project filename="libparticlasm/libparticlasm.cbp" />
 		<Project filename="doc/doc.cbp" />
 		<Project filename="edificle/edificle.cbp" />
 	</Workspace>

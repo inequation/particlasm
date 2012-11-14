@@ -29,6 +29,26 @@
 					<Add option="-s" />
 				</Linker>
 			</Target>
+			<Target title="debug-linux-x86">
+				<Option output="../bin/Debug/headless" prefix_auto="1" extension_auto="1" />
+				<Option object_output="../obj/Debug/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Option parameters="10000" />
+				<Compiler>
+					<Add option="-g" />
+				</Compiler>
+			</Target>
+			<Target title="release-linux-x86">
+				<Option output="../bin/Debug/headless" prefix_auto="1" extension_auto="1" />
+				<Option object_output="../obj/Debug/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Option parameters="10000" />
+				<Compiler>
+					<Add option="-g" />
+				</Compiler>
+			</Target>
 		</Build>
 		<Compiler>
 			<Add option="-Wall" />
@@ -41,8 +61,8 @@
 			<Add directory="/usr/lib/gcc/x86_64-linux-gnu/4.6/32" />
 		</Linker>
 		<Unit filename="../hostapp/emitters.cpp" />
+		<Unit filename="../libparticlasm/ReferenceImplementation.cpp" />
 		<Unit filename="../libparticlasm/libparticlasm.h" />
-		<Unit filename="../libparticlasm/ref_impl.cpp" />
 		<Unit filename="Makefile" />
 		<Unit filename="headless.cpp" />
 		<Extensions>

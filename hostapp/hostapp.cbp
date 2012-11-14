@@ -43,8 +43,8 @@
 			<Add library="GL" />
 			<Add library="GLU" />
 		</Linker>
+		<Unit filename="../libparticlasm/ReferenceImplementation.cpp" />
 		<Unit filename="../libparticlasm/gen_asm_decls.py" />
-		<Unit filename="../libparticlasm/ref_impl.cpp" />
 		<Unit filename="emitters.cpp" />
 		<Unit filename="main.cpp" />
 		<Extensions>

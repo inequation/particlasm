@@ -1,6 +1,6 @@
 /* particlasm demo app
  * Based on NeHe OpenGL lesson #19
- * Leszek Godlewski <lg@inequation.org>
+ * Leszek Godlewski <github@inequation.org>
  *
  * This code was created by Jeff Molofee '99
  * (ported to Linux/SDL by Ti Leggett '01)

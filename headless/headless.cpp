@@ -1,6 +1,6 @@
 /*
 particlasm headless benchmark
-Copyright (C) 2012, Leszek Godlewski <lg@inequation.org>
+Copyright (C) 2012, Leszek Godlewski <github@inequation.org>
 */
 
 #include <cstdio>
@@ -105,7 +105,7 @@ bool InitParticlasm(bool cpp) {
 		ptcReleaseEmitter = ref_ptcReleaseEmitter;
 		return true;
 	} else {
-		libparticlasmHandle = dlopen(LOCAL_PATH "libparticlasm-" PLATFORM "-" ARCH SO_EXT, RTLD_NOW);
+		libparticlasmHandle = dlopen(LOCAL_PATH "libparticlasm2-" PLATFORM "-" ARCH SO_EXT, RTLD_NOW);
 		if (!libparticlasmHandle) {
 #if defined(WIN32) || defined(_WIN32) || defined(_WIN32_WINNT)
 			TCHAR *errStr;
