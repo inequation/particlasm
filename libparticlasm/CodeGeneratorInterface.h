@@ -15,7 +15,9 @@ typedef enum
 	GR_InvalidEmitter,
 	GR_InvalidCallback,
 	GR_ModuleIDMismatch,
-	GR_UnsupportedModuleID
+	GR_UnsupportedModuleID,
+	GR_DistributionIDMismatch,
+	GR_UnsupportedDistributionID
 }
 GenerationResult;
 
@@ -34,16 +36,18 @@ typedef PTC_ATTRIBS void (* PFNBUFFERPRINTF)(const char *fmt, ...);
 struct CodeGenerationContext
 {
 	ptcEmitter				*Emitter;
-	PFNBUFFERPRINTF			Printf;
+	PFNBUFFERPRINTF			Emitf;
 
 	int						CurrentModuleIndex;
+	int						CurrentDataIndex;
 	GenerationStage			Stage;
 	GenerationResult		Result;
 
-	CodeGenerationContext(ptcEmitter *InEmitter, PFNBUFFERPRINTF InPrintf) :
+	CodeGenerationContext(ptcEmitter *InEmitter, PFNBUFFERPRINTF InEmitf) :
 		Emitter(InEmitter),
-		Printf(InPrintf),
+		Emitf(InEmitf),
 		CurrentModuleIndex(-1),
+		CurrentDataIndex(-1),
 		Stage(GS_Started),
 		Result(GR_Success)
 		{}
@@ -71,6 +75,8 @@ struct CodeGenerationContext
 			CG_ENUM_STR(GR_InvalidCallback);
 			CG_ENUM_STR(GR_ModuleIDMismatch);
 			CG_ENUM_STR(GR_UnsupportedModuleID);
+			CG_ENUM_STR(GR_DistributionIDMismatch);
+			CG_ENUM_STR(GR_UnsupportedDistributionID);
 			default:	return "unknown"; assert(!"Unknown result"); break;
 		}
 	}

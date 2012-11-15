@@ -79,15 +79,17 @@ OUTPUT_FULL_NAME=$(OUTPUT_NAME)-$(PLATFORM)-$(ARCH)$(SO_EXT)
 
 SOURCES=ParticlasmMain.cpp libparticlasm.h CodeGeneratorInterface.h
 OBJECTS=$(SOURCES:.cpp=.o)
-SOURCES_X86_ASSEMBLY_RAW=AsmSnippets$(PATH_SEPARATOR)AsmSnippets.h X86AssemblyGenerator.cpp X86AssemblyGenerator.h X86Module.cpp X86Module.h Mod_InitialLocation.cpp Mod_InitialLocation.h Mod_SimulatePre.cpp Mod_SimulatePre.h Mod_SimulatePost.cpp Mod_SimulatePost.h
-SOURCES_X86_ASSEMBLY=$(addprefix X86Assembly$(PATH_SEPARATOR),$(SOURCES_X86_ASSEMBLY_RAW))
-OBJECTS_X86_ASSEMBLY=$(SOURCES_X86_ASSEMBLY:.cpp=.o)
+SOURCES_X86_ASSEMBLY_DISTRIBS=$(wildcard X86Assembly$(PATH_SEPARATOR)Distr_*.cpp) $(wildcard X86Assembly$(PATH_SEPARATOR)Distr_*.h)
+SOURCES_X86_ASSEMBLY_MODULES=$(wildcard X86Assembly$(PATH_SEPARATOR)Mod_*.cpp) $(wildcard X86Assembly$(PATH_SEPARATOR)Mod_*.h)
+SOURCES_X86_ASSEMBLY_RAW=AsmSnippets$(PATH_SEPARATOR)AsmSnippets.h X86AssemblyGenerator.cpp X86AssemblyGenerator.h X86Module.cpp X86Module.h X86Distribution.h
 SOURCES_X86_ASSEMBLY_SNIPPETS=$(wildcard X86Assembly$(PATH_SEPARATOR)AsmSnippets$(PATH_SEPARATOR)*.asm)
+SOURCES_X86_ASSEMBLY=$(addprefix X86Assembly$(PATH_SEPARATOR),$(SOURCES_X86_ASSEMBLY_RAW)) $(SOURCES_X86_ASSEMBLY_DISTRIBS) $(SOURCES_X86_ASSEMBLY_MODULES)
+OBJECTS_X86_ASSEMBLY=$(SOURCES_X86_ASSEMBLY:.cpp=.o)
 
 all: release
 
 clean:
-	rm -f *.o *.so X86Assembly$(PATH_SEPARATOR)*.o
+	rm -f *.o *.so X86Assembly$(PATH_SEPARATOR)*.o X86Assembly$(PATH_SEPARATOR)AsmSnippets$(PATH_SEPARATOR)libparticlasm.inc
 
 # recursively call make with proper flags
 release:
@@ -139,14 +141,14 @@ debug-mingw-x64:
 release-mingw-x64:
 	$(MAKE) release ARCH=x64 PLATFORM=windows CXX=x86_64-w64-mingw32-g++ PATH_SEPARATOR=/
 
-libparticlasm: libparticlasm.inc  $(OBJECTS) $(OBJECTS_X86_ASSEMBLY)
+libparticlasm: X86Assembly$(PATH_SEPARATOR)AsmSnippets$(PATH_SEPARATOR)AsmSnippets.h $(OBJECTS) $(OBJECTS_X86_ASSEMBLY)
 	$(LD) $(REAL_LDFLAGS) $(OBJECTS) $(OBJECTS_X86_ASSEMBLY) -o $(OUTPUT_FULL_NAME)
 
 .cpp.o: $(SOURCES) $(SOURCES_X86_ASSEMBLY)
 	$(CXX) $(REAL_CXXFLAGS) $< -o $@
 
-libparticlasm.inc: libparticlasm.h gen_asm_decls.py
-	$(PYTHON) gen_asm_decls.py
+X86Assembly$(PATH_SEPARATOR)AsmSnippets$(PATH_SEPARATOR)libparticlasm.inc: libparticlasm.h X86Assembly$(PATH_SEPARATOR)gen_asm_decls.py
+	$(PYTHON) X86Assembly$(PATH_SEPARATOR)gen_asm_decls.py
 
-X86Assembly$(PATH_SEPARATOR)AsmSnippets$(PATH_SEPARATOR)AsmSnippets.h: $(SOURCES_X86_ASSEMBLY_SNIPPETS)
+X86Assembly$(PATH_SEPARATOR)AsmSnippets$(PATH_SEPARATOR)AsmSnippets.h: X86Assembly$(PATH_SEPARATOR)AsmSnippets$(PATH_SEPARATOR)libparticlasm.inc $(SOURCES_X86_ASSEMBLY_SNIPPETS) X86Assembly$(PATH_SEPARATOR)gen_asm_snippets.py
 	$(PYTHON) X86Assembly$(PATH_SEPARATOR)gen_asm_snippets.py

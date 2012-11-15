@@ -5,14 +5,26 @@ Copyright (C) 2012, Leszek Godlewski <github@inequation.org>
 
 #include <cassert>
 #include "X86AssemblyGenerator.h"
-#include "X86Module.h"
-#include "Mod_SimulatePre.h"
-#include "Mod_SimulatePost.h"
-#include "Mod_InitialLocation.h"
 
 // include the assembly code so that it may be linked in
 #define ASMSNIPPETS_DEFINITIONS
 #include "AsmSnippets/AsmSnippets.h"
+
+const Mod_SimulatePre X86AssemblyGenerator::SimPre;
+const Mod_SimulatePost X86AssemblyGenerator::SimPost;
+const X86Module *X86AssemblyGenerator::ModuleMap[] =
+{
+	new Mod_InitialLocation(),
+	new Mod_InitialRotation(),
+	new Mod_InitialSize(),
+	new Mod_InitialVelocity(),
+	new Mod_InitialColour(),
+	new Mod_Velocity(),
+	new Mod_Acceleration(),
+	new Mod_Colour(),
+	new Mod_Size(),
+	new Mod_Gravity()
+};
 
 X86AssemblyGenerator::X86AssemblyGenerator(EArchitecture InArch,
 	EPlatform InPlatform) :
@@ -27,13 +39,6 @@ X86AssemblyGenerator::~X86AssemblyGenerator()
 	//dtor
 }
 
-static const Mod_SimulatePre SimPre;
-static const Mod_SimulatePost SimPost;
-static const X86Module ModuleMap[] =
-{
-	Mod_InitialLocation()
-};
-
 #define ARRAY_COUNT(a)	(sizeof(a) / sizeof((a)[0]))
 
 void X86AssemblyGenerator::Generate(CodeGenerationContext& Context)
@@ -44,14 +49,14 @@ void X86AssemblyGenerator::Generate(CodeGenerationContext& Context)
 		Context.Result = GR_InvalidEmitter;
 		return;
 	}
-	if (!Context.Printf)
+	if (!Context.Emitf)
 	{
 		Context.Result = GR_InvalidCallback;
 		return;
 	}
 
 	// start off by integrating the prologue
-	Context.Printf(Prologue);
+	Context.Emitf(Asm_Prologue, Inc_nasmx, Inc_libparticlasm);
 
 	// perform the generation stages
 	for (Context.Stage = GS_Data;
@@ -59,6 +64,7 @@ void X86AssemblyGenerator::Generate(CodeGenerationContext& Context)
 		Context.Stage = (GenerationStage)((int)Context.Stage + 1))
 	{
 		Context.CurrentModuleIndex = 0;
+		Context.CurrentDataIndex = 0;
 
 		const char *StageString;
 		switch (Context.Stage)
@@ -71,17 +77,21 @@ void X86AssemblyGenerator::Generate(CodeGenerationContext& Context)
 				break;
 			case GS_ProcessCode:
 				StageString = "Process";
-				// special case: pre-simulation
-				SimPre.Generate(Context, NULL);
-				if (Context.Result != GR_Success)
-					return;
 				break;
 			default:
 				assert(Context.Stage > GS_Started
 					&& Context.Stage < GS_Finished);
 		}
 		// print out the label
-		Context.Printf("__%s:\n", StageString);
+		Context.Emitf("__%s:\n", StageString);
+
+		if (Context.Stage == GS_ProcessCode)
+		{
+			// special case: pre-simulation
+			SimPre.Generate(Context, NULL);
+			if (Context.Result != GR_Success)
+				return;
+		}
 
 		// walk the module list
 		for (ptcModule *Mod = Context.Emitter->Head;
@@ -91,7 +101,7 @@ void X86AssemblyGenerator::Generate(CodeGenerationContext& Context)
 			size_t i;
 			for (i = 0; i < ARRAY_COUNT(ModuleMap); ++i)
 			{
-				ModuleMap[i].Generate(Context, Mod);
+				ModuleMap[i]->Generate(Context, Mod);
 				if (Context.Result == GR_ModuleIDMismatch)
 				{
 					Context.Result = GR_Success;
@@ -99,6 +109,8 @@ void X86AssemblyGenerator::Generate(CodeGenerationContext& Context)
 				}
 				else if (Context.Result != GR_Success)
 					return;
+				// break the loop upon success
+				break;
 			}
 			if (i >= ARRAY_COUNT(ModuleMap))
 				Context.Result = GR_UnsupportedModuleID;
@@ -117,5 +129,5 @@ void X86AssemblyGenerator::Generate(CodeGenerationContext& Context)
 	}
 
 	// finish off by integrating the epilogue
-	Context.Printf(Epilogue);
+	Context.Emitf(Asm_Epilogue);
 }

@@ -60,27 +60,60 @@
 		<Compiler>
 			<Add option="-Wall" />
 		</Compiler>
+		<Unit filename="../README" />
 		<Unit filename="CodeGeneratorInterface.h" />
 		<Unit filename="Makefile" />
 		<Unit filename="ParticlasmMain.cpp" />
 		<Unit filename="ReferenceImplementation.cpp" />
 		<Unit filename="X86Assembly/AsmSnippets/AsmSnippets.h" />
+		<Unit filename="X86Assembly/AsmSnippets/CDistr_Constant_Code.asm" />
+		<Unit filename="X86Assembly/AsmSnippets/CDistr_Uniform_Code.asm" />
 		<Unit filename="X86Assembly/AsmSnippets/Epilogue.asm" />
+		<Unit filename="X86Assembly/AsmSnippets/Mod_SimulatePost.asm" />
+		<Unit filename="X86Assembly/AsmSnippets/Mod_SimulatePre.asm" />
 		<Unit filename="X86Assembly/AsmSnippets/Prologue.asm" />
+		<Unit filename="X86Assembly/AsmSnippets/SDistr_Constant_Code.asm" />
+		<Unit filename="X86Assembly/AsmSnippets/SDistr_Uniform_Code.asm" />
+		<Unit filename="X86Assembly/AsmSnippets/VDistr_Constant_Code.asm" />
+		<Unit filename="X86Assembly/AsmSnippets/VDistr_Uniform_Code.asm" />
+		<Unit filename="X86Assembly/AsmSnippets/libparticlasm.inc" />
+		<Unit filename="X86Assembly/AsmSnippets/nasmx.inc" />
+		<Unit filename="X86Assembly/Distr_Constant.cpp" />
+		<Unit filename="X86Assembly/Distr_Constant.h" />
+		<Unit filename="X86Assembly/Distr_Uniform.cpp" />
+		<Unit filename="X86Assembly/Distr_Uniform.h" />
+		<Unit filename="X86Assembly/Mod_Acceleration.cpp" />
+		<Unit filename="X86Assembly/Mod_Acceleration.h" />
+		<Unit filename="X86Assembly/Mod_Colour.cpp" />
+		<Unit filename="X86Assembly/Mod_Colour.h" />
+		<Unit filename="X86Assembly/Mod_Gravity.cpp" />
+		<Unit filename="X86Assembly/Mod_Gravity.h" />
+		<Unit filename="X86Assembly/Mod_InitialColour.cpp" />
+		<Unit filename="X86Assembly/Mod_InitialColour.h" />
 		<Unit filename="X86Assembly/Mod_InitialLocation.cpp" />
 		<Unit filename="X86Assembly/Mod_InitialLocation.h" />
+		<Unit filename="X86Assembly/Mod_InitialRotation.cpp" />
+		<Unit filename="X86Assembly/Mod_InitialRotation.h" />
+		<Unit filename="X86Assembly/Mod_InitialSize.cpp" />
+		<Unit filename="X86Assembly/Mod_InitialSize.h" />
+		<Unit filename="X86Assembly/Mod_InitialVelocity.cpp" />
+		<Unit filename="X86Assembly/Mod_InitialVelocity.h" />
 		<Unit filename="X86Assembly/Mod_SimulatePost.cpp" />
 		<Unit filename="X86Assembly/Mod_SimulatePost.h" />
 		<Unit filename="X86Assembly/Mod_SimulatePre.cpp" />
 		<Unit filename="X86Assembly/Mod_SimulatePre.h" />
+		<Unit filename="X86Assembly/Mod_Size.cpp" />
+		<Unit filename="X86Assembly/Mod_Size.h" />
+		<Unit filename="X86Assembly/Mod_Velocity.cpp" />
+		<Unit filename="X86Assembly/Mod_Velocity.h" />
 		<Unit filename="X86Assembly/X86AssemblyGenerator.cpp" />
 		<Unit filename="X86Assembly/X86AssemblyGenerator.h" />
+		<Unit filename="X86Assembly/X86Distribution.h" />
 		<Unit filename="X86Assembly/X86Module.cpp" />
 		<Unit filename="X86Assembly/X86Module.h" />
-		<Unit filename="gen_asm_decls.py" />
+		<Unit filename="X86Assembly/gen_asm_decls.py" />
+		<Unit filename="X86Assembly/gen_asm_snippets.py" />
 		<Unit filename="libparticlasm.h" />
-		<Unit filename="libparticlasm.inc" />
-		<Unit filename="nasmx.inc" />
 		<Extensions>
 			<code_completion />
 			<envvars />

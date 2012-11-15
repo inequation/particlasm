@@ -7,7 +7,19 @@ Copyright (C) 2012, Leszek Godlewski <github@inequation.org>
 #define X86ASSEMBLYGENERATOR_H
 
 #include "../CodeGeneratorInterface.h"
-#include "AsmSnippets/AsmSnippets.h"
+#include "X86Module.h"
+#include "Mod_SimulatePre.h"
+#include "Mod_SimulatePost.h"
+#include "Mod_InitialLocation.h"
+#include "Mod_InitialRotation.h"
+#include "Mod_InitialSize.h"
+#include "Mod_InitialVelocity.h"
+#include "Mod_InitialColour.h"
+#include "Mod_Velocity.h"
+#include "Mod_Acceleration.h"
+#include "Mod_Colour.h"
+#include "Mod_Size.h"
+#include "Mod_Gravity.h"
 
 class X86AssemblyGenerator : public CodeGeneratorInterface
 {
@@ -34,6 +46,10 @@ class X86AssemblyGenerator : public CodeGeneratorInterface
 	private:
 		EArchitecture	Arch;
 		EPlatform		Platform;
+
+		static const Mod_SimulatePre SimPre;
+		static const Mod_SimulatePost SimPost;
+		static const X86Module *ModuleMap[];
 };
 
 #endif // X86ASSEMBLYGENERATOR_H

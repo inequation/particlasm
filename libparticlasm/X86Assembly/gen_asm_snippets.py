@@ -4,9 +4,7 @@
 # the NASM snippets inside the library.
 # Copyright (C) 2012, Leszek Godlewski <github@inequation.org>
 
-import sys
-import os
-import re
+import sys, os, re
 
 # this little function:
 # * escapes some special characters,
@@ -16,7 +14,7 @@ import re
 #   - for example: "label: dd {%s}" for use in string formatting,
 #   - the braces are stripped in the process, so the above example converts to
 #     "label: dd %s"
-def escape_for_C(in_str):
+def escape_for_C(in_str, escape_percent):
     out_str = ""
     raw_string = False
     for c in in_str:
@@ -24,7 +22,7 @@ def escape_for_C(in_str):
         if raw_string:
             if c == '}':
                 new_c = ""
-                format_string = False
+                raw_string = False
         elif c == '\'':
             new_c = "\\\'"
         elif c == '\"':
@@ -35,7 +33,7 @@ def escape_for_C(in_str):
             new_c = ""
         elif c == '\t':
             new_c = "\\t"
-        elif c == '%':
+        elif c == '%' and escape_percent:
             new_c = "%%"
         elif c == '{':
             new_c = ""
@@ -54,6 +52,8 @@ outfile.write("If you need to change something, change the corresponding file in
 outfile.write("AsmSnippets directory and re-run gen_asm_snippets.py.\n")
 outfile.write("Copyright (C) 2012, Leszek Godlewski <github@inequation.org>\n")
 outfile.write("*/\n\n")
+outfile.write("#ifndef ASMSNIPPETS_H\n")
+outfile.write("#define ASMSNIPPETS_H\n\n")
 outfile.write("// In order to include actual source definitions, place a\n")
 outfile.write("// \"#define ASMSNIPPETS_DEFINITIONS\" immediately before including this\n")
 outfile.write("// header. Otherwise only the extern symbol declarations will be included.\n")
@@ -62,11 +62,16 @@ outfile.write("#ifdef ASMSNIPPETS_DEFINITIONS\n\n")
 
 dir_list = os.listdir(asm_path)
 for fname in dir_list:
-    if not fname.endswith(".asm"):
+    if not fname.endswith(".asm") and not fname.endswith(".inc") :
         continue
 
+    if fname.endswith(".asm"):
+        prefix = "Asm_"
+    else:
+        prefix = "Inc_"
+
     snippet_name = fname[0:-4]
-    outfile.write("const char {0}[] =".format(snippet_name))
+    outfile.write("extern const char {0}{1}[] =".format(prefix, snippet_name))
 
     fpath = os.path.join(asm_path, fname);
     print("Processing {0}...".format(os.path.relpath(fpath)))
@@ -75,7 +80,7 @@ for fname in dir_list:
     while line != "":
         line = infile.readline()
         if line != "":
-            esc_line = escape_for_C(line)
+            esc_line = escape_for_C(line, prefix == "Asm_")
             outfile.write("\n\t\"{0}\"".format(esc_line))
     infile.close()
     outfile.write(";\n\n")
@@ -85,11 +90,17 @@ outfile.write("#else // ASMSNIPPETS_DEFINITIONS\n\n")
 
 dir_list = os.listdir(asm_path)
 for fname in dir_list:
-    if not fname.endswith(".asm"):
+    if not fname.endswith(".asm") and not fname.endswith(".inc") :
         continue
 
-    snippet_name = fname[0:-4]
-    outfile.write("extern const char {0}[];\n".format(snippet_name))
+    if fname.endswith(".asm"):
+        prefix = "Asm_"
+    else:
+        prefix = "Inc_"
 
-outfile.write("\n#endif // ASMSNIPPETS_DEFINITIONS\n")
+    snippet_name = fname[0:-4]
+    outfile.write("extern const char {0}{1}[];\n".format(prefix, snippet_name))
+
+outfile.write("\n#endif // ASMSNIPPETS_DEFINITIONS\n\n")
+outfile.write("#endif // ASMSNIPPETS_H\n")
 outfile.close()

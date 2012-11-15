@@ -69,7 +69,7 @@ extern size_t ptcInternalProcessParticles(ptcEmitter *emitter,
 
 FILE *Code;
 
-static void CodePrintf(const char *fmt, ...)
+static void CodeEmitf(const char *fmt, ...)
 {
 	va_list argptr;
 
@@ -83,7 +83,7 @@ extern "C" uint32_t EXPORTDECL ptcCompileEmitter(ptcEmitter *emitter)
 {
 
 	Code = fopen("code.asm", "w");
-	CodeGenerationContext Context(emitter, CodePrintf);
+	CodeGenerationContext Context(emitter, CodeEmitf);
 	X86AssemblyGenerator Generator(X86AssemblyGenerator::ARCH_x86,
 		X86AssemblyGenerator::PLATFORM_Linux);
 	Generator.Generate(Context);

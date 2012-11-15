@@ -8,8 +8,7 @@ Copyright (C) 2012, Leszek Godlewski <github@inequation.org>
 
 #include "../libparticlasm.h"
 #include "../CodeGeneratorInterface.h"
-
-#define STRINGIFY(a)  #a
+#include "X86Distribution.h"
 
 class X86Module
 {
@@ -19,15 +18,40 @@ class X86Module
 		X86Module(ptcModuleID InID);
 
 	public:
-		virtual ~X86Module();
-
-		ptcModuleID GetID() const { return ID; }
+		inline ptcModuleID GetID() const { return ID; }
 
 		virtual void Generate(CodeGenerationContext &Context,
 			const ptcModule *Module) const;
 
+	protected:
+		template <typename T>
+		void GenerateDistribution(CodeGenerationContext& Context,
+			const T *Distr) const
+		{
+			size_t i;
+			for (i = 0; i < DistrMapCount; ++i)
+			{
+				DistrMap[i]->Generate(Context, Distr);
+				if (Context.Result == GR_DistributionIDMismatch)
+				{
+					Context.Result = GR_Success;
+					continue;
+				}
+				else if (Context.Result != GR_Success)
+					return;
+				// break the loop upon success
+				break;
+			}
+
+			if (i >= DistrMapCount)
+				Context.Result = GR_UnsupportedDistributionID;
+		}
+
 	private:
 		ptcModuleID ID;
+
+		static const X86Distribution *DistrMap[];
+		static const size_t DistrMapCount;
 };
 
 #endif // X86MODULE_H

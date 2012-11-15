@@ -3,8 +3,13 @@
 ; Particlasm emitter code
 ; Generated automatically, do not modify!
 
+; =============================================================================
+; BOILERPLATE STARTS HERE
+; =============================================================================
+
 ; NASMX base include
-%include 'nasmx.inc'
+;%include 'nasmx.inc'
+{%s}
 
 ; some NASMX supplements
 %ixdefine ptr_t				ptrdiff_t			; platform-specific pointer type
@@ -21,7 +26,12 @@
 %endif
 
 ; libparticlasm declarations generated from the C header
-%include "libparticlasm.inc"
+;%include "libparticlasm.inc"
+{%s}
+
+; =============================================================================
+; BOILERPLATE ENDS HERE
+; =============================================================================
 
 [list +]
 

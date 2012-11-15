@@ -259,7 +259,7 @@ int main(int argc, char *argv[]) {
 	MAX_PARTICLES = atoi(argv[1]);
 	ptc_particles = (ptcParticle *)malloc(sizeof(*ptc_particles) * MAX_PARTICLES);
 	ptc_vertices = (ptcVertex *)malloc(sizeof(*ptc_vertices) * MAX_PARTICLES * 4);
-printf("module path: %s\n", GetPathToSelf());
+
 	InitTicks();
 
 	// initialize random number generator
