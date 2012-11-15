@@ -1,4 +1,4 @@
-Particlasm - a high-performance, modular, data-driven particle system
+Particlasm 2 - a high-performance, modular, data-driven particle system
 Copyright (C) 2011-2012, Leszek Godlewski <github@inequation.org>
 
 This is a nifty little project I've originally written as a university
@@ -26,12 +26,16 @@ code improves in terms of readability and reliability.
 Particlasm is being developed using Code::Blocks, GNU make, GCC and MinGW-W64.
 The workspace consists of three projects:
 
-* libparticlasm - the actual library, written in x86 assembly plus some high-
-  level glue in C, plus a reference implementation of the engine written in C++,
+* libparticlasm - the actual library, with a retargetable code generator
+  (currently only x86(-64) assembly is supported) written in C++, an API in C,
+  plus a reference implementation of a functionally-equivalent engine also
+  written in C++,
 * hostapp - the host application, based on Lesson 19 from NeHe Productions
   (http://nehe.gamedev.net/tutorial/particle_engine_using_triangle_strips/21001/),
 * headless - a headless (i.e. no rendering, just plain particle processing)
-  application for benchmarking particlasm implementations.
+  application for benchmarking particlasm implementations,
+* edificle - a work-in-progress user-friendly editor of particle effects backed
+  by libparticlasm.
 
 To build, just run make in the root directory of the project. You can also build
 individual components by running make in their respective directories.

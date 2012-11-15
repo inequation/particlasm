@@ -8,7 +8,7 @@ Copyright (C) 2012, Leszek Godlewski <github@inequation.org>
 
 // include the assembly code so that it may be linked in
 #define ASMSNIPPETS_DEFINITIONS
-#include "AsmSnippets/AsmSnippets.h"
+#include "AsmSnippets.h"
 
 const Mod_SimulatePre X86AssemblyGenerator::SimPre;
 const Mod_SimulatePost X86AssemblyGenerator::SimPost;
@@ -83,7 +83,7 @@ void X86AssemblyGenerator::Generate(CodeGenerationContext& Context)
 					&& Context.Stage < GS_Finished);
 		}
 		// print out the label
-		Context.Emitf("__%s:\n", StageString);
+		Context.Emitf("\n__%s:\n", StageString);
 
 		if (Context.Stage == GS_ProcessCode)
 		{
@@ -102,17 +102,16 @@ void X86AssemblyGenerator::Generate(CodeGenerationContext& Context)
 			for (i = 0; i < ARRAY_COUNT(ModuleMap); ++i)
 			{
 				ModuleMap[i]->Generate(Context, Mod);
-				if (Context.Result == GR_ModuleIDMismatch)
-				{
-					Context.Result = GR_Success;
+				if (Context.Result == GR_Success)
+					// break the loop upon success
+					break;
+				else if (Context.Result == GR_ModuleIDMismatch)
+					// try another module
 					continue;
-				}
-				else if (Context.Result != GR_Success)
+				else
 					return;
-				// break the loop upon success
-				break;
 			}
-			if (i >= ARRAY_COUNT(ModuleMap))
+			if (i >= ARRAY_COUNT(ModuleMap) && Context.Result != GR_Success)
 				Context.Result = GR_UnsupportedModuleID;
 
 			if (Context.Result != GR_Success)

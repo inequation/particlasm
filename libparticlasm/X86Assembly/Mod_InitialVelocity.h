@@ -12,10 +12,9 @@ class Mod_InitialVelocity : public X86Module
 {
 	public:
 		Mod_InitialVelocity();
-		virtual ~Mod_InitialVelocity();
 
-		virtual void Generate(CodeGenerationContext &Context,
-			const ptcModule *Module) const;
+		void Generate(CodeGenerationContext &Context, const ptcModule *Module)
+			const;
 };
 
 #endif // MOD_INITIALVELOCITY_H

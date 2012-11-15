@@ -1,4 +1,4 @@
-	; VECTOR DISTRIBUTION UNIFORM
+	; UNIFORM VECTOR DISTRIBUTION
 	movups	xmm6, [__Data.Offset{%d}]	; range[0]
 	movups	xmm7, [__Data.Offset{%d} + 4 * sizeof(float)]	; range[1]
 	subps	xmm7, xmm6

@@ -4,17 +4,12 @@ Copyright (C) 2012, Leszek Godlewski <github@inequation.org>
 */
 
 #include "Mod_SimulatePost.h"
-#include "AsmSnippets/AsmSnippets.h"
+#include "AsmSnippets.h"
 
 Mod_SimulatePost::Mod_SimulatePost() :
 	X86Module((ptcModuleID)-2)
 {
 	//ctor
-}
-
-Mod_SimulatePost::~Mod_SimulatePost()
-{
-	//dtor
 }
 
 void Mod_SimulatePost::Generate(CodeGenerationContext &Context,

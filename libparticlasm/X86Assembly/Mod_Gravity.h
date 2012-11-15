@@ -12,7 +12,6 @@ class Mod_Gravity : public X86Module
 {
 	public:
 		Mod_Gravity();
-		virtual ~Mod_Gravity();
 
 		void Generate(CodeGenerationContext &Context, const ptcModule *Module)
 			const;

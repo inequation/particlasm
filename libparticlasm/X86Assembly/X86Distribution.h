@@ -22,22 +22,25 @@ class X86Distribution
 		virtual void Generate(CodeGenerationContext& Context,
 			const ptcScalarDistr *Scalar) const
 		{
-			if (Scalar->DistrID == GetID())
-				Context.Result = GR_DistributionIDMismatch;
+			Context.Result = Scalar->DistrID == GetID()
+				? GR_Success
+				: GR_DistributionIDMismatch;
 		}
 
 		virtual void Generate(CodeGenerationContext& Context,
 			const ptcVectorDistr *Vector) const
 		{
-			if (Vector->DistrID == GetID())
-				Context.Result = GR_DistributionIDMismatch;
+			Context.Result = Vector->DistrID == GetID()
+				? GR_Success
+				: GR_DistributionIDMismatch;
 		}
 
 		virtual void Generate(CodeGenerationContext& Context,
 			const ptcColourDistr *Colour) const
 		{
-			if (Colour->DistrID == GetID())
-				Context.Result = GR_DistributionIDMismatch;
+			Context.Result = Colour->DistrID == GetID()
+				? GR_Success
+				: GR_DistributionIDMismatch;
 		}
 
 	private:

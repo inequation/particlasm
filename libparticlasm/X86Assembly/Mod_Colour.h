@@ -12,7 +12,6 @@ class Mod_Colour : public X86Module
 {
 	public:
 		Mod_Colour();
-		virtual ~Mod_Colour();
 
 		void Generate(CodeGenerationContext &Context, const ptcModule *Module)
 			const;

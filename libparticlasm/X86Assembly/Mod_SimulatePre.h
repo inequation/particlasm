@@ -12,7 +12,6 @@ class Mod_SimulatePre : public X86Module
 {
 	public:
 		Mod_SimulatePre();
-		virtual ~Mod_SimulatePre();
 
 		void Generate(CodeGenerationContext &Context, const ptcModule *Module)
 			const;

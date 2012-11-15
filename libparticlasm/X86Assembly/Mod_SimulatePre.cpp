@@ -5,17 +5,12 @@ Copyright (C) 2012, Leszek Godlewski <github@inequation.org>
 
 #include <cassert>
 #include "Mod_SimulatePre.h"
-#include "AsmSnippets/AsmSnippets.h"
+#include "AsmSnippets.h"
 
 Mod_SimulatePre::Mod_SimulatePre() :
 	X86Module((ptcModuleID)-1)
 {
 	//ctor
-}
-
-Mod_SimulatePre::~Mod_SimulatePre()
-{
-	//dtor
 }
 
 void Mod_SimulatePre::Generate(CodeGenerationContext &Context,

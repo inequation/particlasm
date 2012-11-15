@@ -12,7 +12,6 @@ class Mod_InitialRotation : public X86Module
 {
 	public:
 		Mod_InitialRotation();
-		virtual ~Mod_InitialRotation();
 
 		void Generate(CodeGenerationContext &Context, const ptcModule *Module)
 			const;

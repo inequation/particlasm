@@ -149,8 +149,8 @@ typedef	union ptcModule_u	*ptcModulePtr;
 
 /// Module header struct.
 typedef struct {
-	ptcID				ModuleID;		///< module ID, must always be the corresponding \a ptcModuleID value!
-	ptcModulePtr		Next;	///< pointer to the next module down the chain (NULL means last link)
+	ptcID			ModuleID;	///< module ID, must always be the corresponding \a ptcModuleID value!
+	ptcModulePtr	Next;		///< pointer to the next module down the chain (NULL means last link)
 } ptcModuleHeader;
 
 /// Sets initial location of the particle.

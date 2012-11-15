@@ -12,7 +12,6 @@ class Mod_Acceleration : public X86Module
 {
 	public:
 		Mod_Acceleration();
-		virtual ~Mod_Acceleration();
 
 		void Generate(CodeGenerationContext &Context, const ptcModule *Module)
 			const;

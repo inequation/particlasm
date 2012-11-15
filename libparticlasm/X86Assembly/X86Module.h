@@ -32,15 +32,14 @@ class X86Module
 			for (i = 0; i < DistrMapCount; ++i)
 			{
 				DistrMap[i]->Generate(Context, Distr);
-				if (Context.Result == GR_DistributionIDMismatch)
-				{
-					Context.Result = GR_Success;
+				if (Context.Result == GR_Success)
+					// break the loop upon success
+					break;
+				else if (Context.Result == GR_DistributionIDMismatch)
+					// try another distribution
 					continue;
-				}
-				else if (Context.Result != GR_Success)
+				else
 					return;
-				// break the loop upon success
-				break;
 			}
 
 			if (i >= DistrMapCount)

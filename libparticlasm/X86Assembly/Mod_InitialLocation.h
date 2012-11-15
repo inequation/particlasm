@@ -12,7 +12,6 @@ class Mod_InitialLocation : public X86Module
 {
 	public:
 		Mod_InitialLocation();
-		virtual ~Mod_InitialLocation();
 
 		void Generate(CodeGenerationContext &Context, const ptcModule *Module)
 			const;

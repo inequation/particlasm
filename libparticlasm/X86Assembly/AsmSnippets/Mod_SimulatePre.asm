@@ -1,3 +1,4 @@
+	; SIMULATION PRE-PROCESSING
 	; if the particle is not active, just skip it
 	test	edx, edx
 	jz		.return

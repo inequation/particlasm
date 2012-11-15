@@ -4,16 +4,12 @@ Copyright (C) 2012, Leszek Godlewski <github@inequation.org>
 */
 
 #include "Mod_Acceleration.h"
+#include "AsmSnippets.h"
 
 Mod_Acceleration::Mod_Acceleration() :
 	X86Module(ptcMID_Acceleration)
 {
 	//ctor
-}
-
-Mod_Acceleration::~Mod_Acceleration()
-{
-	//dtor
 }
 
 void Mod_Acceleration::Generate(CodeGenerationContext& Context,
@@ -24,11 +20,18 @@ void Mod_Acceleration::Generate(CodeGenerationContext& Context,
 		return;
 	switch (Context.Stage)
 	{
-		case GS_ProcessCode:
-			GenerateDistribution<ptcVectorDistr>(Context, &Module->Accel.Distr);
+		case GS_Data:
+			GenerateDistribution<ptcVectorDistr>(Context,
+				&Module->Accel.Distr);
 			if (Context.Result != GR_Success)
 				return;
-			Context.Emitf("\tmovaps\txmm4, xmm5\n");
+			break;
+		case GS_ProcessCode:
+			GenerateDistribution<ptcVectorDistr>(Context,
+				&Module->Accel.Distr);
+			if (Context.Result != GR_Success)
+				return;
+			Context.Emitf(Asm_Mod_Acceleration);
 			break;
 		default:
 			// nothing to do

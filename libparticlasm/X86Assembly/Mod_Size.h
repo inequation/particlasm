@@ -12,7 +12,6 @@ class Mod_Size : public X86Module
 {
 	public:
 		Mod_Size();
-		virtual ~Mod_Size();
 
 		void Generate(CodeGenerationContext &Context, const ptcModule *Module)
 			const;
