@@ -47,7 +47,7 @@ bool CodeGeneratorInterface::RunProcess(const char *CommandLine,
 #if _UNICODE
 	TCHAR CommandLineTCHAR[strlen(CommandLine) + 1];
 	MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, CommandLine, -1,
-		CommandLineTCHAR, sizeof(CommandLineTCHAR) / sizeof(CommandLineTCHAR));
+		CommandLineTCHAR, sizeof(CommandLineTCHAR) / sizeof(CommandLineTCHAR[0]));
 #else
 	TCHAR *CommandLineTCHAR = (TCHAR *)CommandLine;
 #endif // _UNICODE
