@@ -7,6 +7,10 @@
 ; BOILERPLATE STARTS HERE
 ; =============================================================================
 
+; set up CPU type
+CPU {%s}
+BITS {%s}
+
 ; NASMX base include
 ;%include 'nasmx.inc'
 {%s}

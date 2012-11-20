@@ -36,11 +36,6 @@ X86AssemblyGenerator::X86AssemblyGenerator(EArchitecture InArch,
 	strncat(CodeFileName, ".asm", CodeFileNameSize - strlen(CodeFileName));
 }
 
-X86AssemblyGenerator::~X86AssemblyGenerator()
-{
-	//dtor
-}
-
 #define ARRAY_COUNT(a)	(sizeof(a) / sizeof((a)[0]))
 
 void X86AssemblyGenerator::Generate(CodeGenerationContext& Context) const
@@ -58,7 +53,11 @@ void X86AssemblyGenerator::Generate(CodeGenerationContext& Context) const
 	}
 
 	// start off by integrating the prologue
-	Context.Emitf(Asm_Prologue, Inc_nasmx, Inc_libparticlasm);
+	Context.Emitf(Asm_Prologue,
+		Arch == ARCH_x86 ? "P3" : "X64",	// CPU
+		Arch == ARCH_x86 ? "32" : "64",		// BITS
+		Inc_nasmx,							// nasmx
+		Inc_libparticlasm);					// libparticlasm header
 
 	// perform the generation stages
 	for (Context.Stage = GS_Data;
