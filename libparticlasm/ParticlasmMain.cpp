@@ -9,7 +9,17 @@ Copyright (C) 2011-2012, Leszek Godlewski <github@inequation.org>
 #include <errno.h>
 #include <string.h>
 #include <cstdarg>
-#include <sys/mman.h>
+#include <ctime>
+
+#if (defined(WIN32) || defined(__WIN32__))
+	#define WIN32_LEAN_AND_MEAN
+	#include <windows.h>
+#else
+	#include <sys/types.h>
+	#include <sys/mman.h>
+	#include <unistd.h>
+#endif // WIN32
+
 #include "libparticlasm.h"
 #include "CodeGeneratorInterface.h"
 #include "X86Assembly/X86AssemblyGenerator.h"
@@ -81,16 +91,54 @@ static void CodeEmitf(const char *fmt, ...)
 /// \sa PFNPTCCOMPILEEMITTER
 extern "C" uint32_t EXPORTDECL ptcCompileEmitter(ptcEmitter *emitter)
 {
+	static char CodeFileName[256] = {0};
 
-	Code = fopen("code.asm", "w");
-	CodeGenerationContext Context(emitter, CodeEmitf);
+	snprintf(CodeFileName, sizeof(CodeFileName) - 1, "%sparticlasm_%d_%d",
+#if (defined(WIN32) || defined(__WIN32__))
+		"%TEMP%\\", GetCurrentProcessId(),
+#else
+		"/tmp/", getpid(),
+#endif // WIN32
+		(int)time(NULL) ^ rand());
+
 	X86AssemblyGenerator Generator(X86AssemblyGenerator::ARCH_x86,
-		X86AssemblyGenerator::PLATFORM_Linux);
-	Generator.Generate(Context);
-	printf("Generator returned %s in module #%d in stage %s\n",
-		Context.GetResultString(), Context.CurrentModuleIndex,
-		Context.GetStageString());
+		X86AssemblyGenerator::PLATFORM_Linux,
+		CodeFileName, sizeof(CodeFileName));
+
+	Code = fopen(CodeFileName, "w");
+
+	CodeGenerationContext GenContext(emitter, CodeEmitf);
+
+	Generator.Generate(GenContext);
+	printf("Generation finished with %s in module #%d in stage %s\n",
+		GenContext.GetResultString(), GenContext.CurrentModuleIndex,
+		GenContext.GetStageString());
+
 	fclose(Code);
+
+	if (GenContext.Result == GR_Success)
+	{
+		static char OutputBuffer[16384];
+		OutputBuffer[0] = 0;
+
+		ConstructionContext ConsContext(CodeFileName,
+			OutputBuffer, sizeof(OutputBuffer),
+			OutputBuffer, sizeof(OutputBuffer));
+		Generator.Build(ConsContext);
+
+		printf("Construction finished with %s (toolchain exit code %d) in "
+			"stage %s\n"
+			"== Toolchain log starts here ==\n"
+			"%s\n"
+			"== Toolchain log ends here ==\n", ConsContext.GetResultString(),
+			ConsContext.ToolchainExitCode, ConsContext.GetStageString(),
+			OutputBuffer);
+	}
+
+#if NDEBUG
+	remove(CodeFileName);
+#endif
+
 	return 0;
 }
 

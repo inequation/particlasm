@@ -4,6 +4,8 @@ Copyright (C) 2012, Leszek Godlewski <github@inequation.org>
 */
 
 #include <cassert>
+#include <cstring>
+#include <cstdio>
 #include "X86AssemblyGenerator.h"
 
 // include the assembly code so that it may be linked in
@@ -27,11 +29,11 @@ const X86Module *X86AssemblyGenerator::ModuleMap[] =
 };
 
 X86AssemblyGenerator::X86AssemblyGenerator(EArchitecture InArch,
-	EPlatform InPlatform) :
+	EPlatform InPlatform, char *CodeFileName, size_t CodeFileNameSize) :
 	Arch(InArch),
 	Platform(InPlatform)
 {
-	//ctor
+	strncat(CodeFileName, ".asm", CodeFileNameSize - strlen(CodeFileName));
 }
 
 X86AssemblyGenerator::~X86AssemblyGenerator()
@@ -41,7 +43,7 @@ X86AssemblyGenerator::~X86AssemblyGenerator()
 
 #define ARRAY_COUNT(a)	(sizeof(a) / sizeof((a)[0]))
 
-void X86AssemblyGenerator::Generate(CodeGenerationContext& Context)
+void X86AssemblyGenerator::Generate(CodeGenerationContext& Context) const
 {
 	// some sanity checking
 	if (!Context.Emitter)
@@ -129,4 +131,36 @@ void X86AssemblyGenerator::Generate(CodeGenerationContext& Context)
 
 	// finish off by integrating the epilogue
 	Context.Emitf(Asm_Epilogue);
+}
+
+void X86AssemblyGenerator::Build(ConstructionContext& Context) const
+{
+	// some sanity checking
+	if (!Context.FileName)
+	{
+		Context.Result = CR_InvalidFileName;
+		return;
+	}
+
+	Context.Stage = CS_Compiling;
+
+	char CmdLine[256];
+	snprintf(CmdLine, sizeof(CmdLine) - 1, "nasm -f bin %s", Context.FileName);
+	CmdLine[sizeof(CmdLine) - 1] = 0;
+
+	if (!RunProcess(CmdLine, Context.ToolchainExitCode,
+		Context.StdoutBuffer, Context.StdoutBufferSize,
+		Context.StderrBuffer, Context.StderrBufferSize))
+	{
+		Context.Result = CR_ToolchainSpawningFailure;
+		return;
+	}
+
+	if (Context.ToolchainExitCode == 0)
+	{
+		Context.Result = CR_Success;
+		Context.Stage = CS_Finished;
+	}
+	else
+		Context.Result = CR_ToolchainError;
 }

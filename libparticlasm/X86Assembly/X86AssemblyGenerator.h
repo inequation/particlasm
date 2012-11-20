@@ -38,10 +38,12 @@ class X86AssemblyGenerator : public CodeGeneratorInterface
 		}
 		EPlatform;
 
-		X86AssemblyGenerator(EArchitecture InArch, EPlatform InPlatform);
+		X86AssemblyGenerator(EArchitecture InArch, EPlatform InPlatform,
+			char *CodeFileName, size_t CodeFileNameSize);
 		virtual ~X86AssemblyGenerator();
 
-		virtual void Generate(CodeGenerationContext& Context);
+		virtual void Generate(CodeGenerationContext& Context) const;
+		virtual void Build(ConstructionContext& Context) const;
 
 	private:
 		EArchitecture	Arch;

@@ -77,7 +77,7 @@ endif
 
 OUTPUT_FULL_NAME=$(OUTPUT_NAME)-$(PLATFORM)-$(ARCH)$(SO_EXT)
 
-SOURCES=ParticlasmMain.cpp libparticlasm.h CodeGeneratorInterface.h
+SOURCES=ParticlasmMain.cpp libparticlasm.h CodeGeneratorInterface.h CodeGeneratorInterface.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
 SOURCES_X86_ASSEMBLY_DISTRIBS=$(wildcard X86Assembly$(PATH_SEPARATOR)Distr_*.cpp) $(wildcard X86Assembly$(PATH_SEPARATOR)Distr_*.h)
 SOURCES_X86_ASSEMBLY_MODULES=$(wildcard X86Assembly$(PATH_SEPARATOR)Mod_*.cpp) $(wildcard X86Assembly$(PATH_SEPARATOR)Mod_*.h)
