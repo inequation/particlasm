@@ -23,7 +23,7 @@ ASFLAGS=
 # path to the C++ compiler
 CXX=g++
 # additional CXX flags
-CXXFLAGS=-fPIC -c -Wall -Wextra -mfpmath=sse
+CXXFLAGS=-c -Wall -Wextra -mfpmath=sse
 # path to the linker executable
 LD=g++
 # additional linker flags
@@ -44,7 +44,7 @@ OUTPUT_NAME=libparticlasm2
 ifeq ($(ARCH), x64)
 	ifeq ($(PLATFORM), linux)
 		REAL_ASFLAGS=-f elf64 $(ASFLAGS)
-		REAL_CXXFLAGS=$(CXXFLAGS) -march=core2 -m64
+		REAL_CXXFLAGS=-fPIC $(CXXFLAGS) -march=core2 -m64
 		REAL_LDFLAGS=$(LDFLAGS) -m64 -Wl,-melf_x86_64
 		DEBUG_FORMAT=dwarf
 		SO_EXT=.so
@@ -60,7 +60,7 @@ ifeq ($(ARCH), x64)
 else
 	ifeq ($(PLATFORM), linux)
 		REAL_ASFLAGS=-f elf32 $(ASFLAGS)
-		REAL_CXXFLAGS=$(CXXFLAGS) -march=pentium-m -m32
+		REAL_CXXFLAGS=-fPIC $(CXXFLAGS) -march=pentium-m -m32
 		REAL_LDFLAGS=$(LDFLAGS) -m32 -Wl,-melf_i386
 		DEBUG_FORMAT=dwarf
 		SO_EXT=.so
@@ -132,16 +132,16 @@ release-windows-x64:
 	$(MAKE) release ARCH=x64 PLATFORM=windows
 
 debug-mingw-x86:
-	$(MAKE) debug ARCH=x86 PLATFORM=windows CXX=i686-w64-mingw32-g++ PATH_SEPARATOR=/
+	$(MAKE) debug ARCH=x86 PLATFORM=windows CXX=i686-w64-mingw32-g++ LD=i686-w64-mingw32-g++ PATH_SEPARATOR=/
 
 release-mingw-x86:
-	$(MAKE) release ARCH=x86 PLATFORM=windows CXX=i686-w64-mingw32-g++ PATH_SEPARATOR=/
+	$(MAKE) release ARCH=x86 PLATFORM=windows CXX=i686-w64-mingw32-g++ LD=i686-w64-mingw32-g++ PATH_SEPARATOR=/
 
 debug-mingw-x64:
-	$(MAKE) debug ARCH=x64 PLATFORM=windows CXX=x86_64-w64-mingw32-g++ PATH_SEPARATOR=/
+	$(MAKE) debug ARCH=x64 PLATFORM=windows CXX=x86_64-w64-mingw32-g++ LD=x86_64-w64-mingw32-g++ PATH_SEPARATOR=/
 
 release-mingw-x64:
-	$(MAKE) release ARCH=x64 PLATFORM=windows CXX=x86_64-w64-mingw32-g++ PATH_SEPARATOR=/
+	$(MAKE) release ARCH=x64 PLATFORM=windows CXX=x86_64-w64-mingw32-g++ LD=x86_64-w64-mingw32-g++ PATH_SEPARATOR=/
 
 libparticlasm: preprocess $(OBJECTS) $(OBJECTS_X86_ASSEMBLY)
 	$(LD) $(REAL_LDFLAGS) $(OBJECTS) $(OBJECTS_X86_ASSEMBLY) -o $(OUTPUT_FULL_NAME)

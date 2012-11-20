@@ -5,7 +5,7 @@ Copyright (C) 2012, Leszek Godlewski <github@inequation.org>
 
 #include "CodeGeneratorInterface.h"
 
-#if (defined(WIN32) || defined(__WIN32__))
+#if defined(WIN32) || defined(__WIN32__)
 	#define WIN32_LEAN_AND_MEAN
 	#include <windows.h>
 #else // WIN32
@@ -22,14 +22,102 @@ bool CodeGeneratorInterface::RunProcess(const char *CommandLine,
 	int& OutExitCode, char *StdoutBuffer, size_t StdoutBufferSize,
 	char *StderrBuffer, size_t StderrBufferSize) const
 {
-#if (defined(WIN32) || defined(__WIN32__))
-	#error TODO
-	/*
-	CreateProcess
-	WaitForSingleObject
-	GetExitCodeProcess
-	CloseHandle
-	*/
+#if defined(WIN32) || defined(__WIN32__)
+	// create the pipes
+	SECURITY_ATTRIBUTES SecAttr;
+	SecAttr.nLength = sizeof(SecAttr);
+	SecAttr.bInheritHandle = TRUE;
+	SecAttr.lpSecurityDescriptor = NULL;
+	HANDLE outfd[2], errfd[2];
+	CreatePipe(&outfd[0], &outfd[1], &SecAttr, 0);
+	SetHandleInformation(&outfd[0], HANDLE_FLAG_INHERIT, 0);
+	CreatePipe(&errfd[0], &errfd[1], &SecAttr, 0);
+	SetHandleInformation(&errfd[0], HANDLE_FLAG_INHERIT, 0);
+
+	// set up the control structs
+	PROCESS_INFORMATION ProcInfo;
+	STARTUPINFO StartupInfo;
+	ZeroMemory(&StartupInfo, sizeof(StartupInfo));
+	StartupInfo.cb = sizeof(StartupInfo);
+	StartupInfo.hStdError = errfd[1];
+	StartupInfo.hStdOutput = outfd[1];
+	StartupInfo.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+	StartupInfo.dwFlags |= STARTF_USESTDHANDLES;
+
+#if _UNICODE
+	TCHAR CommandLineTCHAR[strlen(CommandLine) + 1];
+	MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, CommandLine, -1,
+		CommandLineTCHAR, sizeof(CommandLineTCHAR) / sizeof(CommandLineTCHAR));
+#else
+	TCHAR *CommandLineTCHAR = (TCHAR *)CommandLine;
+#endif // _UNICODE
+
+	// fire!
+	if (!CreateProcess(NULL,
+		CommandLineTCHAR,
+		NULL,
+		NULL,
+		TRUE,
+		0,
+		NULL,
+		NULL,
+		&StartupInfo,
+		&ProcInfo))
+	{
+		return false;
+	}
+
+	// wait for the process to finish and retrieve its exit code
+	if (WaitForSingleObject(ProcInfo.hProcess, INFINITE) != WAIT_OBJECT_0)
+		return false;
+	DWORD ExitCode;
+	if (!GetExitCodeProcess(ProcInfo.hProcess, &ExitCode))
+		return false;
+	OutExitCode = (int)ExitCode;
+
+	// if buffers are provided, perform the reads
+	if (StdoutBuffer)
+	{
+		DWORD BytesRead;
+		if (!ReadFile(outfd[0], StdoutBuffer, StdoutBufferSize - 1, &BytesRead,
+			NULL))
+			return false;
+		StdoutBuffer[BytesRead] = 0;
+	}
+	if (StderrBuffer)
+	{
+		// we may have been asked to write both streams into the same buffer
+		// if that's the case, concatenate them
+		if (StderrBuffer == StdoutBuffer)
+		{
+			const size_t StdoutLen = strlen(StdoutBuffer);
+			StderrBuffer += StdoutLen;
+			if (StdoutBufferSize - StdoutLen > 0)
+			{
+				*StderrBuffer = 0;
+				StderrBufferSize = StdoutBufferSize - StdoutLen;
+			}
+			else
+				StderrBuffer = NULL;
+		}
+		if (StderrBuffer)
+		{
+			DWORD BytesRead;
+			if (!ReadFile(outfd[0], StderrBuffer, StderrBufferSize - 1,
+				&BytesRead, NULL))
+				return false;
+			StderrBuffer[BytesRead] = 0;
+		}
+	}
+
+	CloseHandle(ProcInfo.hProcess);
+	CloseHandle(ProcInfo.hThread);
+	CloseHandle(outfd[0]);
+	CloseHandle(outfd[1]);
+	CloseHandle(errfd[0]);
+	CloseHandle(errfd[1]);
+
+	return true;
 #else // WIN32
 	int outfd[2], errfd[2], oldout, olderr;
 	pipe(outfd);

@@ -11,7 +11,7 @@ Copyright (C) 2011-2012, Leszek Godlewski <github@inequation.org>
 #include <cstdarg>
 #include <ctime>
 
-#if (defined(WIN32) || defined(__WIN32__))
+#if defined(WIN32) || defined(__WIN32__)
 	#define WIN32_LEAN_AND_MEAN
 	#include <windows.h>
 #else
@@ -25,7 +25,7 @@ Copyright (C) 2011-2012, Leszek Godlewski <github@inequation.org>
 #include "X86Assembly/X86AssemblyGenerator.h"
 
 // choose an appropriate symbol export declaration
-#if (defined(WIN32) || defined(__WIN32__))
+#if defined(WIN32) || defined(__WIN32__)
 	#define EXPORTDECL	__declspec(dllexport)
 #elif defined(__BEOS__) && !defined(__GNUC__)
 	#define EXPORTDECL	__declspec(export)
@@ -94,8 +94,8 @@ extern "C" uint32_t EXPORTDECL ptcCompileEmitter(ptcEmitter *emitter)
 	static char CodeFileName[256] = {0};
 
 	snprintf(CodeFileName, sizeof(CodeFileName) - 1, "%sparticlasm_%d_%d",
-#if (defined(WIN32) || defined(__WIN32__))
-		"%TEMP%\\", GetCurrentProcessId(),
+#if defined(WIN32) || defined(__WIN32__)
+		"%TEMP%\\", (int)GetCurrentProcessId(),
 #else
 		"/tmp/", getpid(),
 #endif // WIN32
