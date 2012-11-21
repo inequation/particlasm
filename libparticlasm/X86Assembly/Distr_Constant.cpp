@@ -7,7 +7,7 @@ Copyright (C) 2012, Leszek Godlewski <github@inequation.org>
 #include "AsmSnippets.h"
 
 Distr_Constant::Distr_Constant() :
-	X86Distribution(ptcDID_Constant)
+	X86DistributionInterface(ptcDID_Constant)
 {
 	//ctor
 }
@@ -15,7 +15,7 @@ Distr_Constant::Distr_Constant() :
 void Distr_Constant::Generate(CodeGenerationContext& Context,
 	const ptcScalarDistr *Scalar) const
 {
-	X86Distribution::Generate(Context, Scalar);
+	X86DistributionInterface::Generate(Context, Scalar);
 	if (Context.Result != GR_Success)
 		return;
 	switch (Context.Stage)
@@ -43,7 +43,7 @@ void Distr_Constant::Generate(CodeGenerationContext& Context,
 void Distr_Constant::Generate(CodeGenerationContext& Context,
 	const ptcVectorDistr *Vector) const
 {
-	X86Distribution::Generate(Context, Vector);
+	X86DistributionInterface::Generate(Context, Vector);
 	if (Context.Result != GR_Success)
 		return;
 	switch (Context.Stage)
@@ -73,7 +73,7 @@ void Distr_Constant::Generate(CodeGenerationContext& Context,
 void Distr_Constant::Generate(CodeGenerationContext& Context,
 	const ptcColourDistr *Colour) const
 {
-	X86Distribution::Generate(Context, Colour);
+	X86DistributionInterface::Generate(Context, Colour);
 	if (Context.Result != GR_Success)
 		return;
 	switch (Context.Stage)

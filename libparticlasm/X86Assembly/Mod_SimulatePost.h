@@ -6,9 +6,9 @@ Copyright (C) 2012, Leszek Godlewski <github@inequation.org>
 #ifndef MOD_SIMULATEPOST_H
 #define MOD_SIMULATEPOST_H
 
-#include "X86Module.h"
+#include "X86ModuleInterface.h"
 
-class Mod_SimulatePost : public X86Module
+class Mod_SimulatePost : public X86ModuleInterface
 {
 	public:
 		Mod_SimulatePost();

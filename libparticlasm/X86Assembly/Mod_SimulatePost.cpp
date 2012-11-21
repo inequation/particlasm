@@ -7,7 +7,7 @@ Copyright (C) 2012, Leszek Godlewski <github@inequation.org>
 #include "AsmSnippets.h"
 
 Mod_SimulatePost::Mod_SimulatePost() :
-	X86Module((ptcModuleID)-2)
+	X86ModuleInterface((ptcModuleID)-2)
 {
 	//ctor
 }
@@ -19,4 +19,5 @@ void Mod_SimulatePost::Generate(CodeGenerationContext &Context,
 	assert(Module == NULL);
 	Context.Emitf(Asm_Mod_SimulatePost);
 	Context.Result = GR_Success;
+	Context.ResultArgument = 0;
 }

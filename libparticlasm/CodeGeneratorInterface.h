@@ -46,6 +46,7 @@ struct CodeGenerationContext
 	int						CurrentDataIndex;
 	GenerationStage			Stage;
 	GenerationResult		Result;
+	int						ResultArgument;
 
 	CodeGenerationContext(ptcEmitter *InEmitter, PFNBUFFERPRINTF InEmitf) :
 		Emitter(InEmitter),
@@ -53,7 +54,8 @@ struct CodeGenerationContext
 		CurrentModuleIndex(-1),
 		CurrentDataIndex(-1),
 		Stage(GS_Started),
-		Result(GR_Success)
+		Result(GR_Success),
+		ResultArgument(0)
 		{}
 
 #define CG_ENUM_STR(x)	case x:	return #x; break
@@ -117,10 +119,9 @@ struct ConstructionContext
 	char					*StderrBuffer;
 	size_t					StderrBufferSize;
 
-	int						ToolchainExitCode;
-
 	ConstructionStage		Stage;
 	ConstructionResult		Result;
+	int						ResultArgument;
 
 	ConstructionContext(char *InFileName,
 		char *InStdoutBuffer = NULL, size_t InStdoutBufferSize = 0,
@@ -130,9 +131,9 @@ struct ConstructionContext
 		StdoutBufferSize(InStdoutBufferSize),
 		StderrBuffer(InStderrBuffer),
 		StderrBufferSize(InStderrBufferSize),
-		ToolchainExitCode(-1),
 		Stage(CS_Started),
-		Result(CR_Success)
+		Result(CR_Success),
+		ResultArgument(0)
 		{}
 
 #define CC_ENUM_STR(x)	case x:	return #x; break

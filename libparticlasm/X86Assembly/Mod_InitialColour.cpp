@@ -7,7 +7,7 @@ Copyright (C) 2012, Leszek Godlewski <github@inequation.org>
 #include "AsmSnippets.h"
 
 Mod_InitialColour::Mod_InitialColour() :
-	X86Module(ptcMID_InitialColour)
+	X86ModuleInterface(ptcMID_InitialColour)
 {
 	//ctor
 }
@@ -15,7 +15,7 @@ Mod_InitialColour::Mod_InitialColour() :
 void Mod_InitialColour::Generate(CodeGenerationContext& Context,
 	const ptcModule *Module) const
 {
-	X86Module::Generate(Context, Module);
+	X86ModuleInterface::Generate(Context, Module);
 	if (Context.Result != GR_Success)
 		return;
 	switch (Context.Stage)

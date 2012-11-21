@@ -6,9 +6,9 @@ Copyright (C) 2012, Leszek Godlewski <github@inequation.org>
 #ifndef DISTR_UNIFORM_H
 #define DISTR_UNIFORM_H
 
-#include "X86Distribution.h"
+#include "X86DistributionInterface.h"
 
-class Distr_Uniform : public X86Distribution
+class Distr_Uniform : public X86DistributionInterface
 {
 	public:
 		Distr_Uniform();

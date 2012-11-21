@@ -9,12 +9,12 @@ Copyright (C) 2012, Leszek Godlewski <github@inequation.org>
 #include "../libparticlasm.h"
 #include "../CodeGeneratorInterface.h"
 
-class X86Distribution
+class X86DistributionInterface
 {
 	protected:
 		// c-tor protected on purpose so that objects of the base class may not
 		// be freely created
-		X86Distribution(ptcDistributionID InID) : ID(InID) {}
+		X86DistributionInterface(ptcDistributionID InID) : ID(InID) {}
 
 	public:
 		inline ptcDistributionID GetID() const { return ID; }
@@ -22,25 +22,46 @@ class X86Distribution
 		virtual void Generate(CodeGenerationContext& Context,
 			const ptcScalarDistr *Scalar) const
 		{
-			Context.Result = Scalar->DistrID == GetID()
-				? GR_Success
-				: GR_DistributionIDMismatch;
+			if (Scalar->DistrID != GetID())
+			{
+				Context.Result = GR_DistributionIDMismatch;
+				Context.ResultArgument = Scalar->DistrID;
+			}
+			else
+			{
+				Context.Result = GR_Success;
+				Context.ResultArgument = 0;
+			}
 		}
 
 		virtual void Generate(CodeGenerationContext& Context,
 			const ptcVectorDistr *Vector) const
 		{
-			Context.Result = Vector->DistrID == GetID()
-				? GR_Success
-				: GR_DistributionIDMismatch;
+			if (Vector->DistrID != GetID())
+			{
+				Context.Result = GR_DistributionIDMismatch;
+				Context.ResultArgument = Vector->DistrID;
+			}
+			else
+			{
+				Context.Result = GR_Success;
+				Context.ResultArgument = 0;
+			}
 		}
 
 		virtual void Generate(CodeGenerationContext& Context,
 			const ptcColourDistr *Colour) const
 		{
-			Context.Result = Colour->DistrID == GetID()
-				? GR_Success
-				: GR_DistributionIDMismatch;
+			if (Colour->DistrID != GetID())
+			{
+				Context.Result = GR_DistributionIDMismatch;
+				Context.ResultArgument = Colour->DistrID;
+			}
+			else
+			{
+				Context.Result = GR_Success;
+				Context.ResultArgument = 0;
+			}
 		}
 
 	private:

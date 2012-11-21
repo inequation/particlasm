@@ -8,14 +8,14 @@ Copyright (C) 2012, Leszek Godlewski <github@inequation.org>
 
 #include "../libparticlasm.h"
 #include "../CodeGeneratorInterface.h"
-#include "X86Distribution.h"
+#include "X86DistributionInterface.h"
 
-class X86Module
+class X86ModuleInterface
 {
 	protected:
 		// c-tor protected on purpose so that objects of the base class may not
 		// be freely created
-		X86Module(ptcModuleID InID);
+		X86ModuleInterface(ptcModuleID InID);
 
 	public:
 		inline ptcModuleID GetID() const { return ID; }
@@ -43,13 +43,16 @@ class X86Module
 			}
 
 			if (i >= DistrMapCount)
+			{
 				Context.Result = GR_UnsupportedDistributionID;
+				Context.ResultArgument = Distr->DistrID;
+			}
 		}
 
 	private:
 		ptcModuleID ID;
 
-		static const X86Distribution *DistrMap[];
+		static const X86DistributionInterface *DistrMap[];
 		static const size_t DistrMapCount;
 };
 

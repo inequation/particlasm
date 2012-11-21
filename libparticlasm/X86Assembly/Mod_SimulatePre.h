@@ -6,9 +6,9 @@ Copyright (C) 2012, Leszek Godlewski <github@inequation.org>
 #ifndef MOD_SIMULATEPRE_H
 #define MOD_SIMULATEPRE_H
 
-#include "X86Module.h"
+#include "X86ModuleInterface.h"
 
-class Mod_SimulatePre : public X86Module
+class Mod_SimulatePre : public X86ModuleInterface
 {
 	public:
 		Mod_SimulatePre();

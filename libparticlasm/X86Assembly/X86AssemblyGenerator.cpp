@@ -7,24 +7,38 @@ Copyright (C) 2012, Leszek Godlewski <github@inequation.org>
 #include <cstring>
 #include <cstdio>
 #include "X86AssemblyGenerator.h"
+#include "X86ModuleInterface.h"
+#include "X86SimpleModule.h"
+#include "Mod_SimulatePre.h"
+#include "Mod_SimulatePost.h"
+#include "Mod_InitialColour.h"
+#include "Mod_Colour.h"
+#include "Mod_Gravity.h"
 
 // include the assembly code so that it may be linked in
 #define ASMSNIPPETS_DEFINITIONS
 #include "AsmSnippets.h"
 
+#define SM_TEMPL(Type)	<Type##Distr>
+#define NEW_SM_EX(Name, Type, Val, SpawnPre, SpawnPost, ProcPre, ProcPost) \
+	new X86SimpleModule SM_TEMPL(Type) (ptcMID_##Name, SpawnPost, ProcPost, \
+		offsetof(ptcMod_##Name, Val), SpawnPre, ProcPre)
+#define NEW_SM(Name, Type, Val, SpawnPost, ProcPost) \
+	NEW_SM_EX(Name, Type, Val, NULL, SpawnPost, NULL, ProcPost)
+
 const Mod_SimulatePre X86AssemblyGenerator::SimPre;
 const Mod_SimulatePost X86AssemblyGenerator::SimPost;
-const X86Module *X86AssemblyGenerator::ModuleMap[] =
+const X86ModuleInterface *X86AssemblyGenerator::ModuleMap[] =
 {
-	new Mod_InitialLocation(),
-	new Mod_InitialRotation(),
-	new Mod_InitialSize(),
-	new Mod_InitialVelocity(),
+	NEW_SM(InitialLocation, ptcVector, Distr, Asm_Mod_InitialLocation, NULL),
+	NEW_SM(InitialRotation, ptcScalar, Distr, Asm_Mod_InitialRotation, NULL),
+	NEW_SM(InitialSize, ptcScalar, Distr, Asm_Mod_InitialSize, NULL),
+	NEW_SM(InitialVelocity, ptcVector, Distr, Asm_Mod_InitialVelocity, NULL),
+	NEW_SM(Velocity, ptcVector, Distr, NULL, Asm_Mod_Velocity),
+	NEW_SM(Acceleration, ptcVector, Distr, NULL, Asm_Mod_Acceleration),
+	NEW_SM(Size, ptcScalar, Distr, NULL, Asm_Mod_Size),
 	new Mod_InitialColour(),
-	new Mod_Velocity(),
-	new Mod_Acceleration(),
 	new Mod_Colour(),
-	new Mod_Size(),
 	new Mod_Gravity()
 };
 
@@ -44,11 +58,13 @@ void X86AssemblyGenerator::Generate(CodeGenerationContext& Context) const
 	if (!Context.Emitter)
 	{
 		Context.Result = GR_InvalidEmitter;
+		Context.ResultArgument = 0;
 		return;
 	}
 	if (!Context.Emitf)
 	{
 		Context.Result = GR_InvalidCallback;
+		Context.ResultArgument = 0;
 		return;
 	}
 
@@ -64,7 +80,6 @@ void X86AssemblyGenerator::Generate(CodeGenerationContext& Context) const
 		Context.Stage < GS_Finished;
 		Context.Stage = (GenerationStage)((int)Context.Stage + 1))
 	{
-		Context.CurrentModuleIndex = 0;
 		Context.CurrentDataIndex = 0;
 
 		const char *StageString;
@@ -89,10 +104,12 @@ void X86AssemblyGenerator::Generate(CodeGenerationContext& Context) const
 		if (Context.Stage == GS_ProcessCode)
 		{
 			// special case: pre-simulation
+			Context.CurrentModuleIndex = -1;
 			SimPre.Generate(Context, NULL);
 			if (Context.Result != GR_Success)
 				return;
 		}
+		Context.CurrentModuleIndex = 0;
 
 		// walk the module list
 		for (ptcModule *Mod = Context.Emitter->Head;
@@ -113,7 +130,10 @@ void X86AssemblyGenerator::Generate(CodeGenerationContext& Context) const
 					return;
 			}
 			if (i >= ARRAY_COUNT(ModuleMap) && Context.Result != GR_Success)
+			{
 				Context.Result = GR_UnsupportedModuleID;
+				Context.ResultArgument = Mod->Header.ModuleID;
+			}
 
 			if (Context.Result != GR_Success)
 				return;
@@ -122,6 +142,7 @@ void X86AssemblyGenerator::Generate(CodeGenerationContext& Context) const
 		if (Context.Stage == GS_ProcessCode)
 		{
 			// special case: post-simulation
+			Context.CurrentModuleIndex = -2;
 			SimPost.Generate(Context, NULL);
 			if (Context.Result != GR_Success)
 				return;
@@ -138,6 +159,7 @@ void X86AssemblyGenerator::Build(ConstructionContext& Context) const
 	if (!Context.FileName)
 	{
 		Context.Result = CR_InvalidFileName;
+		Context.ResultArgument = 0;
 		return;
 	}
 
@@ -147,15 +169,16 @@ void X86AssemblyGenerator::Build(ConstructionContext& Context) const
 	snprintf(CmdLine, sizeof(CmdLine) - 1, "nasm -f bin %s", Context.FileName);
 	CmdLine[sizeof(CmdLine) - 1] = 0;
 
-	if (!RunProcess(CmdLine, Context.ToolchainExitCode,
+	if (!RunProcess(CmdLine, Context.ResultArgument,
 		Context.StdoutBuffer, Context.StdoutBufferSize,
 		Context.StderrBuffer, Context.StderrBufferSize))
 	{
 		Context.Result = CR_ToolchainSpawningFailure;
+		Context.ResultArgument = 0;
 		return;
 	}
 
-	if (Context.ToolchainExitCode == 0)
+	if (Context.ResultArgument == 0)
 	{
 		Context.Result = CR_Success;
 		Context.Stage = CS_Finished;

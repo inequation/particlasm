@@ -8,7 +8,7 @@ Copyright (C) 2012, Leszek Godlewski <github@inequation.org>
 #include "AsmSnippets.h"
 
 Mod_SimulatePre::Mod_SimulatePre() :
-	X86Module((ptcModuleID)-1)
+	X86ModuleInterface((ptcModuleID)-1)
 {
 	//ctor
 }
@@ -20,4 +20,5 @@ void Mod_SimulatePre::Generate(CodeGenerationContext &Context,
 	assert(Module == NULL);
 	Context.Emitf(Asm_Mod_SimulatePre);
 	Context.Result = GR_Success;
+	Context.ResultArgument = 0;
 }

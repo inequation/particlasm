@@ -18,10 +18,12 @@ extern "C" {
 #include <inttypes.h>
 #include <stddef.h>
 
+/// Floating point scalar.
+typedef float		ptcScalar;
 /// 3-dimensional float vector (XYZ).
-typedef float		ptcVector[3];
+typedef ptcScalar	ptcVector[3];
 /// 4-component linear colour (RGBA, in [0..1]).
-typedef float		ptcColour[4];
+typedef ptcScalar	ptcColour[4];
 
 /// \name Identifiers and enumerations
 /// @{
@@ -61,20 +63,20 @@ enum ptcDistributionID {
 
 /// Constant distribution parameters - scalar. \sa ptcDistributionID
 typedef struct {
-	ptcID	DistrID;		///< distribution ID, must always be the corresponding \a ptcDistributionID value!
-	float	Val;			///< value
+	ptcID		DistrID;		///< distribution ID, must always be the corresponding \a ptcDistributionID value!
+	ptcScalar	Val;			///< value
 } ptcSDistr_Constant;
 
 /// Uniform random distribution parameters - scalar. \sa ptcDistributionID
 typedef struct {
-	ptcID	DistrID;		///< distribution ID, must always be the corresponding \a ptcDistributionID value!
-	float	Range[2];		///< range from which values will be drawn, Range[0] to Range[1], inclusive
+	ptcID		DistrID;		///< distribution ID, must always be the corresponding \a ptcDistributionID value!
+	ptcScalar	Range[2];		///< range from which values will be drawn, Range[0] to Range[1], inclusive
 } ptcSDistr_Uniform;
 
 /// Bicubic interpolation distribution - scalar. \sa ptcDistributionID
 typedef struct {
-	ptcID	DistrID;		///< distribution ID, must always be the corresponding \a ptcDistributionID value!
-	float	TargVal;		///< value to interpolate to (from initial)
+	ptcID		DistrID;		///< distribution ID, must always be the corresponding \a ptcDistributionID value!
+	ptcScalar	TargVal;		///< value to interpolate to (from initial)
 } ptcSDistr_BicubicInterp;
 
 /// A union encompassing all of the scalar distributions.
@@ -228,8 +230,8 @@ enum ptcGravityFlags {
 typedef struct {
 	ptcModuleHeader	Header;		///< module header
 	ptcVectorDistr	Centre;		///< location of gravity centre
-	float			Radius;		///< gravity source radius (linear falloff inside)
-	float			SourceMass;	///< mass of the gravity source
+	ptcScalar		Radius;		///< gravity source radius (linear falloff inside)
+	ptcScalar		SourceMass;	///< mass of the gravity source
 	uint32_t		Flags;		///< gravity flags \sa ptcGravityFlags
 } ptcMod_Gravity;
 
@@ -253,12 +255,12 @@ typedef union ptcModule_u {
 /// Individual run-time particle structure.
 typedef struct {
 	uint32_t	Active;			///< zero - particle is inactive, non-zero - active
-	float		TimeScale;		///< multiplier by which simulation step time is scaled for this particle (effectively controls life time)
-	float		Time;			///< normalized particle life time (i.e. in the range [0..1])
+	ptcScalar	TimeScale;		///< multiplier by which simulation step time is scaled for this particle (effectively controls life time)
+	ptcScalar	Time;			///< normalized particle life time (i.e. in the range [0..1])
 	ptcColour	Colour;			///< particle colour
 	ptcVector	Location;		///< location of the particle
-	float		Rotation;		///< rotation of the particle (radians)
-	float		Size;			///< particle size (i.e. length of the square's side)
+	ptcScalar	Rotation;		///< rotation of the particle (radians)
+	ptcScalar	Size;			///< particle size (i.e. length of the square's side)
 	ptcVector	Velocity;		///< particle's velocity
 	ptcVector	Accel;			///< particle's acceleration
 } ptcParticle;
@@ -272,26 +274,26 @@ typedef struct {
 
 /// Emitter configuration.
 typedef struct {
-	float			SpawnRate;		///< particle spawn rate in bursts per second
+	ptcScalar		SpawnRate;		///< particle spawn rate in bursts per second
 	uint32_t		BurstCount;		///< number of particles per burst
-	float			LifeTimeFixed;	///< life time of a particle (fixed part)
-	float			LifeTimeRandom;	///< life time of a particle (random part)
+	ptcScalar		LifeTimeFixed;	///< life time of a particle (fixed part)
+	ptcScalar		LifeTimeRandom;	///< life time of a particle (random part)
 } ptcEmitterConfig;
 
 /// Entire run-time emitter structure.
 typedef struct {
-	ptcEmitterConfig	Config;		///< platform-independent emitter configuration
+	ptcEmitterConfig	Config;			///< platform-independent emitter configuration
 
-	float			SpawnTimer;		///< working variable that keeps track of when to spawn new particles
-	size_t			NumParticles;	///< current number of particles
-	size_t			MaxParticles;	///< maximum number of particles (size of the particle buffer)
+	ptcScalar			SpawnTimer;		///< working variable that keeps track of when to spawn new particles
+	size_t				NumParticles;	///< current number of particles
+	size_t				MaxParticles;	///< maximum number of particles (size of the particle buffer)
 
 	// pointer size varies (32 or 64 bits) per platform
-	void			*InternalPtr1;	///< pointer to internal particlasm data structure
-	void			*InternalPtr2;	///< pointer to internal particlasm data structure
-	void			*InternalPtr3;	///< pointer to internal particlasm data structure
-	ptcModule		*Head;			///< pointer to first module
-	ptcParticle		*ParticleBuf;	///< pointer to particle buffer
+	void				*InternalPtr1;	///< pointer to internal particlasm data structure
+	void				*InternalPtr2;	///< pointer to internal particlasm data structure
+	void				*InternalPtr3;	///< pointer to internal particlasm data structure
+	ptcModule			*Head;			///< pointer to first module
+	ptcParticle			*ParticleBuf;	///< pointer to particle buffer
 } ptcEmitter;
 
 /// Function attribute declaration - here, we're explicitly declaring the
@@ -327,7 +329,8 @@ typedef PTC_ATTRIBS uint32_t (* PFNPTCCOMPILEEMITTER)(ptcEmitter *emitter);
 /// \param	maxVertices	maximum number of vertices to emit
 /// \return	number of particle vertices emitted
 typedef PTC_ATTRIBS size_t (* PFNPTCPROCESSEMITTER)(ptcEmitter *emitter,
-	float step, ptcVector cameraCS[3], ptcVertex *buffer, size_t maxVertices);
+	ptcScalar step, ptcVector cameraCS[3], ptcVertex *buffer,
+	size_t maxVertices);
 
 /// Releases all resources related to this emitter.
 /// \param	emitter				emitter to release

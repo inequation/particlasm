@@ -101,8 +101,8 @@
 		<Unit filename="X86Assembly/Distr_Constant.h" />
 		<Unit filename="X86Assembly/Distr_Uniform.cpp" />
 		<Unit filename="X86Assembly/Distr_Uniform.h" />
-		<Unit filename="X86Assembly/Mod_Acceleration.cpp" />
-		<Unit filename="X86Assembly/Mod_Acceleration.h" />
+		<Unit filename="X86Assembly/GenerateAsmInclude.py" />
+		<Unit filename="X86Assembly/GenerateSnippetHeader.py" />
 		<Unit filename="X86Assembly/Mod_Colour.cpp" />
 		<Unit filename="X86Assembly/Mod_Colour.h" />
 		<Unit filename="X86Assembly/Mod_Gravity.cpp" />
@@ -110,13 +110,9 @@
 		<Unit filename="X86Assembly/Mod_InitialColour.cpp" />
 		<Unit filename="X86Assembly/Mod_InitialColour.h" />
 		<Unit filename="X86Assembly/Mod_InitialLocation.cpp" />
-		<Unit filename="X86Assembly/Mod_InitialLocation.h" />
 		<Unit filename="X86Assembly/Mod_InitialRotation.cpp" />
-		<Unit filename="X86Assembly/Mod_InitialRotation.h" />
 		<Unit filename="X86Assembly/Mod_InitialSize.cpp" />
-		<Unit filename="X86Assembly/Mod_InitialSize.h" />
 		<Unit filename="X86Assembly/Mod_InitialVelocity.cpp" />
-		<Unit filename="X86Assembly/Mod_InitialVelocity.h" />
 		<Unit filename="X86Assembly/Mod_SimulatePost.cpp" />
 		<Unit filename="X86Assembly/Mod_SimulatePost.h" />
 		<Unit filename="X86Assembly/Mod_SimulatePre.cpp" />
@@ -127,11 +123,10 @@
 		<Unit filename="X86Assembly/Mod_Velocity.h" />
 		<Unit filename="X86Assembly/X86AssemblyGenerator.cpp" />
 		<Unit filename="X86Assembly/X86AssemblyGenerator.h" />
-		<Unit filename="X86Assembly/X86Distribution.h" />
-		<Unit filename="X86Assembly/X86Module.cpp" />
-		<Unit filename="X86Assembly/X86Module.h" />
-		<Unit filename="X86Assembly/gen_asm_decls.py" />
-		<Unit filename="X86Assembly/gen_asm_snippets.py" />
+		<Unit filename="X86Assembly/X86DistributionInterface.h" />
+		<Unit filename="X86Assembly/X86ModuleInterface.cpp" />
+		<Unit filename="X86Assembly/X86ModuleInterface.h" />
+		<Unit filename="X86Assembly/X86SimpleModule.h" />
 		<Unit filename="libparticlasm.h" />
 		<Extensions>
 			<code_completion />

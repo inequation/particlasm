@@ -110,9 +110,9 @@ extern "C" uint32_t EXPORTDECL ptcCompileEmitter(ptcEmitter *emitter)
 	CodeGenerationContext GenContext(emitter, CodeEmitf);
 
 	Generator.Generate(GenContext);
-	printf("Generation finished with %s in module #%d in stage %s\n",
-		GenContext.GetResultString(), GenContext.CurrentModuleIndex,
-		GenContext.GetStageString());
+	printf("Generation finished with %s (arg %d) in module #%d in stage %s\n",
+		GenContext.GetResultString(), GenContext.ResultArgument,
+		GenContext.CurrentModuleIndex, GenContext.GetStageString());
 
 	fclose(Code);
 
@@ -126,12 +126,13 @@ extern "C" uint32_t EXPORTDECL ptcCompileEmitter(ptcEmitter *emitter)
 			OutputBuffer, sizeof(OutputBuffer));
 		Generator.Build(ConsContext);
 
-		printf("Construction finished with %s (toolchain exit code %d) in "
-			"stage %s\n"
+		printf("Construction finished with %s (arg %d) "
+			"in stage %s\n"
 			"== Toolchain log starts here ==\n"
 			"%s\n"
-			"== Toolchain log ends here ==\n", ConsContext.GetResultString(),
-			ConsContext.ToolchainExitCode, ConsContext.GetStageString(),
+			"== Toolchain log ends here ==\n",
+			ConsContext.GetResultString(), ConsContext.ResultArgument,
+			ConsContext.GetStageString(),
 			OutputBuffer);
 	}
 
