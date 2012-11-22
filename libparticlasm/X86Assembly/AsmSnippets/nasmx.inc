@@ -259,7 +259,7 @@ NASMX_DEFINE VERSION_ID, 0x0100000A
 ;// 12-15 : type   ( TODO: struc/union/class )
 ;//         0 = int type
 ;//         8 = (bit 15 set if float type, otherwise clear)
-;// 
+;//
 %ixdefine byte_type   0x0001
 %ixdefine word_type   0x0002
 %ixdefine dword_type  0x0004
@@ -565,7 +565,7 @@ NASMX_DEFINE VERSION_ID, 0x0100000A
 			%assign %%__nx_stack_adjust %2
 			%if %%__nx_stack_adjust > 0
 				;// assert: turning on call stack feature
-				%ifidni __OUTPUT_FORMAT__, win64
+				%ifidni OUTPUT_FORMAT, win64
 					;// assert: Win64 calling convention requires
 					;// that the call stack be at least 32
 					%if %%__nx_stack_adjust < 32
@@ -650,7 +650,7 @@ NASMX_DEFINE VERSION_ID, 0x0100000A
 ;//
 ;// All system specific defines are made here
 ;//
-%ifidn	 __OUTPUT_FORMAT__,elf
+%ifidn	 OUTPUT_FORMAT,elf
 	%idefine __NASMX_DECLSPEC_CALLCONV_CDECL__    0x0200
 	%idefine __NASMX_DECLSPEC_CALLCONV_THISCALL__ 0x0410
 	%idefine __NASMX_DECLSPEC_CALLCONV_FASTCALL__ 0x2500
@@ -670,7 +670,7 @@ NASMX_DEFINE VERSION_ID, 0x0100000A
 		%idefine NASMX_TCHAR char_t
 		%idefine NASMX_TEXT(x) x
 	%endif
-%elifidn __OUTPUT_FORMAT__,elf32
+%elifidn OUTPUT_FORMAT,elf32
 	;// gcc does NOT prepend underscores to functions
 	;// declared using cdecl
 	%idefine __NASMX_DECLSPEC_CALLCONV_CDECL__    0x0200
@@ -692,7 +692,7 @@ NASMX_DEFINE VERSION_ID, 0x0100000A
 		%idefine NASMX_TCHAR char_t
 		%idefine NASMX_TEXT(x) x
 	%endif
-%elifidn __OUTPUT_FORMAT__,elf64
+%elifidn OUTPUT_FORMAT,elf64
 	%idefine __NASMX_DECLSPEC_CALLCONV_CDECL__    0x0200
 	%idefine __NASMX_DECLSPEC_CALLCONV_THISCALL__ 0x0410
 	%idefine __NASMX_DECLSPEC_CALLCONV_FASTCALL__ 0x2500
@@ -713,7 +713,7 @@ NASMX_DEFINE VERSION_ID, 0x0100000A
 		%idefine NASMX_TCHAR char_t
 		%idefine NASMX_TEXT(x) x
 	%endif
-%elifidn __OUTPUT_FORMAT__,macho
+%elifidn OUTPUT_FORMAT,macho
 	%idefine __NASMX_DECLSPEC_CALLCONV_CDECL__    0x0201
 	%idefine __NASMX_DECLSPEC_CALLCONV_THISCALL__ 0x0411
 	%idefine __NASMX_DECLSPEC_CALLCONV_FASTCALL__ 0x2501
@@ -731,7 +731,7 @@ NASMX_DEFINE VERSION_ID, 0x0100000A
 		%idefine NASMX_TCHAR char_t
 		%idefine NASMX_TEXT(x) x
 	%endif
-%elifidn __OUTPUT_FORMAT__,macho32
+%elifidn OUTPUT_FORMAT,macho32
 	%idefine __NASMX_DECLSPEC_CALLCONV_CDECL__    0x0201
 	%idefine __NASMX_DECLSPEC_CALLCONV_THISCALL__ 0x0411
 	%idefine __NASMX_DECLSPEC_CALLCONV_FASTCALL__ 0x2501
@@ -770,7 +770,7 @@ NASMX_DEFINE VERSION_ID, 0x0100000A
 		%idefine NASMX_TCHAR char_t
 		%idefine NASMX_TEXT(x) x
 	%endif
-%elifidn __OUTPUT_FORMAT__,win32
+%elifidn OUTPUT_FORMAT,win32
 	%idefine __NASMX_DECLSPEC_CALLCONV_CDECL__    0x0201
 	%idefine __NASMX_DECLSPEC_CALLCONV_THISCALL__ 0x2423
 	%idefine __NASMX_DECLSPEC_CALLCONV_FASTCALL__ 0x2522
@@ -790,7 +790,7 @@ NASMX_DEFINE VERSION_ID, 0x0100000A
 		%idefine NASMX_TCHAR char_t
 		%idefine NASMX_TEXT(x) x
 	%endif
-%elifidn __OUTPUT_FORMAT__,win64
+%elifidn OUTPUT_FORMAT,win64
 	%idefine __NASMX_DECLSPEC_CALLCONV_CDECL__    0x0201
 	%idefine __NASMX_DECLSPEC_CALLCONV_THISCALL__ 0x2423
 	%idefine __NASMX_DECLSPEC_CALLCONV_FASTCALL__ 0x0500
@@ -1467,7 +1467,7 @@ NASMX_DEFINE VERSION_ID, 0x0100000A
 		%define %$__nx_proc %1
 		%if %0 > 1
 			%ifnum %2
-				%ifidn __OUTPUT_FORMAT__,win32
+				%ifidn OUTPUT_FORMAT,win32
 					%assign %$__bytecount %2
 				%endif
 				%assign %$__repargs 0
@@ -1586,7 +1586,7 @@ NASMX_DEFINE VERSION_ID, 0x0100000A
 	%assign %$__bytecount 0
 	%assign %%__cc_enum nx_declspec_cc_enum(%$__callconv)
 	%if %%__cc_enum != __NASMX_DECLSPEC_CC_ENUM_NAKED__
-		;// assert: calc byte count for sig check during invoke 
+		;// assert: calc byte count for sig check during invoke
 		%rep %$__repcnt
 			%rotate -1
 			%ifnum %1
@@ -1666,7 +1666,7 @@ NASMX_DEFINE VERSION_ID, 0x0100000A
 		;// main(argc, argv, envp)
 		%assign %%__bytecount (( __NASMX_ABI_BITS__ / 8 ) * 3)
 	%endif
-	
+
 	%if %%__cc_enum > __NASMX_DECLSPEC_CC_ENUM_PASCAL__
 		%assign %%__cc_prefix nx_declspec_cc_prefix(__NASMX_DECLSPEC_CALLCONV_DEFAULT__)
 		%if %%__cc_prefix > 0
@@ -1739,7 +1739,7 @@ NASMX_DEFINE VERSION_ID, 0x0100000A
 				%endif
 			%endif
 			%if %$__nx_isalnum_bool == 0
-				;// we must be given a positive or negative offset in order to 
+				;// we must be given a positive or negative offset in order to
 				;// generate code for local variable addressing
 				nx_strchr %{1}, '+'
 				%if %$__nx_strchr_pos == 0
@@ -2192,7 +2192,7 @@ NASMX_DEFINE VERSION_ID, 0x0100000A
 	%else
 		;// arg types follow cconv,bytecount when defined
 		%if %$__nx_argrotate > 0
-			%assign %$__param_type_ctr 2    
+			%assign %$__param_type_ctr 2
 		%else
 			%assign %$__param_type_ctr %0+2
 		%endif
@@ -2363,7 +2363,7 @@ NASMX_DEFINE VERSION_ID, 0x0100000A
 	%endif
 
 	%assign %$__nx_cc_enum nx_declspec_cc_enum(%[%$__nx_callconv])
-	
+
 	;// v1.0rc2 - we must always calculate a true bytecount such that
 	;// the implementation of main(), or imported functions that are
 	;// defined with a 0 bytecount, are defined properly
@@ -2568,11 +2568,11 @@ NASMX_DEFINE VERSION_ID, 0x0100000A
 					;// not contain bytecounts to verify against.
 					;// TODO: When import files are updated in the future we can
 					;// revisit this code.
-					%ifidni __OUTPUT_FORMAT__,win32
+					%ifidni OUTPUT_FORMAT,win32
 						%if %$__nx_cc_enum != __NASMX_DECLSPEC_CC_ENUM_CDECL__
 							%warning prototype arg mismatch for %$__nx_proc
 						%endif
-					%elifidni __OUTPUT_FORMAT__,win64
+					%elifidni OUTPUT_FORMAT,win64
 						%if %$__nx_cc_enum != __NASMX_DECLSPEC_CC_ENUM_FASTCALL__
 							%warning prototype arg mismatch for %$__nx_proc
 						%endif
