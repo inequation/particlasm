@@ -18,5 +18,5 @@
 	mov		[__bx + ptcEmitter.NumParticles], __dx
 	xor		__dx, __dx
 .return:
-	ret
+	return
 .end:

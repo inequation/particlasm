@@ -48,7 +48,8 @@ struct CodeGenerationContext
 	GenerationResult		Result;
 	int						ResultArgument;
 
-	CodeGenerationContext(ptcEmitter *InEmitter, PFNBUFFERPRINTF InEmitf) :
+	CodeGenerationContext(ptcEmitter *InEmitter, PFNBUFFERPRINTF InEmitf)
+		:
 		Emitter(InEmitter),
 		Emitf(InEmitf),
 		CurrentModuleIndex(-1),
@@ -56,7 +57,9 @@ struct CodeGenerationContext
 		Stage(GS_Started),
 		Result(GR_Success),
 		ResultArgument(0)
-		{}
+	{
+		assert(Emitf);
+	}
 
 #define CG_ENUM_STR(x)	case x:	return #x; break
 	const char *GetStageString()
@@ -98,7 +101,9 @@ typedef enum
 	CR_Success,
 	CR_InvalidFileName,
 	CR_ToolchainSpawningFailure,
-	CR_ToolchainError
+	CR_ToolchainError,
+	CR_IntermediateFileAccessFailure,
+	CR_CorruptIntermediateFile
 }
 ConstructionResult;
 
@@ -111,6 +116,22 @@ typedef enum
 }
 ConstructionStage;
 
+typedef enum
+{
+	FAM_Read		= 0x01,
+	FAM_Write		= 0x02,
+	FAM_ReadWrite	= FAM_Read | FAM_Write,
+
+	FAM_PADDING		= 0xFFFFFFFF	// dummy to ensure 32 bit enum width
+}
+FileAccessMode;
+
+typedef PTC_ATTRIBS const void *(* PFNOPENINTERMEDIATEFILE)(const char *Path,
+	FileAccessMode Mode, size_t *OutFileSize);
+typedef PTC_ATTRIBS void (* PFNCLOSEINTERMEDIATEFILE)(const void *FilePtr);
+typedef PTC_ATTRIBS void (* PFNDELETEINTERMEDIATEFILE)(const char *Path);
+typedef PTC_ATTRIBS void (* PFNLOADBINARYFILE)(const char *Path);
+
 struct ConstructionContext
 {
 	char					*FileName;
@@ -119,22 +140,42 @@ struct ConstructionContext
 	char					*StderrBuffer;
 	size_t					StderrBufferSize;
 
+	PFNOPENINTERMEDIATEFILE	OpenIntermediateFile;
+	PFNCLOSEINTERMEDIATEFILE	CloseIntermediateFile;
+	PFNDELETEINTERMEDIATEFILE	DeleteIntermediateFile;
+	PFNLOADBINARYFILE		LoadBinaryFile;
+
 	ConstructionStage		Stage;
 	ConstructionResult		Result;
 	int						ResultArgument;
+	size_t					SpawnCodeOffset;
+	size_t					ProcessCodeOffset;
 
 	ConstructionContext(char *InFileName,
+		PFNOPENINTERMEDIATEFILE InOpenIntermediateFile,
+		PFNCLOSEINTERMEDIATEFILE InCloseIntermediateFile,
+		PFNDELETEINTERMEDIATEFILE InDeleteIntermediateFile,
+		PFNLOADBINARYFILE InLoadBinaryFile,
 		char *InStdoutBuffer = NULL, size_t InStdoutBufferSize = 0,
-		char *InStderrBuffer = NULL, size_t InStderrBufferSize = 0) :
+		char *InStderrBuffer = NULL, size_t InStderrBufferSize = 0)
+		:
 		FileName(InFileName),
 		StdoutBuffer(InStdoutBuffer),
 		StdoutBufferSize(InStdoutBufferSize),
 		StderrBuffer(InStderrBuffer),
 		StderrBufferSize(InStderrBufferSize),
+		OpenIntermediateFile(InOpenIntermediateFile),
+		CloseIntermediateFile(InCloseIntermediateFile),
+		DeleteIntermediateFile(InDeleteIntermediateFile),
+		LoadBinaryFile(InLoadBinaryFile),
 		Stage(CS_Started),
-		Result(CR_Success),
-		ResultArgument(0)
-		{}
+		Result(CR_Success)
+	{
+		assert(OpenIntermediateFile);
+		assert(CloseIntermediateFile);
+		assert(DeleteIntermediateFile);
+		assert(LoadBinaryFile);
+	}
 
 #define CC_ENUM_STR(x)	case x:	return #x; break
 	const char *GetStageString()
@@ -157,6 +198,8 @@ struct ConstructionContext
 			CC_ENUM_STR(CR_InvalidFileName);
 			CC_ENUM_STR(CR_ToolchainSpawningFailure);
 			CC_ENUM_STR(CR_ToolchainError);
+			CC_ENUM_STR(CR_IntermediateFileAccessFailure);
+			CC_ENUM_STR(CR_CorruptIntermediateFile);
 			default:	assert(!"Unknown result"); return "unknown"; break;
 		}
 	}

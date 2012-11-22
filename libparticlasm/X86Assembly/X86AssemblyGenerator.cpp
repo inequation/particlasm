@@ -188,10 +188,11 @@ void X86AssemblyGenerator::Build(ConstructionContext& Context) const
 
 	char CmdLine[256], ListFile[256];
 
+	// determine a path to the listing file
 	strncpy(ListFile, Context.FileName, sizeof(ListFile) - 5);
 	ListFile[sizeof(ListFile) - 5] = 0;
 	char *Extension = strrchr(ListFile, '.');
-	if (Extension)
+	if (!Extension)
 		Extension = ListFile + strlen(ListFile);
 	strcpy(Extension, ".lst");
 
@@ -210,9 +211,81 @@ void X86AssemblyGenerator::Build(ConstructionContext& Context) const
 
 	if (Context.ResultArgument == 0)
 	{
+		FindCodeOffsets(Context, ListFile);
+		if (Context.Result != CR_Success)
+			return;
+
+		char FileName[256];
+		const size_t BaseNameLength = Extension - ListFile;
+		strncpy(FileName, Context.FileName, BaseNameLength);
+		FileName[BaseNameLength] = 0;
+		Context.LoadBinaryFile(FileName);
+
 		Context.Result = CR_Success;
 		Context.Stage = CS_Finished;
 	}
 	else
+	{
 		Context.Result = CR_ToolchainError;
+		Context.DeleteIntermediateFile(ListFile);
+	}
+}
+
+void X86AssemblyGenerator::FindCodeOffsets(ConstructionContext& Context,
+	const char *ListFileName) const
+{
+	size_t FileSize;
+	const char *Listing = (const char *)Context.OpenIntermediateFile(
+		ListFileName, FAM_Read, &FileSize);
+	if (!Listing)
+	{
+		Context.Result = CR_IntermediateFileAccessFailure;
+		Context.ResultArgument = 0;
+		return;
+	}
+	const char *End = Listing + FileSize;
+
+	unsigned int Offset;
+	char ProcName[32];
+	bool FoundSpawn = false, FoundProcess = false;
+	const char *LineEnd, *Line;
+	for (Line = Listing;
+		Line < End && (!FoundSpawn || !FoundProcess);
+		Line = LineEnd + 1)
+	{
+		LineEnd = Line;
+		while (LineEnd < End && *LineEnd != '\n')
+			++LineEnd;
+		const int Matches = sscanf(Line,
+			"%*u %x %*x proc %32s",
+			&Offset, ProcName);
+		if (Matches != 2)
+			continue;
+		if (!strcmp(ProcName, "__Spawn"))
+		{
+			Context.SpawnCodeOffset = Offset;
+			FoundSpawn = true;
+		}
+		else if (!strcmp(ProcName, "__Process"))
+		{
+			Context.ProcessCodeOffset = Offset;
+			FoundProcess = true;
+		}
+	}
+
+	Context.CloseIntermediateFile(Listing);
+
+	if (FoundSpawn && FoundProcess)
+	{
+		Context.Result = CR_Success;
+		Context.ResultArgument = 0;
+	}
+	else
+	{
+		Context.Result = CR_CorruptIntermediateFile;
+		// encode the cause in the lowest bits
+		Context.ResultArgument = ((int)(!FoundSpawn)		* 1)
+								| ((int)(!FoundProcess)		* 2)
+								| ((int)(Line > End + 1)	* 4);
+	}
 }

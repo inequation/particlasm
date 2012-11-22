@@ -109,17 +109,11 @@
 		<Unit filename="X86Assembly/Mod_Gravity.h" />
 		<Unit filename="X86Assembly/Mod_InitialColour.cpp" />
 		<Unit filename="X86Assembly/Mod_InitialColour.h" />
-		<Unit filename="X86Assembly/Mod_InitialLocation.cpp" />
-		<Unit filename="X86Assembly/Mod_InitialRotation.cpp" />
-		<Unit filename="X86Assembly/Mod_InitialSize.cpp" />
-		<Unit filename="X86Assembly/Mod_InitialVelocity.cpp" />
 		<Unit filename="X86Assembly/Mod_SimulatePost.cpp" />
 		<Unit filename="X86Assembly/Mod_SimulatePost.h" />
 		<Unit filename="X86Assembly/Mod_SimulatePre.cpp" />
 		<Unit filename="X86Assembly/Mod_SimulatePre.h" />
-		<Unit filename="X86Assembly/Mod_Size.cpp" />
 		<Unit filename="X86Assembly/Mod_Size.h" />
-		<Unit filename="X86Assembly/Mod_Velocity.cpp" />
 		<Unit filename="X86Assembly/Mod_Velocity.h" />
 		<Unit filename="X86Assembly/X86AssemblyGenerator.cpp" />
 		<Unit filename="X86Assembly/X86AssemblyGenerator.h" />

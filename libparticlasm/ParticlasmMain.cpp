@@ -17,6 +17,9 @@ Copyright (C) 2011-2012, Leszek Godlewski <github@inequation.org>
 #else
 	#include <sys/types.h>
 	#include <sys/mman.h>
+	#include <sys/stat.h>
+	#include <fcntl.h>
+	#include <map>
 	#include <unistd.h>
 #endif // WIN32
 
@@ -88,6 +91,76 @@ static void CodeEmitf(const char *fmt, ...)
 	va_end(argptr);
 }
 
+typedef std::map<void *, std::pair<int, size_t> > FileMap;
+FileMap IntermediateFiles;
+
+static const void *OpenIntermediateFile(const char *Path, FileAccessMode Mode,
+	size_t *OutFileSize)
+{
+	int FileFlags;
+	switch (Mode & 0x03)
+	{
+		case FAM_Read:		FileFlags = O_RDONLY;						break;
+		case FAM_Write:		FileFlags = O_WRONLY | O_CREAT | O_TRUNC;	break;
+		case FAM_ReadWrite:	FileFlags = O_RDWR;							break;
+		default:			return NULL;
+	}
+
+	int fd = open(Path, FileFlags);
+	if (fd == -1)
+		return NULL;
+
+	struct stat FileStat;
+	if (fstat(fd, &FileStat))
+	{
+		close(fd);
+		return NULL;
+	}
+	*OutFileSize = FileStat.st_size;
+
+	size_t MappingLength;
+	switch(Mode & 0x03)
+	{
+		case FAM_Read:		MappingLength = FileStat.st_size;			break;
+		case FAM_Write:		MappingLength = (Mode & 0xFFFFFFFC) >> 2;	break;
+		case FAM_ReadWrite:	MappingLength = 2 * FileStat.st_size;		break;
+		case FAM_PADDING:	break;	// shut up compiler
+	}
+	void *Ptr = mmap(NULL, MappingLength,
+		PROT_READ, MAP_SHARED | MAP_FILE, fd, 0);
+	if (Ptr == MAP_FAILED)
+	{
+		close(fd);
+		return NULL;
+	}
+
+	IntermediateFiles.insert(FileMap::value_type
+		(Ptr, std::pair<int, size_t>(fd, FileStat.st_size)));
+
+	return Ptr;
+}
+
+static void CloseIntermediateFile(const void *FilePtr)
+{
+	FileMap::iterator It = IntermediateFiles.find((void *)FilePtr);
+	if (It == IntermediateFiles.end())
+		return;
+	munmap(It->first, It->second.second);
+	close(It->second.first);
+}
+
+static void DeleteIntermediateFile(const char *Path)
+{
+#ifndef NDEBUG
+	remove(Path);
+#endif
+}
+
+static void LoadBinaryFile(const char *Path)
+{
+	// TODO
+}
+
 /// \sa PFNPTCCOMPILEEMITTER
 extern "C" uint32_t EXPORTDECL ptcCompileEmitter(ptcEmitter *emitter)
 {
@@ -122,18 +195,23 @@ extern "C" uint32_t EXPORTDECL ptcCompileEmitter(ptcEmitter *emitter)
 		OutputBuffer[0] = 0;
 
 		ConstructionContext ConsContext(CodeFileName,
+			OpenIntermediateFile,
+			CloseIntermediateFile,
+			DeleteIntermediateFile,
+			LoadBinaryFile,
 			OutputBuffer, sizeof(OutputBuffer),
 			OutputBuffer, sizeof(OutputBuffer));
 		Generator.Build(ConsContext);
 
 		printf("Construction finished with %s (arg %d) "
 			"in stage %s\n"
+			"Spawn offset: 0x%08X Process offset: 0x%08X\n"
 			"== Toolchain log starts here ==\n"
 			"%s\n"
 			"== Toolchain log ends here ==\n",
 			ConsContext.GetResultString(), ConsContext.ResultArgument,
-			ConsContext.GetStageString(),
-			OutputBuffer);
+			ConsContext.GetStageString(), ConsContext.SpawnCodeOffset,
+			ConsContext.ProcessCodeOffset, OutputBuffer);
 	}
 
 #if NDEBUG

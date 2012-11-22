@@ -7,4 +7,4 @@
 	movaps	xmm7, xmm3
 	mulps	xmm7, xmm0
 	addps	xmm2, xmm7
-	ret
+	return

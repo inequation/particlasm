@@ -43,6 +43,9 @@ class X86AssemblyGenerator : public CodeGeneratorInterface
 		static const Mod_SimulatePre SimPre;
 		static const Mod_SimulatePost SimPost;
 		static const X86ModuleInterface *ModuleMap[];
+
+		void FindCodeOffsets(ConstructionContext& Context,
+			const char *ListFileName) const;
 };
 
 #endif // X86ASSEMBLYGENERATOR_H
