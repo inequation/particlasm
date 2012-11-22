@@ -69,11 +69,26 @@ void X86AssemblyGenerator::Generate(CodeGenerationContext& Context) const
 	}
 
 	// start off by integrating the prologue
+	const char *CPU, *BITS, *OUTPUT_FORMAT;
+	switch (Arch)
+	{
+		case ARCH_x86:
+			CPU = "P3";
+			BITS = "32";
+			OUTPUT_FORMAT = Platform == PLATFORM_Windows ? "win32" : "elf32";
+			break;
+		case ARCH_x86_64:
+			CPU = "X64";
+			BITS = "64";
+			OUTPUT_FORMAT = Platform == PLATFORM_Windows ? "win64" : "elf64";
+			break;
+		default:
+			assert(!"Invalid architecture");
+	}
 	Context.Emitf(Asm_Prologue,
-		Arch == ARCH_x86 ? "P3" : "X64",	// CPU
-		Arch == ARCH_x86 ? "32" : "64",		// BITS
-		Inc_nasmx,							// nasmx
-		Inc_libparticlasm);					// libparticlasm header
+		CPU, BITS, OUTPUT_FORMAT,
+		Inc_nasmx,
+		Inc_libparticlasm);
 
 	// perform the generation stages
 	for (Context.Stage = GS_Data;
@@ -82,24 +97,24 @@ void X86AssemblyGenerator::Generate(CodeGenerationContext& Context) const
 	{
 		Context.CurrentDataIndex = 0;
 
-		const char *StageString;
+		// print out the label
 		switch (Context.Stage)
 		{
 			case GS_Data:
-				StageString = "Data";
+				Context.Emitf("\n__Data:\n");
 				break;
 			case GS_SpawnCode:
-				StageString = "Spawn";
+				Context.Emitf("\nproc __Spawn\n"
+								"locals none\n");
 				break;
 			case GS_ProcessCode:
-				StageString = "Process";
+				Context.Emitf("\nproc __Process\n"
+								"locals none\n");
 				break;
 			default:
 				assert(Context.Stage > GS_Started
 					&& Context.Stage < GS_Finished);
 		}
-		// print out the label
-		Context.Emitf("\n__%s:\n", StageString);
 
 		if (Context.Stage == GS_ProcessCode)
 		{
@@ -146,6 +161,12 @@ void X86AssemblyGenerator::Generate(CodeGenerationContext& Context) const
 			SimPost.Generate(Context, NULL);
 			if (Context.Result != GR_Success)
 				return;
+			Context.Emitf("endproc\n");
+		}
+		else if (Context.Stage == GS_SpawnCode)
+		{
+			// special case: procedure end
+			Context.Emitf("endproc\n");
 		}
 	}
 
@@ -165,8 +186,17 @@ void X86AssemblyGenerator::Build(ConstructionContext& Context) const
 
 	Context.Stage = CS_Compiling;
 
-	char CmdLine[256];
-	snprintf(CmdLine, sizeof(CmdLine) - 1, "nasm -f bin %s", Context.FileName);
+	char CmdLine[256], ListFile[256];
+
+	strncpy(ListFile, Context.FileName, sizeof(ListFile) - 5);
+	ListFile[sizeof(ListFile) - 5] = 0;
+	char *Extension = strrchr(ListFile, '.');
+	if (Extension)
+		Extension = ListFile + strlen(ListFile);
+	strcpy(Extension, ".lst");
+
+	snprintf(CmdLine, sizeof(CmdLine) - 1, "nasm -f bin -l %s %s",
+		ListFile, Context.FileName);
 	CmdLine[sizeof(CmdLine) - 1] = 0;
 
 	if (!RunProcess(CmdLine, Context.ResultArgument,

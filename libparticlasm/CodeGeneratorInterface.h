@@ -153,6 +153,7 @@ struct ConstructionContext
 	{
 		switch (Result)
 		{
+			CC_ENUM_STR(CR_Success);
 			CC_ENUM_STR(CR_InvalidFileName);
 			CC_ENUM_STR(CR_ToolchainSpawningFailure);
 			CC_ENUM_STR(CR_ToolchainError);

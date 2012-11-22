@@ -7,9 +7,10 @@
 ; BOILERPLATE STARTS HERE
 ; =============================================================================
 
-; set up CPU type
+; set up CPU type and output format
 CPU {%s}
 BITS {%s}
+%ixdefine OUTPUT_FORMAT {%s}
 
 ; NASMX base include
 ;%include 'nasmx.inc'
@@ -32,6 +33,8 @@ BITS {%s}
 ; libparticlasm declarations generated from the C header
 ;%include "libparticlasm.inc"
 {%s}
+
+default rel
 
 ; =============================================================================
 ; BOILERPLATE ENDS HERE
