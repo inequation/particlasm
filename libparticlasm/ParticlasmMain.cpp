@@ -23,7 +23,7 @@ Copyright (C) 2011-2012, Leszek Godlewski <github@inequation.org>
 	#include <unistd.h>
 #endif // WIN32
 
-#include "libparticlasm.h"
+#include "libparticlasm2.h"
 #include "CodeGeneratorInterface.h"
 #include "X86Assembly/X86AssemblyGenerator.h"
 
@@ -151,14 +151,16 @@ static void CloseIntermediateFile(const void *FilePtr)
 
 static void DeleteIntermediateFile(const char *Path)
 {
-#ifndef NDEBUG
+#ifdef NDEBUG
 	remove(Path);
 #endif
 }
 
 static void LoadBinaryFile(const char *Path)
 {
-	// TODO
+#ifdef NDEBUG
+	remove(Path);
+#endif
 }
 
 /// \sa PFNPTCCOMPILEEMITTER
@@ -214,7 +216,7 @@ extern "C" uint32_t EXPORTDECL ptcCompileEmitter(ptcEmitter *emitter)
 			ConsContext.ProcessCodeOffset, OutputBuffer);
 	}
 
-#if NDEBUG
+#ifdef NDEBUG
 	remove(CodeFileName);
 #endif
 

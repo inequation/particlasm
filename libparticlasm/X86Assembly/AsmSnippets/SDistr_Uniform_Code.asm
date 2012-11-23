@@ -14,8 +14,7 @@
 	; save range[0] to temp var
 	fstp	float_s [__sp]
 	; st0=range[1] - range[0]
-	fwait
-	frand	2 * sizeof(ptr_t) + sizeof(float)
+	extlib	FRand, __ax
 	; multiply the range span by the random number
 	; st0=frand(), st1=range[1] - range[0]
 	fmulp	st1, st0

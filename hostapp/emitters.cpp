@@ -1,6 +1,6 @@
 #include <cstdlib>
 #include <cstring>
-#include "../libparticlasm/libparticlasm.h"
+#include "../libparticlasm/libparticlasm2.h"
 
 // returns an array of emitter definitions for the fire effect
 #ifdef __cplusplus

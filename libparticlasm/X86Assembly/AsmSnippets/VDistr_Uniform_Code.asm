@@ -8,15 +8,12 @@
 	; get 3 random numbers and store them on the stack, leave one float of slack
 	; (oh, the rhyme!)
 	sub		__sp, 4 * sizeof(float)
-	frand 2 * sizeof(ptr_t) + 4 * sizeof(float)
+	extlib	FRand, __ax
 	fstp	dword [__sp]
-	fwait
-	frand 2 * sizeof(ptr_t) + 4 * sizeof(float)
+	extlib	FRand, __ax
 	fstp	dword [__sp + 4]
-	fwait
-	frand 2 * sizeof(ptr_t) + 4 * sizeof(float)
+	extlib	FRand, __ax
 	fstp	dword [__sp + 8]
-	fwait
 	; load them into xmm
 	movups	xmm5, [__sp]
 	; pop the temp variables off the stack

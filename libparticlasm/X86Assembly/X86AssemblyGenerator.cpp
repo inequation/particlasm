@@ -225,10 +225,9 @@ void X86AssemblyGenerator::Build(ConstructionContext& Context) const
 		Context.Stage = CS_Finished;
 	}
 	else
-	{
 		Context.Result = CR_ToolchainError;
-		Context.DeleteIntermediateFile(ListFile);
-	}
+
+	Context.DeleteIntermediateFile(ListFile);
 }
 
 void X86AssemblyGenerator::FindCodeOffsets(ConstructionContext& Context,

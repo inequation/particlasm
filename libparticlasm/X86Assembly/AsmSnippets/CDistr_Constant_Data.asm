@@ -1,6 +1,6 @@
 .Offset{%d}:
 	; CONSTANT COLOUR DISTRIBUTION
-	float_s_reserve 0x{%08X}
-	float_s_reserve 0x{%08X}
-	float_s_reserve 0x{%08X}
-	float_s_reserve 0x{%08X}
+	declare(float) 0x{%08X}
+	declare(float) 0x{%08X}
+	declare(float) 0x{%08X}
+	declare(float) 0x{%08X}

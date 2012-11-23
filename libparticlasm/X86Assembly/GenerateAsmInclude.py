@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# a simple code generator that translates relevant declarations from libparticlasm.h
+# a simple code generator that translates relevant declarations from libparticlasm2.h
 # to a NASM include file
 # Copyright (C) 2011-2012, Leszek Godlewski <github@inequation.org>
 
@@ -39,7 +39,8 @@ config = {
 		"ptcParticle",
 		"ptcVertex",
 		"ptcEmitterConfig",
-		"ptcEmitter"
+		"ptcEmitter",
+		"ptcExtLib"
 	},
 	# unions to extract
 	"unions": {
@@ -112,123 +113,135 @@ def get_type_size(t):
 	return bytes * t[1]
 
 def mkdir_p(path):
-    try:
-        os.makedirs(path)
-    except OSError as exc: # Python >2.5
-        if exc.errno == errno.EEXIST and os.path.isdir(path):
-            pass
-        else: raise
+	try:
+		os.makedirs(path)
+	except OSError as exc: # Python >2.5
+		if exc.errno == errno.EEXIST and os.path.isdir(path):
+			pass
+		else: raise
+
+def parse_C_header(path):
+	infile = open(path, 'r')
+	print("Parsing {0}...".format(path))
+	ei = {}
+	si = {}
+	ui = {}
+	line = "foo"
+	state = 0
+
+	while (line != ''):
+		line = infile.readline()
+		l = line.strip()
+		if (state == 0):
+			if (l.startswith('enum')):
+				symbol = l[5 : l.find(" ", 5)]
+				if (symbol in config["enums"]):
+					state = 1
+					ei = {"symbol": symbol, "pairs": []}
+					continue
+			if (l.startswith('typedef')):
+				if (l.startswith('struct', 8)):
+					state = 2
+					si = {"symbol": "", "members": []}
+					continue
+				elif (l.startswith('union', 8) and l.find('{') >= 0):
+					state = 3
+					ui = {"symbol": "", "members": []}
+					continue
+		elif (state == 1):
+			if (l.startswith("}")):
+				enums.append(ei)
+				state = 0
+				continue
+			comma = l.find(",")
+			if (comma < 0):
+				comma = 1024 * 1024 * 1024
+			space = l.find(" ")
+			if (space < 0):
+				space = 1024 * 1024 * 1024
+			tab = l.find("\t")
+			if (tab < 0):
+				tab = 1024 * 1024 * 1024
+			comment = l.find("///")
+			if (comment < 0):
+				comment = 1024 * 1024 * 1024
+			delim = min(comma, space, tab, comment, len(l))
+			name = l[0 : delim]
+			assignment = l.find("=")
+			val = 0
+			if (assignment >= 0):
+				begin = assignment + 1
+				while (not l[begin].isdigit()):
+					begin = begin + 1
+				end = begin + 1
+				while (l[end].isdigit()):
+					end = end + 1
+				val = int(l[begin : end])
+			elif (len(ei["pairs"]) > 0):
+				val = ei["pairs"][-1]["value"] + 1
+			ei["pairs"].append({"name": name, "value": val})
+			#print ei["symbol"] + ": " + name + " = " + str(val)
+		elif (state == 2):
+			if (l.startswith("}")):
+				si["symbol"] = l[2 : l.find(";")]
+				structs.append(si)
+				state = 0
+				continue
+			tokens = l.split()
+
+			# skip empty lines, comments and opening braces
+			if (len(tokens) == 0):
+				continue
+			if (tokens[0] == "{"):
+				del tokens[0]
+				if (len(tokens) == 0):
+					continue
+			elif (tokens[0].startswith("//")):
+				continue
+
+			# detect function pointers
+			if (tokens[1] == "(*"):
+				vtype = "*"
+				symbol = tokens[2][0 : tokens[2].find(")")]
+				count = 1
+			else:
+				vtype = tokens[0]
+				symbol = tokens[1][0 : tokens[1].find(";")]
+				if (symbol[0] == "*" or vtype[-1] == "*"):
+					vtype = "*"
+					if (symbol[0] == "*"):
+						symbol = symbol[1 : len(symbol)]
+				count = 1
+				bracket = symbol.find("[")
+				if (bracket >= 0):
+					count = int(symbol[bracket + 1 : -1])
+					symbol = symbol[0 : bracket]
+			si["members"].append({"type": vtype, "symbol": symbol, "count": count})
+		elif (state == 3):
+			if (l.startswith("}")):
+				ui["symbol"] = l[2 : l.find(";")]
+				unions.append(ui)
+				state = 0
+				continue
+			tokens = l.split()
+			vtype = tokens[0]
+			symbol = tokens[1][0 : tokens[1].find(";")]
+			if (symbol[0] == "*" or vtype[-1] == "*"):
+				vtype = "*"
+				if (symbol[0] == "*"):
+					symbol = symbol[1 : len(symbol)]
+			count = 1
+			bracket = symbol.find("[")
+			if (bracket >= 0):
+				count = int(symbol[bracket + 1 : -1])
+				symbol = symbol[0 : bracket]
+			ui["members"].append({"type": vtype, "symbol": symbol, "count": count})
+	infile.close()
 
 # load the C header
 
-infile = open("libparticlasm.h", 'r')
-line = "foo"
-
-state = 0
-
-ei = {}
-si = {}
-ui = {}
-
-print "Scanning libparticlasm.h..."
-
-while (line != ''):
-	line = infile.readline()
-	l = line.strip()
-	if (state == 0):
-		if (l.startswith('enum')):
-			symbol = l[5 : l.find(" ", 5)]
-			if (symbol in config["enums"]):
-				state = 1
-				ei = {"symbol": symbol, "pairs": []}
-				continue
-		if (l.startswith('typedef')):
-			if (l.startswith('struct', 8)):
-				state = 2
-				si = {"symbol": "", "members": []}
-				continue
-			elif (l.startswith('union', 8) and l.find('{') >= 0):
-				state = 3
-				ui = {"symbol": "", "members": []}
-				continue
-	elif (state == 1):
-		if (l.startswith("}")):
-			enums.append(ei)
-			state = 0
-			continue
-		comma = l.find(",")
-		if (comma < 0):
-			comma = 1024 * 1024 * 1024
-		space = l.find(" ")
-		if (space < 0):
-			space = 1024 * 1024 * 1024
-		tab = l.find("\t")
-		if (tab < 0):
-			tab = 1024 * 1024 * 1024
-		comment = l.find("///")
-		if (comment < 0):
-			comment = 1024 * 1024 * 1024
-		delim = min(comma, space, tab, comment, len(l))
-		name = l[0 : delim]
-		assignment = l.find("=")
-		val = 0
-		if (assignment >= 0):
-			begin = assignment + 1
-			while (not l[begin].isdigit()):
-				begin = begin + 1
-			end = begin + 1
-			while (l[end].isdigit()):
-				end = end + 1
-			val = int(l[begin : end])
-		elif (len(ei["pairs"]) > 0):
-			val = ei["pairs"][-1]["value"] + 1
-		ei["pairs"].append({"name": name, "value": val})
-		#print ei["symbol"] + ": " + name + " = " + str(val)
-	elif (state == 2):
-		if (l.startswith("}")):
-			si["symbol"] = l[2 : l.find(";")]
-			structs.append(si)
-			state = 0
-			continue
-		tokens = l.split()
-		# skip empty lines and comments
-		if (len(tokens) == 0 or tokens[0] == "//"):
-			continue
-		vtype = tokens[0]
-		symbol = tokens[1][0 : tokens[1].find(";")]
-		if (symbol[0] == "*" or vtype[-1] == "*"):
-			vtype = "*"
-			if (symbol[0] == "*"):
-				symbol = symbol[1 : len(symbol)]
-		count = 1
-		bracket = symbol.find("[")
-		if (bracket >= 0):
-			count = int(symbol[bracket + 1 : -1])
-			symbol = symbol[0 : bracket]
-		si["members"].append({"type": vtype, "symbol": symbol, "count": count})
-	elif (state == 3):
-		if (l.startswith("}")):
-			ui["symbol"] = l[2 : l.find(";")]
-			unions.append(ui)
-			state = 0
-			continue
-		tokens = l.split()
-		vtype = tokens[0]
-		symbol = tokens[1][0 : tokens[1].find(";")]
-		if (symbol[0] == "*" or vtype[-1] == "*"):
-			vtype = "*"
-			if (symbol[0] == "*"):
-				symbol = symbol[1 : len(symbol)]
-		count = 1
-		bracket = symbol.find("[")
-		if (bracket >= 0):
-			count = int(symbol[bracket + 1 : -1])
-			symbol = symbol[0 : bracket]
-		ui["members"].append({"type": vtype, "symbol": symbol, "count": count})
-
-infile.close()
-
-print "Done."
+parse_C_header("libparticlasm2.h")
+parse_C_header(os.path.join("X86Assembly", "ExternalFuncLibrary.h"))
 
 #print "\nENUMS:"
 #print enums
@@ -245,8 +258,8 @@ outfile = open(os.path.join(outpath, "libparticlasm.inc"), 'w')
 outfile.write("; particlasm NASM declarations\n")
 outfile.write("; Copyright (C) 2011-2012, Leszek Godlewski <github@inequation.org>\n\n")
 outfile.write("; AUTOGENERATED - DO NOT MODIFY!!!\n")
-outfile.write("; If you need to change something, change the corresponding libparticlasm.h\n")
-outfile.write("; declaration and re-run gen_asm_decls.py.\n")
+outfile.write("; If you need to change something, change the corresponding declaration in\n")
+outfile.write("; libparticlasm2.h or ExternalFuncLibrary.h and re-run GenerateAsmInclude.py.\n")
 
 outfile.write("\n%ifndef LIBPARTICLASM_INC\n")
 outfile.write("%define LIBPARTICLASM_INC\n")

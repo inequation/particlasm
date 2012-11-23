@@ -66,6 +66,7 @@
 		<Unit filename="Makefile" />
 		<Unit filename="ParticlasmMain.cpp" />
 		<Unit filename="ReferenceImplementation.cpp" />
+		<Unit filename="X86Assembly/AsmSnippets.h" />
 		<Unit filename="X86Assembly/AsmSnippets/CDistr_Constant_Code.asm" />
 		<Unit filename="X86Assembly/AsmSnippets/CDistr_Constant_Data.asm" />
 		<Unit filename="X86Assembly/AsmSnippets/CDistr_Uniform_Code.asm" />
@@ -101,6 +102,7 @@
 		<Unit filename="X86Assembly/Distr_Constant.h" />
 		<Unit filename="X86Assembly/Distr_Uniform.cpp" />
 		<Unit filename="X86Assembly/Distr_Uniform.h" />
+		<Unit filename="X86Assembly/ExternalFuncLibrary.h" />
 		<Unit filename="X86Assembly/GenerateAsmInclude.py" />
 		<Unit filename="X86Assembly/GenerateSnippetHeader.py" />
 		<Unit filename="X86Assembly/Mod_Colour.cpp" />
@@ -113,15 +115,13 @@
 		<Unit filename="X86Assembly/Mod_SimulatePost.h" />
 		<Unit filename="X86Assembly/Mod_SimulatePre.cpp" />
 		<Unit filename="X86Assembly/Mod_SimulatePre.h" />
-		<Unit filename="X86Assembly/Mod_Size.h" />
-		<Unit filename="X86Assembly/Mod_Velocity.h" />
 		<Unit filename="X86Assembly/X86AssemblyGenerator.cpp" />
 		<Unit filename="X86Assembly/X86AssemblyGenerator.h" />
 		<Unit filename="X86Assembly/X86DistributionInterface.h" />
 		<Unit filename="X86Assembly/X86ModuleInterface.cpp" />
 		<Unit filename="X86Assembly/X86ModuleInterface.h" />
 		<Unit filename="X86Assembly/X86SimpleModule.h" />
-		<Unit filename="libparticlasm.h" />
+		<Unit filename="libparticlasm2.h" />
 		<Extensions>
 			<code_completion />
 			<envvars />

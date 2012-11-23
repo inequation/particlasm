@@ -77,7 +77,7 @@ endif
 
 OUTPUT_FULL_NAME=$(OUTPUT_NAME)-$(PLATFORM)-$(ARCH)$(SO_EXT)
 
-SOURCES=ParticlasmMain.cpp libparticlasm.h CodeGeneratorInterface.h CodeGeneratorInterface.cpp
+SOURCES=ParticlasmMain.cpp libparticlasm2.h CodeGeneratorInterface.h CodeGeneratorInterface.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
 SOURCES_X86_ASSEMBLY_DISTRIBS=$(wildcard X86Assembly$(PATH_SEPARATOR)Distr_*.cpp) $(wildcard X86Assembly$(PATH_SEPARATOR)Distr_*.h)
 SOURCES_X86_ASSEMBLY_MODULES=$(wildcard X86Assembly$(PATH_SEPARATOR)Mod_*.cpp) $(wildcard X86Assembly$(PATH_SEPARATOR)Mod_*.h)
@@ -151,7 +151,7 @@ libparticlasm: preprocess $(OBJECTS) $(OBJECTS_X86_ASSEMBLY)
 
 preprocess: X86Assembly$(PATH_SEPARATOR)AsmSnippets.h
 
-X86Assembly$(PATH_SEPARATOR)AsmSnippets$(PATH_SEPARATOR)libparticlasm.inc: libparticlasm.h X86Assembly$(PATH_SEPARATOR)GenerateAsmInclude.py
+X86Assembly$(PATH_SEPARATOR)AsmSnippets$(PATH_SEPARATOR)libparticlasm.inc: libparticlasm2.h X86Assembly$(PATH_SEPARATOR)GenerateAsmInclude.py
 	$(PYTHON) X86Assembly$(PATH_SEPARATOR)GenerateAsmInclude.py
 
 X86Assembly$(PATH_SEPARATOR)AsmSnippets.h: X86Assembly$(PATH_SEPARATOR)AsmSnippets$(PATH_SEPARATOR)libparticlasm.inc $(SOURCES_X86_ASSEMBLY_SNIPPETS) X86Assembly$(PATH_SEPARATOR)GenerateSnippetHeader.py

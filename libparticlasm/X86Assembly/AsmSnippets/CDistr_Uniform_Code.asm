@@ -12,18 +12,14 @@
 	movups	[__sp], xmm5
 	; get 4 random numbers and store them on the stack, leave one float of slack
 	; (oh, the rhyme!)
-	frand 2 * 4 * sizeof(float) + 2 * sizeof(ptr_t)
+	extlib	FRand, __ax
 	fstp	dword [__sp + 4 * sizeof(float)]
-	fwait
-	frand 2 * 4 * sizeof(float) + 2 * sizeof(ptr_t)
+	extlib	FRand, __ax
 	fstp	dword [__sp + 5 * sizeof(float)]
-	fwait
-	frand 2 * 4 * sizeof(float) + 2 * sizeof(ptr_t)
+	extlib	FRand, __ax
 	fstp	dword [__sp + 6 * sizeof(float)]
-	fwait
-	frand 2 * 4 * sizeof(float) + 2 * sizeof(ptr_t)
+	extlib	FRand, __ax
 	fstp	dword [__sp + 7 * sizeof(float)]
-	fwait
 	; load the random numbers into xmm
 	movups	xmm5, [__sp + 4 * sizeof(float)]
 	; get distribution value

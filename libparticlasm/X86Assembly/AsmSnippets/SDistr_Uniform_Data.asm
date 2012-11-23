@@ -1,4 +1,4 @@
 .Offset{%d}:
 	; UNIFORM SCALAR DISTRIBUTION
-	float_s_reserve 0x{%08X}
-	float_s_reserve 0x{%08X}
+	declare(float) 0x{%08X}
+	declare(float) 0x{%08X}

@@ -3,7 +3,7 @@ Particlasm reference C++ implementation
 Copyright (C) 2011-2012, Leszek Godlewski <github@inequation.org>
 */
 
-#include "libparticlasm.h"
+#include "libparticlasm2.h"
 #include <cstdlib>
 #include <cstring>
 #include <cmath>

@@ -32,7 +32,7 @@ Copyright (C) 2012, Leszek Godlewski <github@inequation.org>
 #endif // WIN32
 
 // particlasm functions
-#include "../libparticlasm/libparticlasm.h"
+#include "../libparticlasm/libparticlasm2.h"
 PFNPTCCOMPILEEMITTER	ptcCompileEmitter;
 PFNPTCPROCESSEMITTER	ptcProcessEmitter;
 PFNPTCRELEASEEMITTER	ptcReleaseEmitter;

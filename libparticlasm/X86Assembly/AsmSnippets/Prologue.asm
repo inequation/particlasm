@@ -18,21 +18,58 @@ BITS {%s}
 
 ; some NASMX supplements
 %ixdefine ptr_t				ptrdiff_t			; platform-specific pointer type
-%ixdefine ptr_t_reserve		ptrdiff_t_reserve
-%ixdefine float_s_reserve	__nxfloat_reserve	; 32-bit float reservation
+%ixdefine float_storage		__nxfloat_storage	; 32-bit float storage
 %ixdefine float_s			dword
 %ixdefine float_size		__nxfloat_size
 %ifidn __BITS__,64
 	%ixdefine ptr_t_size	qword_size
-	%ixdefine dummy_addr	0x175ABADADD		; 40-bit address just to make sure we overflow a dword
 %else
 	%ixdefine ptr_t_size	dword_size
-	%ixdefine dummy_addr	0x15BADADD		; 32-bit address just to make sure we utilize a whole dword
 %endif
 
 ; libparticlasm declarations generated from the C header
 ;%include "libparticlasm.inc"
 {%s}
+
+; a macro for calling the external lib functions from within the emitter code
+; %1 - function to retrieve
+; %2 - intermediate register (usually __ax)
+%macro extlib 2
+	mov		%2, [__bp + 2 * sizeof(ptr_t) + ptcExtLib.%1]
+	call	[%2]
+%endmacro
+
+; flag-based colour component mixing
+%macro cdistr_mix 0
+	; simple case - both RGB and alpha are to be written
+	test	__ax, (ptcCF_SetRGB | ptcCF_SetAlpha)
+	; parity bit holds information about equality
+	jnp		%%rgb
+	movaps	xmm5, xmm6
+	jmp		%%end
+%%rgb:
+	test	__ax, ptcCF_SetRGB
+	jz		%%alpha
+	; mask out alpha from the distribution value and add in the original alpha
+	mov		__ax, [__sp + 3 * sizeof(float)]
+	movups	xmm7, [__ax]
+	andps	xmm6, xmm7
+	andnps	xmm7, xmm5
+	addps	xmm6, xmm7
+	movaps	xmm5, xmm6
+	jmp		%%end
+%%alpha:
+	test	__ax, ptcCF_SetAlpha
+	jz		%%end
+	; mask out RGB from the distribution value and add in the original RGB
+	mov		__ax, [__sp + 4 * sizeof(float)]
+	movups	xmm7, [__ax]
+	andps	xmm6, xmm7
+	andnps	xmm7, xmm5
+	addps	xmm6, xmm7
+	movaps	xmm5, xmm6
+%%end:
+%endmacro
 
 default rel
 

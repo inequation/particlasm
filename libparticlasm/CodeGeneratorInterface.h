@@ -7,7 +7,7 @@ Copyright (C) 2012, Leszek Godlewski <github@inequation.org>
 #define CODEGENERATOR_H
 
 #include <cassert>
-#include "libparticlasm.h"
+#include "libparticlasm2.h"
 
 // ============================================================================
 // Code generation context
