@@ -24,7 +24,7 @@
 #include <ctime>
 
 // particlasm functions
-#include "../libparticlasm/libparticlasm2.h"
+#include <libparticlasm2.h>
 PFNPTCCOMPILEEMITTER	ptcCompileEmitter;
 PFNPTCPROCESSEMITTER	ptcProcessEmitter;
 PFNPTCRELEASEEMITTER	ptcReleaseEmitter;

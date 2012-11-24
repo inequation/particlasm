@@ -6,8 +6,8 @@ Copyright (C) 2012, Leszek Godlewski <github@inequation.org>
 #ifndef X86DISTRIBUTION_H
 #define X86DISTRIBUTION_H
 
-#include "../libparticlasm2.h"
-#include "../CodeGeneratorInterface.h"
+#include "../Core/ParticlasmMain.h"
+#include "../Core/CodeGeneratorInterface.h"
 
 class X86DistributionInterface
 {

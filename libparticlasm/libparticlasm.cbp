@@ -9,7 +9,7 @@
 		<Option compiler="gcc" />
 		<Build>
 			<Target title="debug">
-				<Option output="../bin/Debug/particlasm" imp_lib="$(TARGET_OUTPUT_DIR)$(TARGET_OUTPUT_BASENAME).a" def_file="$(TARGET_OUTPUT_DIR)$(TARGET_OUTPUT_BASENAME).def" prefix_auto="1" extension_auto="1" />
+				<Option output="../bin/Debug/libparticlasm.so" imp_lib="$(TARGET_OUTPUT_DIR)$(TARGET_OUTPUT_BASENAME).a" def_file="$(TARGET_OUTPUT_DIR)$(TARGET_OUTPUT_BASENAME).def" prefix_auto="0" extension_auto="0" />
 				<Option object_output="../obj/Debug/" />
 				<Option type="3" />
 				<Option compiler="gcc" />
@@ -19,9 +19,17 @@
 				<Compiler>
 					<Add option="-g" />
 				</Compiler>
+				<MakeCommands>
+					<Build command="$make -f $makefile $target" />
+					<CompileFile command="$make -f $makefile $file" />
+					<Clean command="$make -f $makefile clean$" />
+					<DistClean command="$make -f $makefile distclean$target" />
+					<AskRebuildNeeded command="$make -q -f $makefile $target" />
+					<SilentBuild command="$make -f $makefile $target &gt; $(CMD_NULL)" />
+				</MakeCommands>
 			</Target>
 			<Target title="release">
-				<Option output="../bin/Release/particlasm" imp_lib="$(TARGET_OUTPUT_DIR)$(TARGET_OUTPUT_BASENAME).a" def_file="$(TARGET_OUTPUT_DIR)$(TARGET_OUTPUT_BASENAME).def" prefix_auto="1" extension_auto="1" />
+				<Option output="../bin/Release/libparticlasm.so" imp_lib="$(TARGET_OUTPUT_DIR)$(TARGET_OUTPUT_BASENAME).a" def_file="$(TARGET_OUTPUT_DIR)$(TARGET_OUTPUT_BASENAME).def" prefix_auto="0" extension_auto="0" />
 				<Option object_output="../obj/Release/" />
 				<Option type="3" />
 				<Option compiler="gcc" />
@@ -31,9 +39,17 @@
 				<Linker>
 					<Add option="-s" />
 				</Linker>
+				<MakeCommands>
+					<Build command="$make -f $makefile $target" />
+					<CompileFile command="$make -f $makefile $file" />
+					<Clean command="$make -f $makefile clean" />
+					<DistClean command="$make -f $makefile distclean$target" />
+					<AskRebuildNeeded command="$make -q -f $makefile $target" />
+					<SilentBuild command="$make -f $makefile $target &gt; $(CMD_NULL)" />
+				</MakeCommands>
 			</Target>
 			<Target title="debug-linux-x86">
-				<Option output="../bin/Debug/particlasm" imp_lib="$(TARGET_OUTPUT_DIR)$(TARGET_OUTPUT_BASENAME).a" def_file="$(TARGET_OUTPUT_DIR)$(TARGET_OUTPUT_BASENAME).def" prefix_auto="1" extension_auto="1" />
+				<Option output="../bin/Debug/libparticlasm.so" imp_lib="$(TARGET_OUTPUT_DIR)$(TARGET_OUTPUT_BASENAME).a" def_file="$(TARGET_OUTPUT_DIR)$(TARGET_OUTPUT_BASENAME).def" prefix_auto="0" extension_auto="0" />
 				<Option object_output="../obj/Debug/" />
 				<Option type="3" />
 				<Option compiler="gcc" />
@@ -43,9 +59,17 @@
 				<Compiler>
 					<Add option="-g" />
 				</Compiler>
+				<MakeCommands>
+					<Build command="$make -f $makefile $target" />
+					<CompileFile command="$make -f $makefile $file" />
+					<Clean command="$make -f $makefile clean" />
+					<DistClean command="$make -f $makefile distclean$target" />
+					<AskRebuildNeeded command="$make -q -f $makefile $target" />
+					<SilentBuild command="$make -f $makefile $target &gt; $(CMD_NULL)" />
+				</MakeCommands>
 			</Target>
 			<Target title="release-linux-x86">
-				<Option output="../bin/Release/particlasm" imp_lib="$(TARGET_OUTPUT_DIR)$(TARGET_OUTPUT_BASENAME).a" def_file="$(TARGET_OUTPUT_DIR)$(TARGET_OUTPUT_BASENAME).def" prefix_auto="1" extension_auto="1" />
+				<Option output="../bin/Release/libparticlasm.so" imp_lib="$(TARGET_OUTPUT_DIR)$(TARGET_OUTPUT_BASENAME).a" def_file="$(TARGET_OUTPUT_DIR)$(TARGET_OUTPUT_BASENAME).def" prefix_auto="0" extension_auto="0" />
 				<Option object_output="../obj/Release/" />
 				<Option type="3" />
 				<Option compiler="gcc" />
@@ -55,73 +79,90 @@
 				<Linker>
 					<Add option="-s" />
 				</Linker>
+				<MakeCommands>
+					<Build command="$make -f $makefile $target" />
+					<CompileFile command="$make -f $makefile $file" />
+					<Clean command="$make -f $makefile clean" />
+					<DistClean command="$make -f $makefile distclean$target" />
+					<AskRebuildNeeded command="$make -q -f $makefile $target" />
+					<SilentBuild command="$make -f $makefile $target &gt; $(CMD_NULL)" />
+				</MakeCommands>
 			</Target>
 		</Build>
 		<Compiler>
 			<Add option="-Wall" />
 		</Compiler>
 		<Unit filename="../README" />
-		<Unit filename="CodeGeneratorInterface.cpp" />
-		<Unit filename="CodeGeneratorInterface.h" />
 		<Unit filename="Makefile" />
-		<Unit filename="ParticlasmMain.cpp" />
-		<Unit filename="ReferenceImplementation.cpp" />
-		<Unit filename="X86Assembly/AsmSnippets.h" />
-		<Unit filename="X86Assembly/AsmSnippets/CDistr_Constant_Code.asm" />
-		<Unit filename="X86Assembly/AsmSnippets/CDistr_Constant_Data.asm" />
-		<Unit filename="X86Assembly/AsmSnippets/CDistr_Uniform_Code.asm" />
-		<Unit filename="X86Assembly/AsmSnippets/CDistr_Uniform_Data.asm" />
-		<Unit filename="X86Assembly/AsmSnippets/Epilogue.asm" />
-		<Unit filename="X86Assembly/AsmSnippets/Mod_Acceleration.asm" />
-		<Unit filename="X86Assembly/AsmSnippets/Mod_Colour_Data.asm" />
-		<Unit filename="X86Assembly/AsmSnippets/Mod_Colour_PostDistr.asm" />
-		<Unit filename="X86Assembly/AsmSnippets/Mod_Colour_PreDistr.asm" />
-		<Unit filename="X86Assembly/AsmSnippets/Mod_InitialColour_Data.asm" />
-		<Unit filename="X86Assembly/AsmSnippets/Mod_InitialColour_PostDistr.asm" />
-		<Unit filename="X86Assembly/AsmSnippets/Mod_InitialColour_PreDistr.asm" />
-		<Unit filename="X86Assembly/AsmSnippets/Mod_InitialLocation.asm" />
-		<Unit filename="X86Assembly/AsmSnippets/Mod_InitialRotation.asm" />
-		<Unit filename="X86Assembly/AsmSnippets/Mod_InitialSize.asm" />
-		<Unit filename="X86Assembly/AsmSnippets/Mod_InitialVelocity.asm" />
-		<Unit filename="X86Assembly/AsmSnippets/Mod_SimulatePost.asm" />
-		<Unit filename="X86Assembly/AsmSnippets/Mod_SimulatePre.asm" />
-		<Unit filename="X86Assembly/AsmSnippets/Mod_Size.asm" />
-		<Unit filename="X86Assembly/AsmSnippets/Mod_Velocity.asm" />
-		<Unit filename="X86Assembly/AsmSnippets/Prologue.asm" />
-		<Unit filename="X86Assembly/AsmSnippets/SDistr_Constant_Code.asm" />
-		<Unit filename="X86Assembly/AsmSnippets/SDistr_Constant_Data.asm" />
-		<Unit filename="X86Assembly/AsmSnippets/SDistr_Uniform_Code.asm" />
-		<Unit filename="X86Assembly/AsmSnippets/SDistr_Uniform_Data.asm" />
-		<Unit filename="X86Assembly/AsmSnippets/VDistr_Constant_Code.asm" />
-		<Unit filename="X86Assembly/AsmSnippets/VDistr_Constant_Data.asm" />
-		<Unit filename="X86Assembly/AsmSnippets/VDistr_Uniform_Code.asm" />
-		<Unit filename="X86Assembly/AsmSnippets/VDistr_Uniform_Data.asm" />
-		<Unit filename="X86Assembly/AsmSnippets/libparticlasm.inc" />
-		<Unit filename="X86Assembly/AsmSnippets/nasmx.inc" />
-		<Unit filename="X86Assembly/Distr_Constant.cpp" />
-		<Unit filename="X86Assembly/Distr_Constant.h" />
-		<Unit filename="X86Assembly/Distr_Uniform.cpp" />
-		<Unit filename="X86Assembly/Distr_Uniform.h" />
-		<Unit filename="X86Assembly/ExternalFuncLibrary.h" />
-		<Unit filename="X86Assembly/GenerateAsmInclude.py" />
-		<Unit filename="X86Assembly/GenerateSnippetHeader.py" />
-		<Unit filename="X86Assembly/Mod_Colour.cpp" />
-		<Unit filename="X86Assembly/Mod_Colour.h" />
-		<Unit filename="X86Assembly/Mod_Gravity.cpp" />
-		<Unit filename="X86Assembly/Mod_Gravity.h" />
-		<Unit filename="X86Assembly/Mod_InitialColour.cpp" />
-		<Unit filename="X86Assembly/Mod_InitialColour.h" />
-		<Unit filename="X86Assembly/Mod_SimulatePost.cpp" />
-		<Unit filename="X86Assembly/Mod_SimulatePost.h" />
-		<Unit filename="X86Assembly/Mod_SimulatePre.cpp" />
-		<Unit filename="X86Assembly/Mod_SimulatePre.h" />
-		<Unit filename="X86Assembly/X86AssemblyGenerator.cpp" />
-		<Unit filename="X86Assembly/X86AssemblyGenerator.h" />
-		<Unit filename="X86Assembly/X86DistributionInterface.h" />
-		<Unit filename="X86Assembly/X86ModuleInterface.cpp" />
-		<Unit filename="X86Assembly/X86ModuleInterface.h" />
-		<Unit filename="X86Assembly/X86SimpleModule.h" />
-		<Unit filename="libparticlasm2.h" />
+		<Unit filename="config.mk" />
+		<Unit filename="include/libparticlasm2.h" />
+		<Unit filename="src/Core/CodeGeneratorInterface.cpp" />
+		<Unit filename="src/Core/CodeGeneratorInterface.h" />
+		<Unit filename="src/Core/LauncherInterface.h" />
+		<Unit filename="src/Core/Makefile" />
+		<Unit filename="src/Core/ParticlasmMain.cpp" />
+		<Unit filename="src/Core/ParticlasmMain.h" />
+		<Unit filename="src/Makefile" />
+		<Unit filename="src/ReferenceImplementation.cpp" />
+		<Unit filename="src/X86Assembly/AsmSnippets.h" />
+		<Unit filename="src/X86Assembly/AsmSnippets/CDistr_Constant_Code.asm" />
+		<Unit filename="src/X86Assembly/AsmSnippets/CDistr_Constant_Data.asm" />
+		<Unit filename="src/X86Assembly/AsmSnippets/CDistr_Uniform_Code.asm" />
+		<Unit filename="src/X86Assembly/AsmSnippets/CDistr_Uniform_Data.asm" />
+		<Unit filename="src/X86Assembly/AsmSnippets/Epilogue.asm" />
+		<Unit filename="src/X86Assembly/AsmSnippets/Mod_Acceleration.asm" />
+		<Unit filename="src/X86Assembly/AsmSnippets/Mod_Colour_Data.asm" />
+		<Unit filename="src/X86Assembly/AsmSnippets/Mod_Colour_PostDistr.asm" />
+		<Unit filename="src/X86Assembly/AsmSnippets/Mod_Colour_PreDistr.asm" />
+		<Unit filename="src/X86Assembly/AsmSnippets/Mod_InitialColour_Data.asm" />
+		<Unit filename="src/X86Assembly/AsmSnippets/Mod_InitialColour_PostDistr.asm" />
+		<Unit filename="src/X86Assembly/AsmSnippets/Mod_InitialColour_PreDistr.asm" />
+		<Unit filename="src/X86Assembly/AsmSnippets/Mod_InitialLocation.asm" />
+		<Unit filename="src/X86Assembly/AsmSnippets/Mod_InitialRotation.asm" />
+		<Unit filename="src/X86Assembly/AsmSnippets/Mod_InitialSize.asm" />
+		<Unit filename="src/X86Assembly/AsmSnippets/Mod_InitialVelocity.asm" />
+		<Unit filename="src/X86Assembly/AsmSnippets/Mod_SimulatePost.asm" />
+		<Unit filename="src/X86Assembly/AsmSnippets/Mod_SimulatePre.asm" />
+		<Unit filename="src/X86Assembly/AsmSnippets/Mod_Size.asm" />
+		<Unit filename="src/X86Assembly/AsmSnippets/Mod_Velocity.asm" />
+		<Unit filename="src/X86Assembly/AsmSnippets/Prologue.asm" />
+		<Unit filename="src/X86Assembly/AsmSnippets/SDistr_Constant_Code.asm" />
+		<Unit filename="src/X86Assembly/AsmSnippets/SDistr_Constant_Data.asm" />
+		<Unit filename="src/X86Assembly/AsmSnippets/SDistr_Uniform_Code.asm" />
+		<Unit filename="src/X86Assembly/AsmSnippets/SDistr_Uniform_Data.asm" />
+		<Unit filename="src/X86Assembly/AsmSnippets/VDistr_Constant_Code.asm" />
+		<Unit filename="src/X86Assembly/AsmSnippets/VDistr_Constant_Data.asm" />
+		<Unit filename="src/X86Assembly/AsmSnippets/VDistr_Uniform_Code.asm" />
+		<Unit filename="src/X86Assembly/AsmSnippets/VDistr_Uniform_Data.asm" />
+		<Unit filename="src/X86Assembly/AsmSnippets/libparticlasm.inc" />
+		<Unit filename="src/X86Assembly/AsmSnippets/nasmx.inc" />
+		<Unit filename="src/X86Assembly/Distr_Constant.cpp" />
+		<Unit filename="src/X86Assembly/Distr_Constant.h" />
+		<Unit filename="src/X86Assembly/Distr_Uniform.cpp" />
+		<Unit filename="src/X86Assembly/Distr_Uniform.h" />
+		<Unit filename="src/X86Assembly/ExternalFuncLibrary.h" />
+		<Unit filename="src/X86Assembly/GenerateAsmInclude.py" />
+		<Unit filename="src/X86Assembly/GenerateSnippetHeader.py" />
+		<Unit filename="src/X86Assembly/Makefile" />
+		<Unit filename="src/X86Assembly/MersenneTwister.cpp" />
+		<Unit filename="src/X86Assembly/Mod_Colour.cpp" />
+		<Unit filename="src/X86Assembly/Mod_Colour.h" />
+		<Unit filename="src/X86Assembly/Mod_Gravity.cpp" />
+		<Unit filename="src/X86Assembly/Mod_Gravity.h" />
+		<Unit filename="src/X86Assembly/Mod_InitialColour.cpp" />
+		<Unit filename="src/X86Assembly/Mod_InitialColour.h" />
+		<Unit filename="src/X86Assembly/Mod_SimulatePost.cpp" />
+		<Unit filename="src/X86Assembly/Mod_SimulatePost.h" />
+		<Unit filename="src/X86Assembly/Mod_SimulatePre.cpp" />
+		<Unit filename="src/X86Assembly/Mod_SimulatePre.h" />
+		<Unit filename="src/X86Assembly/X86AssemblyGenerator.cpp" />
+		<Unit filename="src/X86Assembly/X86AssemblyGenerator.h" />
+		<Unit filename="src/X86Assembly/X86DistributionInterface.h" />
+		<Unit filename="src/X86Assembly/X86Launcher.cpp" />
+		<Unit filename="src/X86Assembly/X86Launcher.h" />
+		<Unit filename="src/X86Assembly/X86ModuleInterface.cpp" />
+		<Unit filename="src/X86Assembly/X86ModuleInterface.h" />
+		<Unit filename="src/X86Assembly/X86SimpleModule.h" />
 		<Extensions>
 			<code_completion />
 			<envvars />

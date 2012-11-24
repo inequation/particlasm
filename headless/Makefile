@@ -17,7 +17,7 @@ MKDIR_P=mkdir -p
 # path to the C++ compiler
 CXX=g++
 # additional CC flags
-CXXFLAGS=-Wall -Wextra -mfpmath=sse
+CXXFLAGS=-Wall -Wextra -mfpmath=sse -I../libparticlasm/include
 # debug dist directory
 DEBUG_DIST_DIR=../bin/Debug
 # release dist directory
@@ -105,4 +105,4 @@ release-mingw-x64:
 	$(MAKE) release ARCH=x64 PLATFORM=windows CXX=x86_64-w64-mingw32-g++
 
 headless:
-	$(CXX) $(REAL_CXXFLAGS) $(REAL_LDFLAGS) -o $(OUTPUT_FULL_NAME) -DARCH=\"$(ARCH)\" -DPLATFORM=\"$(PLATFORM)\" headless.cpp ../hostapp/emitters.cpp ../libparticlasm/ReferenceImplementation.cpp
+	$(CXX) $(REAL_CXXFLAGS) $(REAL_LDFLAGS) -o $(OUTPUT_FULL_NAME) -DARCH=\"$(ARCH)\" -DPLATFORM=\"$(PLATFORM)\" headless.cpp ../hostapp/emitters.cpp ../libparticlasm/src/ReferenceImplementation.cpp

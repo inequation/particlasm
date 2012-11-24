@@ -240,8 +240,8 @@ def parse_C_header(path):
 
 # load the C header
 
-parse_C_header("libparticlasm2.h")
-parse_C_header(os.path.join("X86Assembly", "ExternalFuncLibrary.h"))
+parse_C_header(os.path.join("..", "..", "include", "libparticlasm2.h"))
+parse_C_header("ExternalFuncLibrary.h")
 
 #print "\nENUMS:"
 #print enums
@@ -252,7 +252,7 @@ parse_C_header(os.path.join("X86Assembly", "ExternalFuncLibrary.h"))
 
 print "Writing libparticlasm.inc..."
 
-outpath = os.path.join("X86Assembly", "AsmSnippets")
+outpath = "AsmSnippets"
 mkdir_p(outpath)
 outfile = open(os.path.join(outpath, "libparticlasm.inc"), 'w')
 outfile.write("; particlasm NASM declarations\n")

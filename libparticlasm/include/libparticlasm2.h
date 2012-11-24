@@ -9,8 +9,8 @@ GenerateAsmInclude.py script).
 \author Leszek Godlewski
 */
 
-#ifndef LIBPARTICLASM_H
-#define LIBPARTICLASM_H
+#ifndef LIBPARTICLASM2_H
+#define LIBPARTICLASM2_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -34,7 +34,7 @@ typedef ptcScalar	ptcColour[4];
 /// \sa ptcDistributionID
 typedef uint32_t	ptcID;
 
-/// Enumerations to distinguish between the module IDs.
+/// Enumeration to distinguish between the module IDs.
 enum ptcModuleID {
 	ptcMID_InitialLocation	= 0,	///< \sa ptcMod_InitialLocation
 	ptcMID_InitialRotation,			///< \sa ptcMod_InitialRotation
@@ -48,11 +48,19 @@ enum ptcModuleID {
 	ptcMID_Gravity					///< \sa ptcMod_Gravity
 };
 
-/// Enumerations to describe variable distributions.
+/// Enumeration to describe variable distributions.
 enum ptcDistributionID {
 	ptcDID_Constant			= 0,	///< constant distribution
 	ptcDID_Uniform,					///< random, uniform distribution
 	ptcDID_BicubicInterp			///< distribution based on a bicubic curve-interpolated as a function of normalized life time (i.e. in the [0..1] range)
+};
+
+/// Enumeration of supported target platforms.
+enum ptcTarget {
+	ptcTarget_x86_Linux		= 0,	///< x86 assembly on Linux i386
+	ptcTarget_x86_64_Linux,			///< x86-64 assembly on Linux amd64
+	ptcTarget_x86_Windows,			///< x86 assembly on 32-bit Windows
+	ptcTarget_x86_64_Windows		///< x86-64 assembly on 64-bit Windows
 };
 
 /// @}
@@ -341,4 +349,4 @@ typedef PTC_ATTRIBS void (* PFNPTCRELEASEEMITTER)(ptcEmitter *emitter);
 }
 #endif
 
-#endif // LIBPARTICLASM_H
+#endif // LIBPARTICLASM2_H

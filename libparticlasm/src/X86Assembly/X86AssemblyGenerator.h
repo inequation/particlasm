@@ -6,7 +6,7 @@ Copyright (C) 2012, Leszek Godlewski <github@inequation.org>
 #ifndef X86ASSEMBLYGENERATOR_H
 #define X86ASSEMBLYGENERATOR_H
 
-#include "../CodeGeneratorInterface.h"
+#include "../Core/CodeGeneratorInterface.h"
 
 // some forward declarations to avoid cluttering with includes
 class Mod_SimulatePre;

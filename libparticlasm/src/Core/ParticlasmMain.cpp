@@ -23,20 +23,15 @@ Copyright (C) 2011-2012, Leszek Godlewski <github@inequation.org>
 	#include <unistd.h>
 #endif // WIN32
 
-#include "libparticlasm2.h"
+#include "ParticlasmMain.h"
 #include "CodeGeneratorInterface.h"
-#include "X86Assembly/X86AssemblyGenerator.h"
+#include "LauncherInterface.h"
+#include "../X86Assembly/X86AssemblyGenerator.h"
+#include "../X86Assembly/X86Launcher.h"
 
-// choose an appropriate symbol export declaration
-#if defined(WIN32) || defined(__WIN32__)
-	#define EXPORTDECL	__declspec(dllexport)
-#elif defined(__BEOS__) && !defined(__GNUC__)
-	#define EXPORTDECL	__declspec(export)
-#elif defined(__GNUC__) && __GNUC__ >= 4
-	#define EXPORTDECL	__attribute__ ((visibility("default")))
-#else
-	#define EXPORTDECL
-#endif
+namespace mt19937 {
+	extern void init_by_array(unsigned long init_key[], int key_length);
+}
 
 /// Internal assembly module size measuring procedure. Increases the counters
 /// pointed at with the sizes of the corresponding buffers.
@@ -122,7 +117,7 @@ static const void *OpenIntermediateFile(const char *Path, FileAccessMode Mode,
 	switch(Mode & 0x03)
 	{
 		case FAM_Read:		MappingLength = FileStat.st_size;			break;
-		case FAM_Write:		MappingLength = (Mode & 0xFFFFFFFC) >> 2;	break;
+		case FAM_Write:		MappingLength = (Mode & ~0x03) >> 2;		break;
 		case FAM_ReadWrite:	MappingLength = 2 * FileStat.st_size;		break;
 		case FAM_PADDING:	break;	// shut up compiler
 	}
@@ -148,6 +143,11 @@ static void CloseIntermediateFile(const void *FilePtr)
 	munmap(It->first, It->second.second);
 	close(It->second.first);
 }
+
+// get rid of warnings in debug builds
+#ifndef NDEBUG
+	SUPPRESS_WARNING_GCC_BEGIN("-Wunused-parameter")
+#endif
 
 static void DeleteIntermediateFile(const char *Path)
 {
@@ -220,6 +220,10 @@ extern "C" uint32_t EXPORTDECL ptcCompileEmitter(ptcEmitter *emitter)
 	remove(CodeFileName);
 #endif
 
+	// use the opportunity to initialize the mersenne twister
+	unsigned long init[4]={rand(), rand(), rand(), rand()}, length=4;
+    mt19937::init_by_array(init, length);
+
 	return 0;
 }
 
@@ -236,3 +240,7 @@ extern "C" size_t EXPORTDECL ptcProcessEmitter(ptcEmitter *emitter, float step,
 extern "C" void EXPORTDECL ptcReleaseEmitter(ptcEmitter *emitter)
 {
 }
+
+#ifndef NDEBUG
+	SUPPRESS_WARNING_GCC_END
+#endif

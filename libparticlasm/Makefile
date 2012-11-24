@@ -3,37 +3,10 @@
 
 # =============================================================================
 # Configuration
-# Feel free to change any of these, as long as you know what you're doing.
 # =============================================================================
 
-# default architecture: "x86" for 32-bit, "x64" for 64-bit
-ARCH=x64
-# default platform: "windows" or "linux"
-PLATFORM=linux
-# path to GNU make
-MAKE=make
-# mkdir command with arguments to create all missing directories in the path
-MKDIR_P=mkdir -p
-# path to the Python interpreter
-PYTHON=python
-# path to the nasm executable
-AS=nasm
-# additional nasm flags
-ASFLAGS=
-# path to the C++ compiler
-CXX=g++
-# additional CXX flags
-CXXFLAGS=-c -Wall -Wextra -mfpmath=sse
-# path to the linker executable
-LD=g++
-# additional linker flags
-LDFLAGS=-shared -L/usr/lib32
-# debug dist directory
-DEBUG_DIST_DIR=../bin/Debug
-# release dist directory
-RELEASE_DIST_DIR=../bin/Release
-# output library file name
-OUTPUT_NAME=libparticlasm2
+# users may edit this file
+include config.mk
 
 # =============================================================================
 # End of configuration
@@ -43,69 +16,87 @@ OUTPUT_NAME=libparticlasm2
 # $(ASFLAGS) comes last so that nasm learns about the target platform first
 ifeq ($(ARCH), x64)
 	ifeq ($(PLATFORM), linux)
-		REAL_ASFLAGS=-f elf64 $(ASFLAGS)
-		REAL_CXXFLAGS=-fPIC $(CXXFLAGS) -march=core2 -m64
-		REAL_LDFLAGS=$(LDFLAGS) -m64 -Wl,-melf_x86_64
+		ASFLAGS:=-f elf64 $(ASFLAGS)
+		CXXFLAGS:=-fPIC $(CXXFLAGS) -march=core2 -m64
+		LDFLAGS:=$(LDFLAGS) -m64 -Wl,-melf_x86_64
 		DEBUG_FORMAT=dwarf
 		SO_EXT=.so
-		PATH_SEPARATOR=/
 	else
-		REAL_ASFLAGS=-f win64 $(ASFLAGS)
-		REAL_CXXFLAGS=$(CXXFLAGS) -march=core2 -m64
-		REAL_LDFLAGS=$(LDFLAGS) -m64 -Wl,-mi386pep
+		ASFLAGS:=-f win64 $(ASFLAGS)
+		CXXFLAGS:=$(CXXFLAGS) -march=core2 -m64
+		LDFLAGS:=$(LDFLAGS) -m64 -Wl,-mi386pep
 		DEBUG_FORMAT=null
 		SO_EXT=.dll
-		PATH_SEPARATOR=\\
 	endif
 else
 	ifeq ($(PLATFORM), linux)
-		REAL_ASFLAGS=-f elf32 $(ASFLAGS)
-		REAL_CXXFLAGS=-fPIC $(CXXFLAGS) -march=pentium-m -m32
-		REAL_LDFLAGS=$(LDFLAGS) -m32 -Wl,-melf_i386
+		ASFLAGS:=-f elf32 $(ASFLAGS)
+		CXXFLAGS:=-fPIC $(CXXFLAGS) -march=pentium-m -m32
+		LDFLAGS:=$(LDFLAGS) -m32 -Wl,-melf_i386
 		DEBUG_FORMAT=dwarf
 		SO_EXT=.so
-		PATH_SEPARATOR=/
 	else
-		REAL_ASFLAGS=-f win32 $(ASFLAGS)
-		REAL_CXXFLAGS=$(CXXFLAGS) -march=pentium-m -m32
-		REAL_LDFLAGS=$(LDFLAGS) -m32 -Wl,-mi386pe
+		ASFLAGS:=-f win32 $(ASFLAGS)
+		CXXFLAGS:=$(CXXFLAGS) -march=pentium-m -m32
+		LDFLAGS:=$(LDFLAGS) -m32 -Wl,-mi386pe
 		DEBUG_FORMAT=null
 		SO_EXT=.dll
-		PATH_SEPARATOR=\\
 	endif
 endif
 
+# debug dist directory
+DEBUG_DIST_DIR=bin/Debug
+# debug object directory
+DEBUG_OBJ_DIR=obj/Debug
+# release dist directory
+RELEASE_DIST_DIR=bin/Release
+# release object directory
+RELEASE_OBJ_DIR=obj/Release
+# additional assembler flags for debug builds
+DEBUG_ASFLAGS= -O0 -g -F $(DEBUG_FORMAT)
+# additional assembler flags for release builds
+RELEASE_ASFLAGS= -Ox
+# additional C++ compiler flags for debug builds
+DEBUG_CXXFLAGS= -O0 -g
+# additional C++ compiler flags for release builds
+RELEASE_CXXFLAGS= -O3 -DNDEBUG
+# additional linker flags for debug builds
+DEBUG_LDFLAGS=
+# additional linker flags for release builds
+RELEASE_LDFLAGS= -S
+# output library file name
+OUTPUT_NAME=libparticlasm2
+
 OUTPUT_FULL_NAME=$(OUTPUT_NAME)-$(PLATFORM)-$(ARCH)$(SO_EXT)
+OUTPUT_FULL_PATH=../$(DIST_DIR)/$(OUTPUT_FULL_NAME)
+TARGET_OBJS=$(addsuffix /*.o,$(addprefix ../$(OBJ_DIR)/,Core $(TARGETS)))
 
-SOURCES=ParticlasmMain.cpp libparticlasm2.h CodeGeneratorInterface.h CodeGeneratorInterface.cpp
-OBJECTS=$(SOURCES:.cpp=.o)
-SOURCES_X86_ASSEMBLY_DISTRIBS=$(wildcard X86Assembly$(PATH_SEPARATOR)Distr_*.cpp) $(wildcard X86Assembly$(PATH_SEPARATOR)Distr_*.h)
-SOURCES_X86_ASSEMBLY_MODULES=$(wildcard X86Assembly$(PATH_SEPARATOR)Mod_*.cpp) $(wildcard X86Assembly$(PATH_SEPARATOR)Mod_*.h)
-SOURCES_X86_ASSEMBLY_RAW=AsmSnippets.h X86AssemblyGenerator.cpp X86AssemblyGenerator.h X86ModuleInterface.cpp X86ModuleInterface.h X86DistributionInterface.h X86SimpleModule.h
-SOURCES_X86_ASSEMBLY_SNIPPETS=$(wildcard X86Assembly$(PATH_SEPARATOR)AsmSnippets$(PATH_SEPARATOR)*.asm)
-SOURCES_X86_ASSEMBLY=$(addprefix X86Assembly$(PATH_SEPARATOR),$(SOURCES_X86_ASSEMBLY_RAW)) $(SOURCES_X86_ASSEMBLY_DISTRIBS) $(SOURCES_X86_ASSEMBLY_MODULES)
-OBJECTS_X86_ASSEMBLY=$(SOURCES_X86_ASSEMBLY:.cpp=.o)
-
-.PHONY: all clean release debug preprocess libparticlasm
+# FIXME! figure out the OUTPUT_FULL_PATH's dependency on the objects
+.PHONY: all clean release debug build objects $(OUTPUT_FULL_PATH)
 
 all: release
 
 clean:
-	rm -f *.o *.so X86Assembly$(PATH_SEPARATOR)*.o X86Assembly$(PATH_SEPARATOR)AsmSnippets.h X86Assembly$(PATH_SEPARATOR)AsmSnippets$(PATH_SEPARATOR)libparticlasm.inc
+	cd src && $(MAKE) clean OBJ_DIR=$(DEBUG_OBJ_DIR)
+	cd src && $(MAKE) clean OBJ_DIR=$(RELEASE_OBJ_DIR)
+	-rm -rf ../$(DEBUG_DIST_DIR) ../$(RELEASE_DIST_DIR)
 
 # recursively call make with proper flags
 release:
-	$(MAKE) clean
-	$(MAKE) libparticlasm ARCH=$(ARCH) ASFLAGS="$(ASFLAGS) -Ox" CXXFLAGS="$(CXXFLAGS) -O3 -DNDEBUG" LDFLAGS="$(LDFLAGS) -S"
-	$(MKDIR_P) $(RELEASE_DIST_DIR)
-	mv $(OUTPUT_FULL_NAME) $(RELEASE_DIST_DIR)
+	$(MAKE) build OBJ_DIR=$(RELEASE_OBJ_DIR) DIST_DIR=$(RELEASE_DIST_DIR) ASFLAGS="$(ASFLAGS) $(RELEASE_ASFLAGS)" CXXFLAGS="$(CXXFLAGS) $(RELEASE_CXXFLAGS)" LDFLAGS="$(LDFLAGS) $(RELEASE_LDFLAGS)"
+
+debug:
+	$(MAKE) build OBJ_DIR=$(DEBUG_OBJ_DIR) DIST_DIR=$(DEBUG_DIST_DIR) ASFLAGS="$(ASFLAGS) $(DEBUG_ASFLAGS)" CXXFLAGS="$(CXXFLAGS) $(DEBUG_CXXFLAGS)" LDFLAGS="$(LDFLAGS) $(DEBUG_LDFLAGS)"
 
 # recursively call make with proper flags
-debug:
-	$(MAKE) clean
-	$(MAKE) libparticlasm ARCH=$(ARCH) ASFLAGS="$(ASFLAGS) -O0 -g -F $(DEBUG_FORMAT)" CXXFLAGS="$(CXXFLAGS) -O0 -g" LDFLAGS="$(LDFLAGS)"
-	$(MKDIR_P) $(DEBUG_DIST_DIR)
-	mv $(OUTPUT_FULL_NAME) $(DEBUG_DIST_DIR)
+build: $(OUTPUT_FULL_PATH)
+
+$(OUTPUT_FULL_PATH): $(TARGET_OBJS)
+	$(MKDIR_P) ../$(DIST_DIR)
+	$(MKDIR_P) ../$(OBJ_DIR)
+	cd src && $(MAKE) build
+	# FIXME! figure out how to link only when needed
+	$(LD) $(LDFLAGS) $(TARGET_OBJS) -o $@
 
 debug-linux-x86:
 	$(MAKE) debug ARCH=x86 PLATFORM=linux
@@ -143,16 +134,3 @@ debug-mingw-x64:
 release-mingw-x64:
 	$(MAKE) release ARCH=x64 PLATFORM=windows CXX=x86_64-w64-mingw32-g++ LD=x86_64-w64-mingw32-g++ PATH_SEPARATOR=/
 
-libparticlasm: preprocess $(OBJECTS) $(OBJECTS_X86_ASSEMBLY)
-	$(LD) $(REAL_LDFLAGS) $(OBJECTS) $(OBJECTS_X86_ASSEMBLY) -o $(OUTPUT_FULL_NAME)
-
-.cpp.o: $(SOURCES) $(SOURCES_X86_ASSEMBLY)
-	$(CXX) $(REAL_CXXFLAGS) $< -o $@
-
-preprocess: X86Assembly$(PATH_SEPARATOR)AsmSnippets.h
-
-X86Assembly$(PATH_SEPARATOR)AsmSnippets$(PATH_SEPARATOR)libparticlasm.inc: libparticlasm2.h X86Assembly$(PATH_SEPARATOR)GenerateAsmInclude.py
-	$(PYTHON) X86Assembly$(PATH_SEPARATOR)GenerateAsmInclude.py
-
-X86Assembly$(PATH_SEPARATOR)AsmSnippets.h: X86Assembly$(PATH_SEPARATOR)AsmSnippets$(PATH_SEPARATOR)libparticlasm.inc $(SOURCES_X86_ASSEMBLY_SNIPPETS) X86Assembly$(PATH_SEPARATOR)GenerateSnippetHeader.py
-	$(PYTHON) X86Assembly$(PATH_SEPARATOR)GenerateSnippetHeader.py

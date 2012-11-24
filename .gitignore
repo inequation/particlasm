@@ -1,0 +1,3 @@
+# don't track the compiled binaries and objects, please
+bin
+obj
