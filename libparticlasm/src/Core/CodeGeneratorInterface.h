@@ -43,20 +43,21 @@ struct CodeGenerationContext
 	PFNBUFFERPRINTF			Emitf;
 
 	int						CurrentModuleIndex;
-	int						CurrentDataIndex;
 	GenerationStage			Stage;
 	GenerationResult		Result;
 	int						ResultArgument;
+
+	void					*PrivateData;
 
 	CodeGenerationContext(ptcEmitter *InEmitter, PFNBUFFERPRINTF InEmitf)
 		:
 		Emitter(InEmitter),
 		Emitf(InEmitf),
 		CurrentModuleIndex(-1),
-		CurrentDataIndex(-1),
 		Stage(GS_Started),
 		Result(GR_Success),
-		ResultArgument(0)
+		ResultArgument(0),
+		PrivateData(NULL)
 	{
 		assert(Emitf);
 	}
@@ -148,8 +149,11 @@ struct ConstructionContext
 	ConstructionStage		Stage;
 	ConstructionResult		Result;
 	int						ResultArgument;
+	size_t					DataOffset;
 	size_t					SpawnCodeOffset;
 	size_t					ProcessCodeOffset;
+
+	void					*PrivateData;
 
 	ConstructionContext(char *InFileName,
 		PFNOPENINTERMEDIATEFILE InOpenIntermediateFile,
@@ -169,7 +173,8 @@ struct ConstructionContext
 		DeleteIntermediateFile(InDeleteIntermediateFile),
 		LoadBinaryFile(InLoadBinaryFile),
 		Stage(CS_Started),
-		Result(CR_Success)
+		Result(CR_Success),
+		PrivateData(NULL)
 	{
 		assert(OpenIntermediateFile);
 		assert(CloseIntermediateFile);

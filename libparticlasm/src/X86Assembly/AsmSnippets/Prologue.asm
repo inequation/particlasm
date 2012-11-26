@@ -51,7 +51,7 @@ BITS {%s}
 	test	__ax, ptcCF_SetRGB
 	jz		%%alpha
 	; mask out alpha from the distribution value and add in the original alpha
-	mov		__ax, [__sp + 3 * sizeof(float)]
+	mov		__ax, MASK_RGB
 	movups	xmm7, [__ax]
 	andps	xmm6, xmm7
 	andnps	xmm7, xmm5
@@ -62,7 +62,7 @@ BITS {%s}
 	test	__ax, ptcCF_SetAlpha
 	jz		%%end
 	; mask out RGB from the distribution value and add in the original RGB
-	mov		__ax, [__sp + 4 * sizeof(float)]
+	mov		__ax, MASK_ALPHA
 	movups	xmm7, [__ax]
 	andps	xmm6, xmm7
 	andnps	xmm7, xmm5
@@ -78,3 +78,13 @@ default rel
 ; =============================================================================
 
 [list +]
+
+; xmm masks for colour components - used in colour mixing
+MASK_RGB		dd	0xFFFFFFFF
+				dd	0xFFFFFFFF
+				dd	0xFFFFFFFF
+				dd	0x00000000
+MASK_ALPHA		dd	0x00000000
+				dd	0x00000000
+				dd	0x00000000
+				dd	0xFFFFFFFF

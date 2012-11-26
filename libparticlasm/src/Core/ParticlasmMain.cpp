@@ -221,7 +221,10 @@ extern "C" uint32_t EXPORTDECL ptcCompileEmitter(ptcEmitter *emitter)
 #endif
 
 	// use the opportunity to initialize the mersenne twister
-	unsigned long init[4]={rand(), rand(), rand(), rand()}, length=4;
+	unsigned long init[4] = {
+		(unsigned long)rand(), (unsigned long)rand(),
+		(unsigned long)rand(), (unsigned long)rand()
+	}, length = 4;
     mt19937::init_by_array(init, length);
 
 	return 0;

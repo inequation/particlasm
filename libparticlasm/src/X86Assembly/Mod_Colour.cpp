@@ -3,6 +3,7 @@ Particlasm x86 assembly generator module for colour
 Copyright (C) 2012, Leszek Godlewski <github@inequation.org>
 */
 
+#include "X86Assembly.h"
 #include "Mod_Colour.h"
 #include "AsmSnippets.h"
 
@@ -18,6 +19,7 @@ void Mod_Colour::Generate(CodeGenerationContext& Context,
 	X86ModuleInterface::Generate(Context, Module);
 	if (Context.Result != GR_Success)
 		return;
+	PrivateContextData *PCD = (PrivateContextData *)Context.PrivateData;
 	switch (Context.Stage)
 	{
 		case GS_Data:
@@ -26,11 +28,11 @@ void Mod_Colour::Generate(CodeGenerationContext& Context,
 			if (Context.Result != GR_Success)
 				return;
 			Context.Emitf(Asm_Mod_Colour_Data,
-				Context.CurrentDataIndex++,
-				Module->Col.Flags);
+				PCD->CurrentDataIndex, Module->Col.Flags);
+			PCD->Register(Module);
 			break;
 		case GS_ProcessCode:
-			Context.Emitf(Asm_Mod_Colour_PreDistr, Context.CurrentDataIndex++);
+			Context.Emitf(Asm_Mod_Colour_PreDistr, PCD->Find(Module));
 			GenerateDistribution<ptcColourDistr>(Context,
 				&Module->Col.Distr);
 			if (Context.Result != GR_Success)

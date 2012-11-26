@@ -14,18 +14,17 @@ namespace mt19937 {
 static void FRand(void)
 {
 	uint32_t RandInt = mt19937::genrand_int32();
-	static const float Multiplier = 1.0f / 4294967295.0f;
+	static float Multiplier = 1.0f / 4294967295.0f;
 	asm(
 		"push %1\n"
-		"push %0\n"
-		"fld (%%esp)\n"		// FIXME!!! rsp on x64
-		"fimul 4(%%esp)\n"	// FIXME!!! rsp on x64
+		"fld %0\n"
+		"fimul (%%esp)\n"	// FIXME!!! rsp on x64
 		"fld1\n"
 		"fxch %%st(1)\n"
 		"fsubp %%st(1)\n"
 		"addl 8,%%esp"		// FIXME!!! rsp on x64
 		: // no output registers
-		: "r" (Multiplier), "r" (RandInt)
+		: "m" (Multiplier), "r" (RandInt)
 		: "%st", "%st(1)"
 		);
 }

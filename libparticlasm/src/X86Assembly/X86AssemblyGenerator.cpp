@@ -7,6 +7,7 @@ Copyright (C) 2012, Leszek Godlewski <github@inequation.org>
 #include <cstring>
 #include <cstdio>
 #include "X86AssemblyGenerator.h"
+#include "X86Assembly.h"
 #include "X86ModuleInterface.h"
 #include "X86SimpleModule.h"
 #include "Mod_SimulatePre.h"
@@ -68,6 +69,10 @@ void X86AssemblyGenerator::Generate(CodeGenerationContext& Context) const
 		return;
 	}
 
+	// create a private context data instance
+	PrivateContextData PCD;
+	Context.PrivateData = &PCD;
+
 	// start off by integrating the prologue
 	const char *CPU, *BITS, *OUTPUT_FORMAT;
 	switch (Arch)
@@ -83,7 +88,7 @@ void X86AssemblyGenerator::Generate(CodeGenerationContext& Context) const
 			OUTPUT_FORMAT = Platform == PLATFORM_Windows ? "win64" : "elf64";
 			break;
 		default:
-			assert(!"Invalid architecture");
+			assert(!"Invalid architecture or platform");
 	}
 	Context.Emitf(Asm_Prologue,
 		CPU, BITS, OUTPUT_FORMAT,
@@ -95,8 +100,6 @@ void X86AssemblyGenerator::Generate(CodeGenerationContext& Context) const
 		Context.Stage < GS_Finished;
 		Context.Stage = (GenerationStage)((int)Context.Stage + 1))
 	{
-		Context.CurrentDataIndex = 0;
-
 		// print out the label
 		switch (Context.Stage)
 		{
@@ -169,6 +172,9 @@ void X86AssemblyGenerator::Generate(CodeGenerationContext& Context) const
 			Context.Emitf("endproc\n");
 		}
 	}
+
+	// clear the private data pointer
+	Context.PrivateData = NULL;
 
 	// finish off by integrating the epilogue
 	Context.Emitf(Asm_Epilogue);
@@ -271,6 +277,8 @@ void X86AssemblyGenerator::FindCodeOffsets(ConstructionContext& Context,
 			FoundProcess = true;
 		}
 	}
+	// data is always at the start
+	Context.DataOffset = 0;
 
 	Context.CloseIntermediateFile(Listing);
 
