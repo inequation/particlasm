@@ -8,22 +8,25 @@ Copyright (C) 2012, Leszek Godlewski <github@inequation.org>
 
 #include "../Core/LauncherInterface.h"
 
-class X86Launcher : public LauncherInterface<X86Launcher>
+class X86Launcher : public LauncherInterface
 {
-	friend class LauncherInterface<X86Launcher>;
-	private:
-		static bool LoadCachedBinaryImpl(ptcEmitter *Emitter, void *Buffer,
-			const size_t Size);
+	public:
+		X86Launcher();
 
-		static size_t WriteCachedBinaryImpl(ptcEmitter *Emitter,
-			PFNWRITE WriteCallback);
+		virtual bool LoadCachedBinary(ptcEmitter *Emitter, const void *Buffer,
+			const size_t Size) const;
 
-		static void LoadRawBinaryImpl(ptcEmitter *Emitter, void *Buffer,
+		virtual size_t WriteCachedBinary(ptcEmitter *Emitter,
+			PFNWRITE WriteCallback) const;
+
+		virtual bool LoadRawBinary(ptcEmitter *Emitter, const void *Buffer,
 			const size_t Size, const size_t DataOffset,
-			const size_t SpawnCodeOffset,const size_t ProcessCodeOffset);
+			const size_t SpawnCodeOffset,const size_t ProcessCodeOffset) const;
 
-		static size_t LaunchImpl(ptcEmitter *Emitter, float Step,
-			ptcVector CameraCS[3], ptcVertex *Buffer, size_t MaxVertices);
+		virtual void Unload(ptcEmitter *Emitter) const;
+
+		virtual size_t Launch(ptcEmitter *Emitter, float Step,
+			ptcVector CameraCS[3], ptcVertex *Buffer, size_t MaxVertices) const;
 };
 
 #endif // X86LAUNCHER_H

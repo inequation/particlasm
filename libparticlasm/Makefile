@@ -72,7 +72,7 @@ OUTPUT_FULL_PATH=../$(DIST_DIR)/$(OUTPUT_FULL_NAME)
 TARGET_OBJS=$(addsuffix /*.o,$(addprefix ../$(OBJ_DIR)/,Core $(TARGETS)))
 
 # FIXME! figure out the OUTPUT_FULL_PATH's dependency on the objects
-.PHONY: all clean release debug build objects $(OUTPUT_FULL_PATH)
+.PHONY: all clean release debug build objects $(OUTPUT_FULL_PATH) $(TARGET_OBJS)
 
 all: release
 

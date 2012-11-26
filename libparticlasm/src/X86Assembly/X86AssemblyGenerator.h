@@ -34,7 +34,8 @@ class X86AssemblyGenerator : public CodeGeneratorInterface
 			char *CodeFileName, size_t CodeFileNameSize);
 
 		virtual void Generate(CodeGenerationContext& Context) const;
-		virtual void Build(ConstructionContext& Context) const;
+		virtual void Build(ConstructionContext& Context, char *OutBinaryPath,
+			size_t OutBinaryPathSize) const;
 
 	private:
 		EArchitecture	Arch;

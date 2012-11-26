@@ -33,13 +33,27 @@ Copyright (C) 2012, Leszek Godlewski <github@inequation.org>
 
 // particlasm functions
 #include <libparticlasm2.h>
-PFNPTCCOMPILEEMITTER	ptcCompileEmitter;
-PFNPTCPROCESSEMITTER	ptcProcessEmitter;
-PFNPTCRELEASEEMITTER	ptcReleaseEmitter;
+PFNPTCGETAPI	ptcGetAPI;
+ptcAPIExports	ptcAPI;
 
 // test parameters
 #define TEST_TIME		30
 #define TEST_FRAMERATE	60
+
+// declare the right target platform
+#if defined(WIN32) || defined(_WIN32) || defined(_WIN32_WINNT)
+	#if defined(_M_AMD64) || defined(amd64) || defined (__amd64__)
+		#define LOCAL_TARGET	ptcTarget_x86_64_Windows
+	#else
+		#define LOCAL_TARGET	ptcTarget_x86_Windows
+	#endif
+#else
+	#if defined(amd64) || defined (__amd64__)
+		#define LOCAL_TARGET	ptcTarget_x86_64_Linux
+	#else
+		#define LOCAL_TARGET	ptcTarget_x86_Linux
+	#endif
+#endif // WIN32
 
 extern "C" {
 
@@ -100,9 +114,9 @@ const char *GetPathToSelf() {
 
 bool InitParticlasm(bool cpp) {
 	if (cpp) {
-		ptcCompileEmitter = ref_ptcCompileEmitter;
-		ptcProcessEmitter = ref_ptcProcessEmitter;
-		ptcReleaseEmitter = ref_ptcReleaseEmitter;
+		ptcAPI.CompileEmitter = ref_ptcCompileEmitter;
+		ptcAPI.ProcessEmitter = ref_ptcProcessEmitter;
+		ptcAPI.ReleaseEmitter = ref_ptcReleaseEmitter;
 		return true;
 	} else {
 		libparticlasmHandle = dlopen(LOCAL_PATH "libparticlasm2-" PLATFORM "-" ARCH SO_EXT, RTLD_NOW);
@@ -119,10 +133,9 @@ bool InitParticlasm(bool cpp) {
 #endif
 			return false;
 		}
-		ptcCompileEmitter = (PFNPTCCOMPILEEMITTER)dlsym(libparticlasmHandle, "ptcCompileEmitter");
-		ptcProcessEmitter = (PFNPTCPROCESSEMITTER)dlsym(libparticlasmHandle, "ptcProcessEmitter");
-		ptcReleaseEmitter = (PFNPTCRELEASEEMITTER)dlsym(libparticlasmHandle, "ptcReleaseEmitter");
-		if (ptcCompileEmitter && ptcProcessEmitter && ptcReleaseEmitter)
+		ptcGetAPI = (PFNPTCGETAPI)dlsym(libparticlasmHandle, PTC_ENTRY_POINT);
+		if (ptcGetAPI && ptcGetAPI(0 /* TODO */, &ptcAPI)
+			&& ptcAPI.InitializeTarget(LOCAL_TARGET, NULL))
 			return true;
 #if defined(WIN32) || defined(_WIN32) || defined(_WIN32_WINNT)
 		TCHAR *errStr;
@@ -140,11 +153,10 @@ bool InitParticlasm(bool cpp) {
 }
 
 void FreeParticlasm() {
-	if (libparticlasmHandle)
+	if (libparticlasmHandle) {
+		ptcAPI.ShutdownTarget(LOCAL_TARGET, NULL);
 		dlclose(libparticlasmHandle);
-	ptcCompileEmitter = NULL;
-	ptcProcessEmitter = NULL;
-	ptcReleaseEmitter = NULL;
+	}
 }
 
 #if defined(WIN32) || defined(_WIN32) || defined(_WIN32_WINNT)
@@ -216,7 +228,7 @@ bool Benchmark(bool cpp) {
 	for (i = 0; i < ptc_nemitters; ++i) {
 		ptc_emitters[i].ParticleBuf = ptc_particles;
 		ptc_emitters[i].MaxParticles = MAX_PARTICLES;
-		if (!ptcCompileEmitter(&ptc_emitters[i])) {
+		if (!ptcAPI.CompileEmitter(&ptc_emitters[i])) {
 			fprintf(stderr, "Could not compile emitter.\n");
 			return false;
 		}
@@ -229,7 +241,7 @@ bool Benchmark(bool cpp) {
 	for (i = 0; i < (TEST_TIME * TEST_FRAMERATE); ++i) {
 		ptc_nvertices = 0;
 		for (j = 0; j < ptc_nemitters; ++j) {
-			ptc_nvertices += ptcProcessEmitter(&ptc_emitters[j],
+			ptc_nvertices += ptcAPI.ProcessEmitter(&ptc_emitters[j],
 				1.f / (float)TEST_FRAMERATE, cameraCS,
 				ptc_vertices + ptc_nvertices,
 				(MAX_PARTICLES * 4) - ptc_nvertices);
@@ -245,7 +257,7 @@ bool Benchmark(bool cpp) {
 		asm_msec = test_start_msec;
 
 	for (i = 0; i < ptc_nemitters; ++i)
-		ptcReleaseEmitter(&ptc_emitters[i]);
+		ptcAPI.ReleaseEmitter(&ptc_emitters[i]);
 	// clean up particlasm
 	FreeParticlasm();
 	return true;

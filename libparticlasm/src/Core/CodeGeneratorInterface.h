@@ -131,7 +131,6 @@ typedef PTC_ATTRIBS const void *(* PFNOPENINTERMEDIATEFILE)(const char *Path,
 	FileAccessMode Mode, size_t *OutFileSize);
 typedef PTC_ATTRIBS void (* PFNCLOSEINTERMEDIATEFILE)(const void *FilePtr);
 typedef PTC_ATTRIBS void (* PFNDELETEINTERMEDIATEFILE)(const char *Path);
-typedef PTC_ATTRIBS void (* PFNLOADBINARYFILE)(const char *Path);
 
 struct ConstructionContext
 {
@@ -144,7 +143,6 @@ struct ConstructionContext
 	PFNOPENINTERMEDIATEFILE	OpenIntermediateFile;
 	PFNCLOSEINTERMEDIATEFILE	CloseIntermediateFile;
 	PFNDELETEINTERMEDIATEFILE	DeleteIntermediateFile;
-	PFNLOADBINARYFILE		LoadBinaryFile;
 
 	ConstructionStage		Stage;
 	ConstructionResult		Result;
@@ -159,7 +157,6 @@ struct ConstructionContext
 		PFNOPENINTERMEDIATEFILE InOpenIntermediateFile,
 		PFNCLOSEINTERMEDIATEFILE InCloseIntermediateFile,
 		PFNDELETEINTERMEDIATEFILE InDeleteIntermediateFile,
-		PFNLOADBINARYFILE InLoadBinaryFile,
 		char *InStdoutBuffer = NULL, size_t InStdoutBufferSize = 0,
 		char *InStderrBuffer = NULL, size_t InStderrBufferSize = 0)
 		:
@@ -171,7 +168,6 @@ struct ConstructionContext
 		OpenIntermediateFile(InOpenIntermediateFile),
 		CloseIntermediateFile(InCloseIntermediateFile),
 		DeleteIntermediateFile(InDeleteIntermediateFile),
-		LoadBinaryFile(InLoadBinaryFile),
 		Stage(CS_Started),
 		Result(CR_Success),
 		PrivateData(NULL)
@@ -179,7 +175,6 @@ struct ConstructionContext
 		assert(OpenIntermediateFile);
 		assert(CloseIntermediateFile);
 		assert(DeleteIntermediateFile);
-		assert(LoadBinaryFile);
 	}
 
 #define CC_ENUM_STR(x)	case x:	return #x; break
@@ -215,7 +210,8 @@ class CodeGeneratorInterface
 {
 	public:
 		virtual void Generate(CodeGenerationContext& Context) const = 0;
-		virtual void Build(ConstructionContext& Context) const = 0;
+		virtual void Build(ConstructionContext& Context, char *OutBinaryPath,
+			size_t OutBinaryPathSize) const = 0;
 
 	protected:
 		bool RunProcess(const char *CommandLine, int& OutExitCode,

@@ -6,6 +6,7 @@ Copyright (C) 2012, Leszek Godlewski <github@inequation.org>
 #include <cassert>
 #include <cstring>
 #include <cstdio>
+#include <algorithm>
 #include "X86AssemblyGenerator.h"
 #include "X86Assembly.h"
 #include "X86ModuleInterface.h"
@@ -180,7 +181,8 @@ void X86AssemblyGenerator::Generate(CodeGenerationContext& Context) const
 	Context.Emitf(Asm_Epilogue);
 }
 
-void X86AssemblyGenerator::Build(ConstructionContext& Context) const
+void X86AssemblyGenerator::Build(ConstructionContext& Context,
+	char *OutBinaryPath, size_t OutBinaryPathSize) const
 {
 	// some sanity checking
 	if (!Context.FileName)
@@ -221,11 +223,10 @@ void X86AssemblyGenerator::Build(ConstructionContext& Context) const
 		if (Context.Result != CR_Success)
 			return;
 
-		char FileName[256];
-		const size_t BaseNameLength = Extension - ListFile;
-		strncpy(FileName, Context.FileName, BaseNameLength);
-		FileName[BaseNameLength] = 0;
-		Context.LoadBinaryFile(FileName);
+		const size_t BaseNameLength = std::min((size_t)(Extension - ListFile),
+			OutBinaryPathSize - 1);
+		strncpy(OutBinaryPath, Context.FileName, BaseNameLength);
+		OutBinaryPath[BaseNameLength] = 0;
 
 		Context.Result = CR_Success;
 		Context.Stage = CS_Finished;

@@ -155,6 +155,7 @@
 		<Unit filename="src/X86Assembly/Mod_SimulatePost.h" />
 		<Unit filename="src/X86Assembly/Mod_SimulatePre.cpp" />
 		<Unit filename="src/X86Assembly/Mod_SimulatePre.h" />
+		<Unit filename="src/X86Assembly/X86Assembly.h" />
 		<Unit filename="src/X86Assembly/X86AssemblyGenerator.cpp" />
 		<Unit filename="src/X86Assembly/X86AssemblyGenerator.h" />
 		<Unit filename="src/X86Assembly/X86DistributionInterface.h" />

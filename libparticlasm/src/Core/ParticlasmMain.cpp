@@ -29,60 +29,15 @@ Copyright (C) 2011-2012, Leszek Godlewski <github@inequation.org>
 #include "../X86Assembly/X86AssemblyGenerator.h"
 #include "../X86Assembly/X86Launcher.h"
 
-namespace mt19937 {
-	extern void init_by_array(unsigned long init_key[], int key_length);
-}
-
-/// Internal assembly module size measuring procedure. Increases the counters
-/// pointed at with the sizes of the corresponding buffers.
-///	\param	module					module to measure
-/// \param	spawnCodeBufLenPtr		pointer to spawn code buffer length
-/// \param	processCodeBufLenPtr	pointer to processing code buffer length
-/// \param	dataBufLenPtr			pointer to spawn code buffer length
-extern void ptcInternalMeasureModule(ptcModule *module,
-	size_t *spawnCodeBufLenPtr, size_t *processCodeBufLenPtr,
-	size_t *dataBufLenPtr);
-
-/// Internal assembly module compilation procedure. Puts the resulting code and
-/// data in the indicated buffers and advances the indicated pointers.
-/// \param	module					module whose code will be compiled
-/// \param	spawnCodeBufPtr			pointer to a pointer to the spawn code buffer, will be advanced by the compiler
-/// \param	processCodeBufPtr		pointer to a pointer to the processing code buffer, will be advanced by the compiler
-/// \param	dataBufPtr				pointer to a pointer to the data buffer, will be advanced by the compiler
-extern void ptcInternalCompileModule(ptcModule *module,
-	void **spawnCodeBufPtr, void **processCodeBufPtr,
-	void **dataBufPtr);
-
-/// Internal particle spawning procedure. Performs the control logic and calls
-/// the spawn code buffer accordingly.
-/// \param	emitter					emitter to process
-/// \param	step					simulation step time
-/// \param	count					number of particles to spawn
-extern void ptcInternalSpawnParticles(ptcEmitter *emitter, float step,
-	size_t count);
-
-/// Internal particle processing procedure. Performs the control logic and calls
-/// the processing code buffer accordingly, emitting vertices to the given
-/// buffer.
-/// \param	emitter					emitter to process
-/// \param	startPtr				pointer to the start of the particle buffer segment to process
-/// \param	endPtr					pointer to just beyond the end of the particle buffer segment to process
-/// \param	step					simulation step time
-/// \param	cameraCS				camera coordinate system - 3 unit-length vectors: forward, right and up
-/// \param	buffer					buffer to emit vertices to
-/// \param	maxVertices				maximum number of vertices to emit
-extern size_t ptcInternalProcessParticles(ptcEmitter *emitter,
-	ptcParticle *startPtr, ptcParticle *endPtr, float step,
-	ptcVector cameraCS[3], ptcVertex *buffer, size_t maxVertices);
-
-FILE *Code;
+FILE *GSourceCode;
+const LauncherInterface *GLauncher = NULL;
 
 static void CodeEmitf(const char *fmt, ...)
 {
 	va_list argptr;
 
 	va_start(argptr, fmt);
-	vfprintf(Code, fmt, argptr);
+	vfprintf(GSourceCode, fmt, argptr);
 	va_end(argptr);
 }
 
@@ -111,7 +66,8 @@ static const void *OpenIntermediateFile(const char *Path, FileAccessMode Mode,
 		close(fd);
 		return NULL;
 	}
-	*OutFileSize = FileStat.st_size;
+	if (OutFileSize)
+		*OutFileSize = FileStat.st_size;
 
 	size_t MappingLength;
 	switch(Mode & 0x03)
@@ -156,15 +112,47 @@ static void DeleteIntermediateFile(const char *Path)
 #endif
 }
 
-static void LoadBinaryFile(const char *Path)
+PTC_ATTRIBS uint32_t ptcQueryTargetSupport(ptcTarget target)
 {
-#ifdef NDEBUG
-	remove(Path);
-#endif
+	// TODO
+	switch (target)
+	{
+		case ptcTarget_x86_Linux:
+		case ptcTarget_x86_64_Linux:
+		case ptcTarget_x86_Windows:
+		case ptcTarget_x86_64_Windows:
+			return 1;
+	}
+	return 0;
 }
 
-/// \sa PFNPTCCOMPILEEMITTER
-extern "C" uint32_t EXPORTDECL ptcCompileEmitter(ptcEmitter *emitter)
+PTC_ATTRIBS uint32_t ptcInitializeTarget(ptcTarget target, void *privateData)
+{
+	// TODO
+	switch (target)
+	{
+		case ptcTarget_x86_Linux:
+		case ptcTarget_x86_64_Linux:
+		case ptcTarget_x86_Windows:
+		case ptcTarget_x86_64_Windows:
+			if (!GLauncher)
+				GLauncher = new X86Launcher();
+			return 1;
+	}
+	return 0;
+}
+
+PTC_ATTRIBS void ptcShutdownTarget(ptcTarget target, void *privateData)
+{
+	// TODO
+	if (GLauncher)
+	{
+		delete GLauncher;
+		GLauncher = NULL;
+	}
+}
+
+PTC_ATTRIBS uint32_t ptcCompileEmitter(ptcEmitter *emitter)
 {
 	static char CodeFileName[256] = {0};
 
@@ -180,7 +168,7 @@ extern "C" uint32_t EXPORTDECL ptcCompileEmitter(ptcEmitter *emitter)
 		X86AssemblyGenerator::PLATFORM_Linux,
 		CodeFileName, sizeof(CodeFileName));
 
-	Code = fopen(CodeFileName, "w");
+	GSourceCode = fopen(CodeFileName, "w");
 
 	CodeGenerationContext GenContext(emitter, CodeEmitf);
 
@@ -189,59 +177,73 @@ extern "C" uint32_t EXPORTDECL ptcCompileEmitter(ptcEmitter *emitter)
 		GenContext.GetResultString(), GenContext.ResultArgument,
 		GenContext.CurrentModuleIndex, GenContext.GetStageString());
 
-	fclose(Code);
+	fclose(GSourceCode);
 
 	if (GenContext.Result == GR_Success)
 	{
-		static char OutputBuffer[16384];
+		static char OutputBuffer[16384], BinaryPath[256];
 		OutputBuffer[0] = 0;
 
 		ConstructionContext ConsContext(CodeFileName,
 			OpenIntermediateFile,
 			CloseIntermediateFile,
 			DeleteIntermediateFile,
-			LoadBinaryFile,
 			OutputBuffer, sizeof(OutputBuffer),
 			OutputBuffer, sizeof(OutputBuffer));
-		Generator.Build(ConsContext);
+		Generator.Build(ConsContext, BinaryPath, sizeof(BinaryPath));
+
+		size_t BlobSize;
+		GLauncher->LoadRawBinary(emitter,
+			OpenIntermediateFile(BinaryPath, FAM_Read, &BlobSize), BlobSize,
+			ConsContext.DataOffset,
+			ConsContext.SpawnCodeOffset,
+			ConsContext.ProcessCodeOffset);
 
 		printf("Construction finished with %s (arg %d) "
-			"in stage %s\n"
+			"in stage %s, output saved to %s\n"
 			"Spawn offset: 0x%08X Process offset: 0x%08X\n"
 			"== Toolchain log starts here ==\n"
 			"%s\n"
 			"== Toolchain log ends here ==\n",
 			ConsContext.GetResultString(), ConsContext.ResultArgument,
-			ConsContext.GetStageString(), ConsContext.SpawnCodeOffset,
-			ConsContext.ProcessCodeOffset, OutputBuffer);
+			ConsContext.GetStageString(), BinaryPath,
+			ConsContext.SpawnCodeOffset, ConsContext.ProcessCodeOffset,
+			OutputBuffer);
 	}
 
 #ifdef NDEBUG
 	remove(CodeFileName);
 #endif
 
-	// use the opportunity to initialize the mersenne twister
-	unsigned long init[4] = {
-		(unsigned long)rand(), (unsigned long)rand(),
-		(unsigned long)rand(), (unsigned long)rand()
-	}, length = 4;
-    mt19937::init_by_array(init, length);
-
 	return 0;
 }
 
-// entry point to the particle processing routine
-// responsible for some high level organization
-/// \sa PFNPTCPROCESSEMITTER
-extern "C" size_t EXPORTDECL ptcProcessEmitter(ptcEmitter *emitter, float step,
+PTC_ATTRIBS size_t EXPORTDECL ptcProcessEmitter(ptcEmitter *emitter, float step,
 		ptcVector cameraCS[3], ptcVertex *buffer, size_t maxVertices)
 {
 	return 0;
 }
 
-/// \sa PFNPTCRELEASEEMITTER
-extern "C" void EXPORTDECL ptcReleaseEmitter(ptcEmitter *emitter)
+PTC_ATTRIBS void ptcReleaseEmitter(ptcEmitter *emitter)
 {
+}
+
+/// \sa PFNGETPTCAPI
+extern "C" EXPORTDECL uint32_t ptcGetAPI(uint32_t version,
+	ptcAPIExports *API)
+{
+	// FIXME!!!
+	//if (version == PTC_VERSION)
+	{
+		API->QueryTargetSupport = ptcQueryTargetSupport;
+		API->InitializeTarget = ptcInitializeTarget;
+		API->ShutdownTarget = ptcShutdownTarget;
+		API->CompileEmitter = ptcCompileEmitter;
+		API->ProcessEmitter = ptcProcessEmitter;
+		API->ReleaseEmitter = ptcReleaseEmitter;
+		return 1;
+	}
+	return 0;
 }
 
 #ifndef NDEBUG

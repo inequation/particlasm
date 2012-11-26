@@ -11,43 +11,25 @@ Copyright (C) 2012, Leszek Godlewski <github@inequation.org>
 
 typedef size_t (* PFNWRITE)(void *Source, size_t Bytes);
 
-/**
-Compiled binary launcher interface. The Curiously Recurring Template Pattern is
-used to achieve compile-time polymorphism to avoid unnecessary dereferences at
-runtime.
-*/
-template <class LauncherImplementation>
 class LauncherInterface
 {
 	public:
-		static bool LoadCachedBinary(ptcEmitter *Emitter, void *Buffer,
-			const size_t Size)
-		{
-			return LauncherImplementation::LoadCachedBinaryImpl(Emitter,
-				Buffer, Size);
-		}
+		virtual bool LoadCachedBinary(ptcEmitter *Emitter, const void *Buffer,
+			const size_t Size) const = 0;
 
-		static size_t WriteCachedBinary(ptcEmitter *Emitter,
-			PFNWRITE WriteCallback)
-		{
-			return LauncherImplementation::WriteCachedBinary(Emitter,
-				WriteCallback);
-		}
+		virtual size_t WriteCachedBinary(ptcEmitter *Emitter,
+			PFNWRITE WriteCallback) const = 0;
 
-		static void LoadRawBinary(ptcEmitter *Emitter, void *Buffer,
+		virtual bool LoadRawBinary(ptcEmitter *Emitter, const void *Buffer,
 			const size_t Size, const size_t DataOffset,
-			const size_t SpawnCodeOffset,const size_t ProcessCodeOffset)
-		{
-			LauncherImplementation::LoadRawBinaryImpl(Emitter, Buffer, Size,
-				SpawnCodeOffset, ProcessCodeOffset);
-		}
+			const size_t SpawnCodeOffset, const size_t ProcessCodeOffset)
+			const = 0;
 
-		static size_t Launch(ptcEmitter *Emitter, float Step,
+		virtual void Unload(ptcEmitter *Emitter) const = 0;
+
+		virtual size_t Launch(ptcEmitter *Emitter, float Step,
 			ptcVector CameraCS[3], ptcVertex *Buffer, size_t MaxVertices)
-		{
-			return LauncherImplementation::LaunchImpl(Emitter, Step, CameraCS,
-				Buffer, MaxVertices);
-		}
+			const = 0;
 };
 
 #endif // LAUNCHERINTERFACE_H

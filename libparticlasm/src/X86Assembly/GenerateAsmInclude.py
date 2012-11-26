@@ -184,7 +184,10 @@ def parse_C_header(path):
 		elif (state == 2):
 			if (l.startswith("}")):
 				si["symbol"] = l[2 : l.find(";")]
-				structs.append(si)
+				# ignore the API exports, they're useless in assembly and hard
+				# to parse
+				if (si["symbol"] != "ptcAPIExports"):
+					structs.append(si)
 				state = 0
 				continue
 			tokens = l.split()

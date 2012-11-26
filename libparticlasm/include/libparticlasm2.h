@@ -1,10 +1,11 @@
 /**
 Particlasm 2
-libparticlasm API header
+libparticlasm2 API header
 Copyright (C) 2011-2012, Leszek Godlewski <github@inequation.org>
 
-This file is also used for automatic NASM declaration generation (see the
-GenerateAsmInclude.py script).
+This file is also used for automatic generation of target-specific declarations
+(for an example, see the \a GenerateAsmInclude.py script in the X86Assembly
+target source tree).
 
 \author Leszek Godlewski
 */
@@ -261,6 +262,11 @@ typedef union ptcModule_u {
 
 /// @}
 
+// ============================================================================
+
+/// \name Emitter-specific and runtime structures
+/// @{
+
 /// Individual run-time particle structure.
 typedef struct {
 	uint32_t	Active;			///< zero - particle is inactive, non-zero - active
@@ -305,45 +311,92 @@ typedef struct {
 	ptcParticle			*ParticleBuf;	///< pointer to particle buffer
 } ptcEmitter;
 
+/// @}
+
+// ============================================================================
+
+/// \name Entry point and APIs
+/// @{
+
 /// Function attribute declaration - here, we're explicitly declaring the
 /// calling convention as cdecl (for 32-bit platforms; there is only one
 /// convention on x86-64) with 16-byte stack alignment.
 #ifdef __GNUC__
-	#if __x86_64__
-		#define PTC_ATTRIBS
-	#else
-		#define PTC_ATTRIBS	__attribute__((cdecl))
-	#endif // __x86_64__
+       #if __x86_64__
+               #define PTC_ATTRIBS
+       #else
+               #define PTC_ATTRIBS     __attribute__((cdecl))
+       #endif // __x86_64__
 #else
-	#if _WIN64
-		#define PTC_ATTRIBS
-	#else
-		#define PTC_ATTRIBS	__declspec(cdecl)
-	#endif // _WIN64
+       #if _WIN64
+               #define PTC_ATTRIBS
+       #else
+               #define PTC_ATTRIBS     __declspec(cdecl)
+       #endif // _WIN64
 #endif // __GNUC__
 
-/// Compiles a particle emitter given the emitter settings. Sets
-/// emitter->InternalPtr*.
-/// \param	emitter				emitter to compile
-/// \return	non-zero on success, zero on failure
-typedef PTC_ATTRIBS uint32_t (* PFNPTCCOMPILEEMITTER)(ptcEmitter *emitter);
+typedef struct {
+	/// Queries the library whether support for the given target platform has been
+	/// compiled in.
+	/// \param	target		a \a ptcTarget enumeration member
+	/// \return non-zero if target is supported, zero if it's not
+	/// \sa PFNPTCGETAPI
+	PTC_ATTRIBS uint32_t (* QueryTargetSupport)(ptcTarget target);
 
-/// Spawns new particles according to the given emitter's parameters and
-/// advances all the existing ones by a simulation step, emitting particle
-/// vertices to the given buffer.
-/// \param	emitter		pointer to the emitter in question
-/// \param	step		simulation time step
-/// \param	cameraCS	camera coordinate system (forward, right, up vectors)
-/// \param	buffer		pointer to the vertex buffer to emit particle vertices to
-/// \param	maxVertices	maximum number of vertices to emit
-/// \return	number of particle vertices emitted
-typedef PTC_ATTRIBS size_t (* PFNPTCPROCESSEMITTER)(ptcEmitter *emitter,
-	ptcScalar step, ptcVector cameraCS[3], ptcVertex *buffer,
-	size_t maxVertices);
+	/// Initializes the given target.
+	/// \param	target		a \a ptcTarget enumeration member
+	/// \param	privateData	pointer to target-specific private data; refer to target documentation for details
+	/// \return non-zero on success, zero on failure
+	PTC_ATTRIBS uint32_t (* InitializeTarget)(ptcTarget target,
+		void *privateData);
 
-/// Releases all resources related to this emitter.
-/// \param	emitter				emitter to release
-typedef PTC_ATTRIBS void (* PFNPTCRELEASEEMITTER)(ptcEmitter *emitter);
+	/// Shuts down the given target.
+	/// \param	target		a \a ptcTarget enumeration member
+	/// \param	privateData	pointer to target-specific private data; refer to target documentation for details
+	PTC_ATTRIBS void (* ShutdownTarget)(ptcTarget target,
+		void *privateData);
+
+	/// Compiles a particle emitter given the emitter settings. Sets
+	/// emitter->InternalPtr*.
+	/// \param	emitter				emitter to compile
+	/// \return	non-zero on success, zero on failure
+	/// \sa PFNPTCGETAPI
+	PTC_ATTRIBS uint32_t (* CompileEmitter)(ptcEmitter *emitter);
+
+	/// Spawns new particles according to the given emitter's parameters and
+	/// advances all the existing ones by a simulation step, emitting particle
+	/// vertices to the given buffer.
+	/// \param	emitter		pointer to the emitter in question
+	/// \param	step		simulation time step
+	/// \param	cameraCS	camera coordinate system (forward, right, up vectors)
+	/// \param	buffer		pointer to the vertex buffer to emit particle vertices to
+	/// \param	maxVertices	maximum number of vertices to emit
+	/// \return	number of particle vertices emitted
+	/// \sa PFNPTCGETAPI
+	PTC_ATTRIBS size_t (* ProcessEmitter)(ptcEmitter *emitter,
+		ptcScalar step, ptcVector cameraCS[3], ptcVertex *buffer,
+		size_t maxVertices);
+
+	/// Releases all resources related to this emitter.
+	/// \param	emitter		emitter to release
+	/// \sa PFNPTCGETAPI
+	PTC_ATTRIBS void (* ReleaseEmitter)(ptcEmitter *emitter);
+} ptcAPIExports;
+
+/// The actual entry point to the library.
+/// \param	clientVersion	the API version the client has been compiled with
+/// \param	API				pointer to a ptcAPIExports structure that gets filled with function addresses, if compiled and linked versions match; it is untouched otherwise
+/// \return non-zero on success, zero on failure (compiled vs linked version mismatch)
+/// \sa PTC_ENTRY_POINT
+typedef PTC_ATTRIBS uint32_t (* PFNPTCGETAPI)(uint32_t clientVersion,
+	ptcAPIExports *API);
+
+/// Stringized name of the library's entry point. For convenience when using GetProcAddress() or dlsym().
+/// \sa PTC_ENTRY_POINT_S
+/// \sa PFNPTCGETAPI
+#define PTC_ENTRY_POINT		"ptcGetAPI"
+
+/// @}
 
 #ifdef __cplusplus
 }
