@@ -31,12 +31,19 @@ BITS {%s}
 ;%include "libparticlasm.inc"
 {%s}
 
+; relative addressing modes for 32 and 64 bits
+%ifidn __BITS__,32
+	%define rel_addr(x)	__si + x
+%else
+	%define rel_addr(x)	rel x
+%endif
+
 ; a macro for calling the external lib functions from within the emitter code
 ; %1 - function to retrieve
 ; %2 - intermediate register (usually __ax)
 %macro extlib 2
 	mov		%2, [__bp + 2 * sizeof(ptr_t) + ptcExtLib.%1]
-	call	[%2]
+	call	%2
 %endmacro
 
 ; flag-based colour component mixing
@@ -51,7 +58,7 @@ BITS {%s}
 	test	__ax, ptcCF_SetRGB
 	jz		%%alpha
 	; mask out alpha from the distribution value and add in the original alpha
-	mov		__ax, MASK_RGB
+	lea		__ax, [rel_addr(MASK_RGB)]
 	movups	xmm7, [__ax]
 	andps	xmm6, xmm7
 	andnps	xmm7, xmm5
@@ -62,7 +69,7 @@ BITS {%s}
 	test	__ax, ptcCF_SetAlpha
 	jz		%%end
 	; mask out RGB from the distribution value and add in the original RGB
-	mov		__ax, MASK_ALPHA
+	lea		__ax, [rel_addr(MASK_ALPHA)]
 	movups	xmm7, [__ax]
 	andps	xmm6, xmm7
 	andnps	xmm7, xmm5
@@ -79,6 +86,7 @@ default rel
 
 [list +]
 
+__Origin:
 ; xmm masks for colour components - used in colour mixing
 MASK_RGB		dd	0xFFFFFFFF
 				dd	0xFFFFFFFF

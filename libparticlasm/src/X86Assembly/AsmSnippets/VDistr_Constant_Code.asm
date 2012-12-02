@@ -1,2 +1,2 @@
 	; CONSTANT VECTOR DISTRIBUTION
-	movups	xmm5, [__Data.Offset{%d}]
+	movups	xmm5, [rel_addr(__Data.Offset{%d})]

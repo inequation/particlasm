@@ -41,30 +41,18 @@ ptcAPIExports	ptcAPI;
 #define TEST_FRAMERATE	60
 
 // declare the right target platform
-#if defined(WIN32) || defined(_WIN32) || defined(_WIN32_WINNT)
-	#if defined(_M_AMD64) || defined(amd64) || defined (__amd64__)
-		#define LOCAL_TARGET	ptcTarget_x86_64_Windows
-	#else
-		#define LOCAL_TARGET	ptcTarget_x86_Windows
-	#endif
+#if defined(_M_AMD64) || defined(amd64) || defined (__amd64__)
+	#define LOCAL_TARGET	ptcTarget_x86_64
 #else
-	#if defined(amd64) || defined (__amd64__)
-		#define LOCAL_TARGET	ptcTarget_x86_64_Linux
-	#else
-		#define LOCAL_TARGET	ptcTarget_x86_Linux
-	#endif
-#endif // WIN32
-
-extern "C" {
+	#define LOCAL_TARGET	ptcTarget_x86
+#endif
 
 extern PTC_ATTRIBS uint32_t ref_ptcCompileEmitter(ptcEmitter *emitter);
 extern PTC_ATTRIBS size_t ref_ptcProcessEmitter(ptcEmitter *emitter,
 	float step, ptcVector cameraCS[3], ptcVertex *buffer, size_t maxVertices);
 extern PTC_ATTRIBS void ref_ptcReleaseEmitter(ptcEmitter *emitter);
 
-extern size_t Fire(ptcEmitter **emitters);
-
-}
+extern "C" size_t Fire(ptcEmitter **emitters);
 
 SO_HANDLE libparticlasmHandle = NULL;
 
@@ -134,7 +122,7 @@ bool InitParticlasm(bool cpp) {
 			return false;
 		}
 		ptcGetAPI = (PFNPTCGETAPI)dlsym(libparticlasmHandle, PTC_ENTRY_POINT);
-		if (ptcGetAPI && ptcGetAPI(0 /* TODO */, &ptcAPI)
+		if (ptcGetAPI && ptcGetAPI(PTC_API_VERSION, &ptcAPI)
 			&& ptcAPI.InitializeTarget(LOCAL_TARGET, NULL))
 			return true;
 #if defined(WIN32) || defined(_WIN32) || defined(_WIN32_WINNT)
@@ -154,7 +142,7 @@ bool InitParticlasm(bool cpp) {
 
 void FreeParticlasm() {
 	if (libparticlasmHandle) {
-		ptcAPI.ShutdownTarget(LOCAL_TARGET, NULL);
+		ptcAPI.ShutdownTarget(NULL);
 		dlclose(libparticlasmHandle);
 	}
 }

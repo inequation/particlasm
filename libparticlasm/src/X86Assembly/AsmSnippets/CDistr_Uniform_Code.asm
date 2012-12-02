@@ -1,6 +1,6 @@
 	; UNIFORM COLOUR DISTRIBUTION
-	movups	xmm6, [__Data.Offset{%d}]	; range[0]
-	movups	xmm7, [__Data.Offset{%d} + 4 * sizeof(float)]	; range[1]
+	movups	xmm6, [rel_addr(__Data.Offset{%d})]	; range[0]
+	movups	xmm7, [rel_addr(__Data.Offset{%d} + 4 * sizeof(float))]	; range[1]
 	subps	xmm7, xmm6
 	; save off __ax and __dx
 	push	__ax

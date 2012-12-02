@@ -13,7 +13,7 @@ class Mod_SimulatePre;
 class Mod_SimulatePost;
 class X86ModuleInterface;
 
-class X86AssemblyGenerator : public CodeGeneratorInterface
+class X86Generator : public CodeGeneratorInterface
 {
 	public:
 		typedef enum
@@ -23,15 +23,7 @@ class X86AssemblyGenerator : public CodeGeneratorInterface
 		}
 		EArchitecture;
 
-		typedef enum
-		{
-			PLATFORM_Linux,
-			PLATFORM_Windows
-		}
-		EPlatform;
-
-		X86AssemblyGenerator(EArchitecture InArch, EPlatform InPlatform,
-			char *CodeFileName, size_t CodeFileNameSize);
+		X86Generator(EArchitecture InArch);
 
 		virtual void Generate(CodeGenerationContext& Context) const;
 		virtual void Build(ConstructionContext& Context, char *OutBinaryPath,
@@ -39,8 +31,6 @@ class X86AssemblyGenerator : public CodeGeneratorInterface
 
 	private:
 		EArchitecture	Arch;
-		EPlatform		Platform;
-
 		static const Mod_SimulatePre SimPre;
 		static const Mod_SimulatePost SimPost;
 		static const X86ModuleInterface *ModuleMap[];

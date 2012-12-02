@@ -58,10 +58,9 @@ enum ptcDistributionID {
 
 /// Enumeration of supported target platforms.
 enum ptcTarget {
-	ptcTarget_x86_Linux		= 0,	///< x86 assembly on Linux i386
-	ptcTarget_x86_64_Linux,			///< x86-64 assembly on Linux amd64
-	ptcTarget_x86_Windows,			///< x86 assembly on 32-bit Windows
-	ptcTarget_x86_64_Windows		///< x86-64 assembly on 64-bit Windows
+	ptcTarget_RuntimeInterpreter,	///< runtime interpreter written in C++ (a.k.a. reference implementation)
+	ptcTarget_x86,					///< x86 (i386) assembly
+	ptcTarget_x86_64,				///< x86-64 (AMD64) assembly
 };
 
 /// @}
@@ -351,10 +350,8 @@ typedef struct {
 		void *privateData);
 
 	/// Shuts down the given target.
-	/// \param	target		a \a ptcTarget enumeration member
 	/// \param	privateData	pointer to target-specific private data; refer to target documentation for details
-	PTC_ATTRIBS void (* ShutdownTarget)(ptcTarget target,
-		void *privateData);
+	PTC_ATTRIBS void (* ShutdownTarget)(void *privateData);
 
 	/// Compiles a particle emitter given the emitter settings. Sets
 	/// emitter->InternalPtr*.
@@ -383,11 +380,16 @@ typedef struct {
 	PTC_ATTRIBS void (* ReleaseEmitter)(ptcEmitter *emitter);
 } ptcAPIExports;
 
+/// Compiled-in version of libparticlasm API.
+/// \sa PFNPTCGETAPI
+#define PTC_API_VERSION		1
+
 /// The actual entry point to the library.
-/// \param	clientVersion	the API version the client has been compiled with
+/// \param	clientVersion	the \a PTC_API_VERSION the client has been compiled with
 /// \param	API				pointer to a ptcAPIExports structure that gets filled with function addresses, if compiled and linked versions match; it is untouched otherwise
 /// \return non-zero on success, zero on failure (compiled vs linked version mismatch)
 /// \sa PTC_ENTRY_POINT
+/// \sa PTC_API_VERSION
 typedef PTC_ATTRIBS uint32_t (* PFNPTCGETAPI)(uint32_t clientVersion,
 	ptcAPIExports *API);
 

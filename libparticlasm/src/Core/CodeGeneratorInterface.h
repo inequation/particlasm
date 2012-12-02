@@ -35,12 +35,18 @@ typedef enum
 }
 GenerationStage;
 
-typedef PTC_ATTRIBS void (* PFNBUFFERPRINTF)(const char *fmt, ...);
+typedef PTC_ATTRIBS void (* PFNOPENSOURCEFILE)(const char *Path);
+typedef PTC_ATTRIBS void (* PFNSOURCEEMITF)(const char *fmt, ...);
+typedef PTC_ATTRIBS void (* PFNCLOSESOURCEFILE)();
 
 struct CodeGenerationContext
 {
+	PFNOPENSOURCEFILE		OpenSourceFile;
+	PFNSOURCEEMITF			Emitf;
+	PFNCLOSESOURCEFILE		CloseSourceFile;
+
 	ptcEmitter				*Emitter;
-	PFNBUFFERPRINTF			Emitf;
+	const char				*SourceFileBaseName;
 
 	int						CurrentModuleIndex;
 	GenerationStage			Stage;
@@ -49,17 +55,24 @@ struct CodeGenerationContext
 
 	void					*PrivateData;
 
-	CodeGenerationContext(ptcEmitter *InEmitter, PFNBUFFERPRINTF InEmitf)
+	CodeGenerationContext(ptcEmitter *InEmitter,
+		const char *InSourceFileBaseName, PFNOPENSOURCEFILE InOpenSourceFile,
+		PFNSOURCEEMITF InEmitf, PFNCLOSESOURCEFILE InCloseSourceFile)
 		:
-		Emitter(InEmitter),
+		OpenSourceFile(InOpenSourceFile),
 		Emitf(InEmitf),
+		CloseSourceFile(InCloseSourceFile),
+		Emitter(InEmitter),
+		SourceFileBaseName(InSourceFileBaseName),
 		CurrentModuleIndex(-1),
 		Stage(GS_Started),
 		Result(GR_Success),
 		ResultArgument(0),
 		PrivateData(NULL)
 	{
+		assert(OpenSourceFile);
 		assert(Emitf);
+		assert(CloseSourceFile);
 	}
 
 #define CG_ENUM_STR(x)	case x:	return #x; break
@@ -134,7 +147,7 @@ typedef PTC_ATTRIBS void (* PFNDELETEINTERMEDIATEFILE)(const char *Path);
 
 struct ConstructionContext
 {
-	char					*FileName;
+	char					*SourceBaseFileName;
 	char					*StdoutBuffer;
 	size_t					StdoutBufferSize;
 	char					*StderrBuffer;
@@ -153,14 +166,14 @@ struct ConstructionContext
 
 	void					*PrivateData;
 
-	ConstructionContext(char *InFileName,
+	ConstructionContext(char *InSourceBaseFileName,
 		PFNOPENINTERMEDIATEFILE InOpenIntermediateFile,
 		PFNCLOSEINTERMEDIATEFILE InCloseIntermediateFile,
 		PFNDELETEINTERMEDIATEFILE InDeleteIntermediateFile,
 		char *InStdoutBuffer = NULL, size_t InStdoutBufferSize = 0,
 		char *InStderrBuffer = NULL, size_t InStderrBufferSize = 0)
 		:
-		FileName(InFileName),
+		SourceBaseFileName(InSourceBaseFileName),
 		StdoutBuffer(InStdoutBuffer),
 		StdoutBufferSize(InStdoutBufferSize),
 		StderrBuffer(InStderrBuffer),
@@ -209,6 +222,8 @@ struct ConstructionContext
 class CodeGeneratorInterface
 {
 	public:
+		virtual ~CodeGeneratorInterface() {}
+
 		virtual void Generate(CodeGenerationContext& Context) const = 0;
 		virtual void Build(ConstructionContext& Context, char *OutBinaryPath,
 			size_t OutBinaryPathSize) const = 0;

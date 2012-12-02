@@ -20,14 +20,45 @@
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include <SDL/SDL.h>
-#include <dlfcn.h>
 #include <ctime>
+
+#if defined(WIN32) || defined(_WIN32) || defined(_WIN32_WINNT)
+	#define WIN32_LEAN_AND_MEAN
+	#include <windows.h>
+	#include <time.h>
+	#define PLATFORM		"windows"
+	#define PATH_SEPARATOR	"\\"
+	#define LOCAL_PATH
+	#define SO_EXT			".dll"
+	typedef HMODULE			SO_HANDLE;
+	#define dlopen(a, b)	LoadLibrary(a)
+	#define dlsym(a, b)		GetProcAddress(a, b)
+	#define dlclose(a)		FreeLibrary(a)
+#else
+	#include <unistd.h>
+	#include <dlfcn.h>
+	#include <sys/time.h>
+	#define PLATFORM		"linux"
+	#define PATH_SEPARATOR	"/"
+	#define LOCAL_PATH		"./"
+	#define SO_EXT			".so"
+	typedef void			*SO_HANDLE;
+	// change this to 0 if your compiler complains about dladdr
+	#define HAVE_DLADDR		1
+#endif // WIN32
+
+#if defined(_M_AMD64) || defined(amd64) || defined (__amd64__)
+	#define ARCH			"x64"
+	#define LOCAL_TARGET	ptcTarget_x86_64
+#else
+	#define ARCH			"x86"
+	#define LOCAL_TARGET	ptcTarget_x86
+#endif
 
 // particlasm functions
 #include <libparticlasm2.h>
-PFNPTCCOMPILEEMITTER	ptcCompileEmitter;
-PFNPTCPROCESSEMITTER	ptcProcessEmitter;
-PFNPTCRELEASEEMITTER	ptcReleaseEmitter;
+PFNPTCGETAPI	ptcGetAPI;
+ptcAPIExports	ptcAPI;
 
 //#define USE_CPP_REFERENCE_IMPLEMENTATION
 
@@ -42,22 +73,39 @@ void *libparticlasmHandle = NULL;
 
 bool InitParticlasm() {
 #ifdef USE_CPP_REFERENCE_IMPLEMENTATION
-	ptcCompileEmitter = ref_ptcCompileEmitter;
-	ptcProcessEmitter = ref_ptcProcessEmitter;
-	ptcReleaseEmitter = ref_ptcReleaseEmitter;
+	ptcAPI.CompileEmitter = ref_ptcCompileEmitter;
+	ptcAPI.ProcessEmitter = ref_ptcProcessEmitter;
+	ptcAPI.ReleaseEmitter = ref_ptcReleaseEmitter;
 	return true;
 #else
-	libparticlasmHandle = dlopen("/home/inequation/projects/particlasm/bin/Debug/libparticlasm.so", RTLD_NOW);
+	libparticlasmHandle = dlopen(LOCAL_PATH "libparticlasm2-" PLATFORM "-" ARCH SO_EXT, RTLD_NOW);
 	if (!libparticlasmHandle) {
+#if defined(WIN32) || defined(_WIN32) || defined(_WIN32_WINNT)
+		TCHAR *errStr;
+		FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM
+			| FORMAT_MESSAGE_ALLOCATE_BUFFER, NULL, GetLastError(),
+			LANG_USER_DEFAULT, (LPSTR)&errStr, 0, NULL);
+		printf("GetLastError: %s\n", errStr);
+		LocalFree((HLOCAL)errStr);
+#else
 		printf("dlerror: %s\n", dlerror());
+#endif
 		return false;
 	}
-	ptcCompileEmitter = (PFNPTCCOMPILEEMITTER)dlsym(libparticlasmHandle, "ptcCompileEmitter");
-	ptcProcessEmitter = (PFNPTCPROCESSEMITTER)dlsym(libparticlasmHandle, "ptcProcessEmitter");
-	ptcReleaseEmitter = (PFNPTCRELEASEEMITTER)dlsym(libparticlasmHandle, "ptcReleaseEmitter");
-	if (ptcCompileEmitter && ptcProcessEmitter && ptcReleaseEmitter)
+	ptcGetAPI = (PFNPTCGETAPI)dlsym(libparticlasmHandle, PTC_ENTRY_POINT);
+	if (ptcGetAPI && ptcGetAPI(PTC_API_VERSION, &ptcAPI)
+		&& ptcAPI.InitializeTarget(LOCAL_TARGET, NULL))
 		return true;
+#if defined(WIN32) || defined(_WIN32) || defined(_WIN32_WINNT)
+	TCHAR *errStr;
+	FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM
+		| FORMAT_MESSAGE_ALLOCATE_BUFFER, NULL, GetLastError(),
+		LANG_USER_DEFAULT, (LPSTR)&errStr, 0, NULL);
+	printf("GetLastError: %s\n", errStr);
+	LocalFree((HLOCAL)errStr);
+#else
 	printf("dlerror: %s\n", dlerror());
+#endif
 	dlclose(libparticlasmHandle);
 	return false;
 #endif // USE_CPP_REFERENCE_IMPLEMENTATION
@@ -66,8 +114,10 @@ bool InitParticlasm() {
 void FreeParticlasm() {
 #ifdef USE_CPP_REFERENCE_IMPLEMENTATION
 #else
-	if (libparticlasmHandle)
+	if (libparticlasmHandle) {
+		ptcAPI.ShutdownTarget(NULL);
 		dlclose(libparticlasmHandle);
+	}
 #endif // USE_CPP_REFERENCE_IMPLEMENTATION
 }
 
@@ -109,7 +159,7 @@ static GLint prev_t = 0;
 void Quit( int returnCode )
 {
 	for (size_t i = 0; i < ptc_nemitters; ++i)
-		ptcReleaseEmitter(&ptc_emitters[i]);
+		ptcAPI.ReleaseEmitter(&ptc_emitters[i]);
 	// clean up particlasm
 	FreeParticlasm();
 
@@ -309,7 +359,7 @@ int initGL(void)
 	for (size_t i = 0; i < ptc_nemitters; ++i) {
 		ptc_emitters[i].ParticleBuf = ptc_particles;
 		ptc_emitters[i].MaxParticles = sizeof(ptc_particles) / sizeof(ptc_particles[0]);
-		if (!ptcCompileEmitter(&ptc_emitters[i]))
+		if (!ptcAPI.CompileEmitter(&ptc_emitters[i]))
 			return FALSE;
 	}
 	glEnableClientState(GL_VERTEX_ARRAY);
@@ -394,7 +444,7 @@ int drawGLScene(void)
 	ptc_nvertices = 0;
 	for (size_t i = 0; i < ptc_nemitters; ++i)
 	{
-		ptc_nvertices += ptcProcessEmitter(&ptc_emitters[i], frameTime,
+		ptc_nvertices += ptcAPI.ProcessEmitter(&ptc_emitters[i], frameTime,
 			cameraCS, ptc_vertices + ptc_nvertices,
 			sizeof(ptc_vertices) / sizeof(ptc_vertices[0]) - ptc_nvertices);
 	}
@@ -416,7 +466,7 @@ int drawGLScene(void)
 		if (t - T0 >= 1000) {
 			float seconds = (t - T0) / 1000.0;
 			float fps = Frames / seconds;
-			printf("%d frames in %.3g seconds = %.3g FPS, %d particles, %d vertices\n",
+			printf("%d frames in %.3g seconds = %.3g FPS, %lu particles, %lu vertices\n",
 				Frames, seconds, fps, ptc_emitters[0].NumParticles, ptc_nvertices);
 			T0 = t;
 			Frames = 0;

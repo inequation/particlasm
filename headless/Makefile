@@ -105,4 +105,4 @@ release-mingw-x64:
 	$(MAKE) release ARCH=x64 PLATFORM=windows CXX=x86_64-w64-mingw32-g++
 
 headless:
-	$(CXX) $(REAL_CXXFLAGS) $(REAL_LDFLAGS) -o $(OUTPUT_FULL_NAME) -DARCH=\"$(ARCH)\" -DPLATFORM=\"$(PLATFORM)\" headless.cpp ../hostapp/emitters.cpp ../libparticlasm/src/ReferenceImplementation.cpp
+	$(CXX) $(REAL_CXXFLAGS) $(REAL_LDFLAGS) -o $(OUTPUT_FULL_NAME) -DARCH=\"$(ARCH)\" -DPLATFORM=\"$(PLATFORM)\" headless.cpp ../hostapp/emitters.cpp ../libparticlasm/src/RuntimeInterpreter/RuntimeInterpreterImpl.cpp

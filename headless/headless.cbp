@@ -61,8 +61,7 @@
 			<Add directory="/usr/lib/gcc/x86_64-linux-gnu/4.6/32" />
 		</Linker>
 		<Unit filename="../hostapp/emitters.cpp" />
-		<Unit filename="../libparticlasm/ReferenceImplementation.cpp" />
-		<Unit filename="../libparticlasm/libparticlasm.h" />
+		<Unit filename="../libparticlasm/src/RuntimeInterpreter/RuntimeInterpreterImpl.cpp" />
 		<Unit filename="Makefile" />
 		<Unit filename="headless.cpp" />
 		<Extensions>

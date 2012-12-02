@@ -14,6 +14,8 @@ typedef size_t (* PFNWRITE)(void *Source, size_t Bytes);
 class LauncherInterface
 {
 	public:
+		virtual ~LauncherInterface() {};
+
 		virtual bool LoadCachedBinary(ptcEmitter *Emitter, const void *Buffer,
 			const size_t Size) const = 0;
 
@@ -27,8 +29,12 @@ class LauncherInterface
 
 		virtual void Unload(ptcEmitter *Emitter) const = 0;
 
-		virtual size_t Launch(ptcEmitter *Emitter, float Step,
-			ptcVector CameraCS[3], ptcVertex *Buffer, size_t MaxVertices)
+		virtual void SpawnParticles(ptcEmitter *Emitter, float TimeStep,
+			uint32_t Count) const = 0;
+
+		virtual uint32_t ProcessParticles(ptcEmitter *Emitter,
+			ptcParticle *StartPtr, ptcParticle *EndPtr, float TimeStep,
+			ptcVector CameraCS[3], ptcVertex *Buffer, uint32_t MaxVertices)
 			const = 0;
 };
 

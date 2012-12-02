@@ -7,7 +7,7 @@ Copyright (C) 2012, Leszek Godlewski <github@inequation.org>
 #include <cstring>
 #include <cstdio>
 #include <algorithm>
-#include "X86AssemblyGenerator.h"
+#include "X86Generator.h"
 #include "X86Assembly.h"
 #include "X86ModuleInterface.h"
 #include "X86SimpleModule.h"
@@ -28,9 +28,9 @@ Copyright (C) 2012, Leszek Godlewski <github@inequation.org>
 #define NEW_SM(Name, Type, Val, SpawnPost, ProcPost) \
 	NEW_SM_EX(Name, Type, Val, NULL, SpawnPost, NULL, ProcPost)
 
-const Mod_SimulatePre X86AssemblyGenerator::SimPre;
-const Mod_SimulatePost X86AssemblyGenerator::SimPost;
-const X86ModuleInterface *X86AssemblyGenerator::ModuleMap[] =
+const Mod_SimulatePre X86Generator::SimPre;
+const Mod_SimulatePost X86Generator::SimPost;
+const X86ModuleInterface *X86Generator::ModuleMap[] =
 {
 	NEW_SM(InitialLocation, ptcVector, Distr, Asm_Mod_InitialLocation, NULL),
 	NEW_SM(InitialRotation, ptcScalar, Distr, Asm_Mod_InitialRotation, NULL),
@@ -44,17 +44,15 @@ const X86ModuleInterface *X86AssemblyGenerator::ModuleMap[] =
 	new Mod_Gravity()
 };
 
-X86AssemblyGenerator::X86AssemblyGenerator(EArchitecture InArch,
-	EPlatform InPlatform, char *CodeFileName, size_t CodeFileNameSize) :
-	Arch(InArch),
-	Platform(InPlatform)
+X86Generator::X86Generator(EArchitecture InArch) :
+	Arch(InArch)
 {
-	strncat(CodeFileName, ".asm", CodeFileNameSize - strlen(CodeFileName));
+	// ctor
 }
 
 #define ARRAY_COUNT(a)	(sizeof(a) / sizeof((a)[0]))
 
-void X86AssemblyGenerator::Generate(CodeGenerationContext& Context) const
+void X86Generator::Generate(CodeGenerationContext& Context) const
 {
 	// some sanity checking
 	if (!Context.Emitter)
@@ -63,12 +61,19 @@ void X86AssemblyGenerator::Generate(CodeGenerationContext& Context) const
 		Context.ResultArgument = 0;
 		return;
 	}
-	if (!Context.Emitf)
+	if (!Context.OpenSourceFile || !Context.Emitf || !Context.CloseSourceFile)
 	{
 		Context.Result = GR_InvalidCallback;
 		Context.ResultArgument = 0;
 		return;
 	}
+
+	// construct the source code path and open the file for writing
+	char SourcePath[256];
+	strncpy(SourcePath, Context.SourceFileBaseName, sizeof(SourcePath) - 5);
+	SourcePath[sizeof(SourcePath) - 5] = 0;
+	strcat(SourcePath, ".asm");
+	Context.OpenSourceFile(SourcePath);
 
 	// create a private context data instance
 	PrivateContextData PCD;
@@ -81,15 +86,15 @@ void X86AssemblyGenerator::Generate(CodeGenerationContext& Context) const
 		case ARCH_x86:
 			CPU = "P3";
 			BITS = "32";
-			OUTPUT_FORMAT = Platform == PLATFORM_Windows ? "win32" : "elf32";
+			OUTPUT_FORMAT = "elf32";
 			break;
 		case ARCH_x86_64:
 			CPU = "X64";
 			BITS = "64";
-			OUTPUT_FORMAT = Platform == PLATFORM_Windows ? "win64" : "elf64";
+			OUTPUT_FORMAT = "elf64";
 			break;
 		default:
-			assert(!"Invalid architecture or platform");
+			assert(!"Invalid architecture");
 	}
 	Context.Emitf(Asm_Prologue,
 		CPU, BITS, OUTPUT_FORMAT,
@@ -110,10 +115,12 @@ void X86AssemblyGenerator::Generate(CodeGenerationContext& Context) const
 			case GS_SpawnCode:
 				Context.Emitf("\nproc __Spawn\n"
 								"locals none\n");
+				Context.Emitf(Asm_EIPRelativeAddressingHack);
 				break;
 			case GS_ProcessCode:
 				Context.Emitf("\nproc __Process\n"
 								"locals none\n");
+				Context.Emitf(Asm_EIPRelativeAddressingHack);
 				break;
 			default:
 				assert(Context.Stage > GS_Started
@@ -146,7 +153,10 @@ void X86AssemblyGenerator::Generate(CodeGenerationContext& Context) const
 					// try another module
 					continue;
 				else
+				{
+					Context.CloseSourceFile();
 					return;
+				}
 			}
 			if (i >= ARRAY_COUNT(ModuleMap) && Context.Result != GR_Success)
 			{
@@ -155,7 +165,10 @@ void X86AssemblyGenerator::Generate(CodeGenerationContext& Context) const
 			}
 
 			if (Context.Result != GR_Success)
+			{
+				Context.CloseSourceFile();
 				return;
+			}
 		}
 
 		if (Context.Stage == GS_ProcessCode)
@@ -164,7 +177,10 @@ void X86AssemblyGenerator::Generate(CodeGenerationContext& Context) const
 			Context.CurrentModuleIndex = -2;
 			SimPost.Generate(Context, NULL);
 			if (Context.Result != GR_Success)
+			{
+				Context.CloseSourceFile();
 				return;
+			}
 			Context.Emitf("endproc\n");
 		}
 		else if (Context.Stage == GS_SpawnCode)
@@ -179,13 +195,16 @@ void X86AssemblyGenerator::Generate(CodeGenerationContext& Context) const
 
 	// finish off by integrating the epilogue
 	Context.Emitf(Asm_Epilogue);
+
+	// close the source code file
+	Context.CloseSourceFile();
 }
 
-void X86AssemblyGenerator::Build(ConstructionContext& Context,
+void X86Generator::Build(ConstructionContext& Context,
 	char *OutBinaryPath, size_t OutBinaryPathSize) const
 {
 	// some sanity checking
-	if (!Context.FileName)
+	if (!Context.SourceBaseFileName)
 	{
 		Context.Result = CR_InvalidFileName;
 		Context.ResultArgument = 0;
@@ -194,20 +213,24 @@ void X86AssemblyGenerator::Build(ConstructionContext& Context,
 
 	Context.Stage = CS_Compiling;
 
-	char CmdLine[256], ListFile[256];
+	char CmdLine[256], SourcePath[256],  ListFile[256];
+
+	// determine a path to the source file
+	strncpy(SourcePath, Context.SourceBaseFileName, sizeof(SourcePath) - 5);
+	SourcePath[sizeof(SourcePath) - 5] = 0;
+	strcat(SourcePath, ".asm");
 
 	// determine a path to the listing file
-	strncpy(ListFile, Context.FileName, sizeof(ListFile) - 5);
+	strncpy(ListFile, Context.SourceBaseFileName, sizeof(ListFile) - 5);
 	ListFile[sizeof(ListFile) - 5] = 0;
-	char *Extension = strrchr(ListFile, '.');
-	if (!Extension)
-		Extension = ListFile + strlen(ListFile);
-	strcpy(Extension, ".lst");
+	strcat(ListFile, ".lst");
 
+	// build the command line
 	snprintf(CmdLine, sizeof(CmdLine) - 1, "nasm -f bin -l %s %s",
-		ListFile, Context.FileName);
+		ListFile, SourcePath);
 	CmdLine[sizeof(CmdLine) - 1] = 0;
 
+	// spawn the assembler
 	if (!RunProcess(CmdLine, Context.ResultArgument,
 		Context.StdoutBuffer, Context.StdoutBufferSize,
 		Context.StderrBuffer, Context.StderrBufferSize))
@@ -223,10 +246,9 @@ void X86AssemblyGenerator::Build(ConstructionContext& Context,
 		if (Context.Result != CR_Success)
 			return;
 
-		const size_t BaseNameLength = std::min((size_t)(Extension - ListFile),
+		strncpy(OutBinaryPath, Context.SourceBaseFileName,
 			OutBinaryPathSize - 1);
-		strncpy(OutBinaryPath, Context.FileName, BaseNameLength);
-		OutBinaryPath[BaseNameLength] = 0;
+		OutBinaryPath[OutBinaryPathSize] = 0;
 
 		Context.Result = CR_Success;
 		Context.Stage = CS_Finished;
@@ -237,12 +259,14 @@ void X86AssemblyGenerator::Build(ConstructionContext& Context,
 	Context.DeleteIntermediateFile(ListFile);
 }
 
-void X86AssemblyGenerator::FindCodeOffsets(ConstructionContext& Context,
+void X86Generator::FindCodeOffsets(ConstructionContext& Context,
 	const char *ListFileName) const
 {
 	size_t FileSize;
+
 	const char *Listing = (const char *)Context.OpenIntermediateFile(
 		ListFileName, FAM_Read, &FileSize);
+
 	if (!Listing)
 	{
 		Context.Result = CR_IntermediateFileAccessFailure;

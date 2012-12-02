@@ -11,7 +11,7 @@ export ARCH=x64
 # default platform: "windows" or "linux"
 export PLATFORM=linux
 # target platforms to build generators and launchers for
-export TARGETS=X86Assembly
+export TARGETS=RuntimeInterpreter X86Assembly
 
 # mkdir command with arguments to create all missing directories in the path
 export MKDIR_P=mkdir -p

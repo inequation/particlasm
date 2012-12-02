@@ -7,6 +7,7 @@ Copyright (C) 2012, Leszek Godlewski <github@inequation.org>
 #define PARTICLASMMAIN_H
 
 #include <libparticlasm2.h>
+#include "../Config.h"
 
 // choose an appropriate symbol export declaration
 #if defined(WIN32) || defined(__WIN32__)

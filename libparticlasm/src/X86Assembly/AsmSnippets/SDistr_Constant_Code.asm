@@ -1,2 +1,2 @@
 	; CONSTANT VECTOR DISTRIBUTION
-	fld		float_s [__Data.Offset{%d}]
+	fld		float_s [rel_addr(__Data.Offset{%d})]

@@ -3,13 +3,19 @@ Particlasm entry point module
 Copyright (C) 2011-2012, Leszek Godlewski <github@inequation.org>
 */
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdlib>
 #include <math.h>
 #include <errno.h>
 #include <string.h>
 #include <cstdarg>
 #include <ctime>
+
+#ifdef NDEBUG
+	#define Debugf
+#else
+	#include <cstdio>
+	#define Debugf	printf
+#endif // NDEBUG
 
 #if defined(WIN32) || defined(__WIN32__)
 	#define WIN32_LEAN_AND_MEAN
@@ -26,23 +32,41 @@ Copyright (C) 2011-2012, Leszek Godlewski <github@inequation.org>
 #include "ParticlasmMain.h"
 #include "CodeGeneratorInterface.h"
 #include "LauncherInterface.h"
-#include "../X86Assembly/X86AssemblyGenerator.h"
-#include "../X86Assembly/X86Launcher.h"
+
+#if WITH_RUNTIMEINTERPRETER
+	#include "../RuntimeInterpreter/RuntimeInterpreter.h"
+#endif // WITH_RUNTIMEINTERPRETER
+
+#if WITH_X86ASSEMBLY
+	#include "../X86Assembly/X86Generator.h"
+	#include "../X86Assembly/X86Launcher.h"
+#endif // WITH_X86ASSEMBLY
 
 FILE *GSourceCode;
-const LauncherInterface *GLauncher = NULL;
+static const CodeGeneratorInterface	*GGenerator	= NULL;
+static const LauncherInterface		*GLauncher	= NULL;
 
-static void CodeEmitf(const char *fmt, ...)
+static void OpenSourceFile(const char *Path)
+{
+	GSourceCode = fopen(Path, "w");
+}
+
+static void CodeEmitf(const char *Fmt, ...)
 {
 	va_list argptr;
 
-	va_start(argptr, fmt);
-	vfprintf(GSourceCode, fmt, argptr);
+	va_start(argptr, Fmt);
+	vfprintf(GSourceCode, Fmt, argptr);
 	va_end(argptr);
 }
 
+static void CloseSourceFile()
+{
+	fclose(GSourceCode);
+}
+
 typedef std::map<void *, std::pair<int, size_t> > FileMap;
-FileMap IntermediateFiles;
+static FileMap IntermediateFiles;
 
 static const void *OpenIntermediateFile(const char *Path, FileAccessMode Mode,
 	size_t *OutFileSize)
@@ -98,6 +122,7 @@ static void CloseIntermediateFile(const void *FilePtr)
 		return;
 	munmap(It->first, It->second.second);
 	close(It->second.first);
+	IntermediateFiles.erase(It);
 }
 
 // get rid of warnings in debug builds
@@ -114,37 +139,71 @@ static void DeleteIntermediateFile(const char *Path)
 
 PTC_ATTRIBS uint32_t ptcQueryTargetSupport(ptcTarget target)
 {
-	// TODO
 	switch (target)
 	{
-		case ptcTarget_x86_Linux:
-		case ptcTarget_x86_64_Linux:
-		case ptcTarget_x86_Windows:
-		case ptcTarget_x86_64_Windows:
+#if WITH_RUNTIMEINTERPRETER
+		case ptcTarget_RuntimeInterpreter:
 			return 1;
+#endif // WITH_RUNTIMEINTERPRETER
+#if WITH_X86ASSEMBLY
+	#if defined(_M_AMD64) || defined(amd64) || defined (__amd64__)
+		case ptcTarget_x86_64:
+	#else
+		case ptcTarget_x86:
+	#endif // amd64
+			return 1;
+#endif // WITH_X86ASSEMBLY
+		default:
+			return 0;
 	}
-	return 0;
 }
 
 PTC_ATTRIBS uint32_t ptcInitializeTarget(ptcTarget target, void *privateData)
 {
-	// TODO
+	// don't succeed if there is already an initialized target
+	if (GLauncher || GGenerator)
+		return 0;
+
 	switch (target)
 	{
-		case ptcTarget_x86_Linux:
-		case ptcTarget_x86_64_Linux:
-		case ptcTarget_x86_Windows:
-		case ptcTarget_x86_64_Windows:
-			if (!GLauncher)
-				GLauncher = new X86Launcher();
+#if WITH_RUNTIMEINTERPRETER
+		case ptcTarget_RuntimeInterpreter:
+			{
+				const RuntimeInterpreter *RI = new RuntimeInterpreter();
+				GGenerator = RI;
+				GLauncher = RI;
+			}
 			return 1;
+#endif // WITH_RUNTIMEINTERPRETER
+#if WITH_X86ASSEMBLY
+	#if defined(_M_AMD64) || defined(amd64) || defined (__amd64__)
+		case ptcTarget_x86_64:
+	#else
+		case ptcTarget_x86:
+	#endif // amd64
+			GGenerator = new X86Generator(
+	#if defined(_M_AMD64) || defined(amd64) || defined (__amd64__)
+				X86Generator::ARCH_x86_64
+	#else
+				X86Generator::ARCH_x86
+	#endif
+			);
+			GLauncher = new X86Launcher();
+			return 1;
+#endif // WITH_X86ASSEMBLY
+		default:
+			return 0;
 	}
 	return 0;
 }
 
-PTC_ATTRIBS void ptcShutdownTarget(ptcTarget target, void *privateData)
+PTC_ATTRIBS void ptcShutdownTarget(void *privateData)
 {
-	// TODO
+	if (GGenerator)
+	{
+		delete GGenerator;
+		GGenerator = NULL;
+	}
 	if (GLauncher)
 	{
 		delete GLauncher;
@@ -154,9 +213,10 @@ PTC_ATTRIBS void ptcShutdownTarget(ptcTarget target, void *privateData)
 
 PTC_ATTRIBS uint32_t ptcCompileEmitter(ptcEmitter *emitter)
 {
-	static char CodeFileName[256] = {0};
+	static char SourceBaseName[256] = {0};
 
-	snprintf(CodeFileName, sizeof(CodeFileName) - 1, "%sparticlasm_%d_%d",
+	snprintf(SourceBaseName, sizeof(SourceBaseName) - 1,
+		"%sparticlasm_%d_%d",
 #if defined(WIN32) || defined(__WIN32__)
 		"%TEMP%\\", (int)GetCurrentProcessId(),
 #else
@@ -164,42 +224,29 @@ PTC_ATTRIBS uint32_t ptcCompileEmitter(ptcEmitter *emitter)
 #endif // WIN32
 		(int)time(NULL) ^ rand());
 
-	X86AssemblyGenerator Generator(X86AssemblyGenerator::ARCH_x86,
-		X86AssemblyGenerator::PLATFORM_Linux,
-		CodeFileName, sizeof(CodeFileName));
+	CodeGenerationContext GenContext(emitter, SourceBaseName, OpenSourceFile,
+		CodeEmitf, CloseSourceFile);
 
-	GSourceCode = fopen(CodeFileName, "w");
-
-	CodeGenerationContext GenContext(emitter, CodeEmitf);
-
-	Generator.Generate(GenContext);
-	printf("Generation finished with %s (arg %d) in module #%d in stage %s\n",
+	GGenerator->Generate(GenContext);
+	Debugf("Generation finished with %s (arg %d) in module #%d in stage %s\n",
 		GenContext.GetResultString(), GenContext.ResultArgument,
 		GenContext.CurrentModuleIndex, GenContext.GetStageString());
 
-	fclose(GSourceCode);
-
-	if (GenContext.Result == GR_Success)
+	const uint32_t Result = GenContext.Result == GR_Success;
+	if (Result)
 	{
 		static char OutputBuffer[16384], BinaryPath[256];
 		OutputBuffer[0] = 0;
 
-		ConstructionContext ConsContext(CodeFileName,
+		ConstructionContext ConsContext(SourceBaseName,
 			OpenIntermediateFile,
 			CloseIntermediateFile,
 			DeleteIntermediateFile,
 			OutputBuffer, sizeof(OutputBuffer),
 			OutputBuffer, sizeof(OutputBuffer));
-		Generator.Build(ConsContext, BinaryPath, sizeof(BinaryPath));
+		GGenerator->Build(ConsContext, BinaryPath, sizeof(BinaryPath));
 
-		size_t BlobSize;
-		GLauncher->LoadRawBinary(emitter,
-			OpenIntermediateFile(BinaryPath, FAM_Read, &BlobSize), BlobSize,
-			ConsContext.DataOffset,
-			ConsContext.SpawnCodeOffset,
-			ConsContext.ProcessCodeOffset);
-
-		printf("Construction finished with %s (arg %d) "
+		Debugf("Construction finished with %s (arg %d) "
 			"in stage %s, output saved to %s\n"
 			"Spawn offset: 0x%08X Process offset: 0x%08X\n"
 			"== Toolchain log starts here ==\n"
@@ -209,31 +256,64 @@ PTC_ATTRIBS uint32_t ptcCompileEmitter(ptcEmitter *emitter)
 			ConsContext.GetStageString(), BinaryPath,
 			ConsContext.SpawnCodeOffset, ConsContext.ProcessCodeOffset,
 			OutputBuffer);
+
+		size_t BlobSize;
+		const void *Ptr = OpenIntermediateFile(BinaryPath, FAM_Read, &BlobSize);
+		if (!Ptr)
+		{
+			Debugf("Failed to read the compiled binary file %s\n", BinaryPath);
+			return 0;
+		}
+		if (!GLauncher->LoadRawBinary(emitter, Ptr, BlobSize,
+			ConsContext.DataOffset, ConsContext.SpawnCodeOffset,
+			ConsContext.ProcessCodeOffset))
+		{
+			Debugf("Failed to load the compiled binary: %p, %p, %p\n",
+				emitter->InternalPtr1, emitter->InternalPtr2,
+				emitter->InternalPtr3);
+			CloseIntermediateFile(Ptr);
+			return 0;
+		}
+		CloseIntermediateFile(Ptr);
 	}
 
-#ifdef NDEBUG
-	remove(CodeFileName);
-#endif
-
-	return 0;
+	return Result;
 }
 
 PTC_ATTRIBS size_t EXPORTDECL ptcProcessEmitter(ptcEmitter *emitter, float step,
 		ptcVector cameraCS[3], ptcVertex *buffer, size_t maxVertices)
 {
-	return 0;
+	uint32_t count;
+
+	emitter->SpawnTimer += step;
+	count = (size_t)floorf(emitter->SpawnTimer * emitter->Config.SpawnRate);
+	emitter->SpawnTimer -= (float)count / emitter->Config.SpawnRate;
+	count *= emitter->Config.BurstCount;
+	if (count > emitter->MaxParticles - emitter->NumParticles)
+		count = emitter->MaxParticles - emitter->NumParticles;
+	if (count > 0) {
+		//Debugf("libparticlasm: spawning a burst of %d particles\n", count);
+		GLauncher->SpawnParticles(emitter, step, count);
+	}
+
+	// call the processing code
+	count = GLauncher->ProcessParticles(emitter,
+		emitter->ParticleBuf, emitter->ParticleBuf + emitter->MaxParticles,
+		step, cameraCS, buffer, maxVertices);
+
+	return count;
 }
 
 PTC_ATTRIBS void ptcReleaseEmitter(ptcEmitter *emitter)
 {
+	GLauncher->Unload(emitter);
 }
 
 /// \sa PFNGETPTCAPI
 extern "C" EXPORTDECL uint32_t ptcGetAPI(uint32_t version,
 	ptcAPIExports *API)
 {
-	// FIXME!!!
-	//if (version == PTC_VERSION)
+	if (version == PTC_API_VERSION)
 	{
 		API->QueryTargetSupport = ptcQueryTargetSupport;
 		API->InitializeTarget = ptcInitializeTarget;

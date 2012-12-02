@@ -1,6 +1,6 @@
 	; UNIFORM SCALAR DISTRIBUTION
-	fld		float_s [__Data.Offset{%d}]	; range[0]
-	fld		float_s [__Data.Offset{%d} + sizeof(float)]	; range[1]
+	fld		float_s [rel_addr(__Data.Offset{%d})]	; range[0]
+	fld		float_s [rel_addr(__Data.Offset{%d} + sizeof(float))]	; range[1]
 	; exchange the registers - FPU is stupid...
 	fxch	st1
 	; save off __ax and __dx

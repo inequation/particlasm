@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
-# a simple code generator that translates relevant declarations from libparticlasm2.h
-# to a NASM include file
+# a simple code generator that translates relevant declarations from
+# libparticlasm2.h to a NASM include file
 # Copyright (C) 2011-2012, Leszek Godlewski <github@inequation.org>
 
 import sys, os, errno

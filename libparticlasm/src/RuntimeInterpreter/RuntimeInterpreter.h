@@ -1,18 +1,20 @@
 /*
-Particlasm compiled code launcher for X86 assembly
+Particlasm runtime interpreter (a.k.a. reference C++ implementation)
 Copyright (C) 2012, Leszek Godlewski <github@inequation.org>
 */
 
-#ifndef X86LAUNCHER_H
-#define X86LAUNCHER_H
+#ifndef RUNTIMEINTERPRETER_H
+#define RUNTIMEINTERPRETER_H
 
+#include "../Core/CodeGeneratorInterface.h"
 #include "../Core/LauncherInterface.h"
 
-class X86Launcher : public LauncherInterface
+class RuntimeInterpreter : public CodeGeneratorInterface, public LauncherInterface
 {
 	public:
-		X86Launcher();
-
+		virtual void Generate(CodeGenerationContext& Context) const;
+		virtual void Build(ConstructionContext& Context, char *OutBinaryPath,
+			size_t OutBinaryPathSize) const;
 		virtual bool LoadCachedBinary(ptcEmitter *Emitter, const void *Buffer,
 			const size_t Size) const;
 
@@ -21,7 +23,8 @@ class X86Launcher : public LauncherInterface
 
 		virtual bool LoadRawBinary(ptcEmitter *Emitter, const void *Buffer,
 			const size_t Size, const size_t DataOffset,
-			const size_t SpawnCodeOffset,const size_t ProcessCodeOffset) const;
+			const size_t SpawnCodeOffset, const size_t ProcessCodeOffset)
+			const;
 
 		virtual void Unload(ptcEmitter *Emitter) const;
 
@@ -34,4 +37,4 @@ class X86Launcher : public LauncherInterface
 			const;
 };
 
-#endif // X86LAUNCHER_H
+#endif // RUNTIMEINTERPRETER_H

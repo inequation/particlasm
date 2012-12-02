@@ -1,5 +1,5 @@
 /*
-Particlasm reference C++ implementation
+Particlasm runtime interpreter (a.k.a. reference C++ implementation)
 Copyright (C) 2011-2012, Leszek Godlewski <github@inequation.org>
 */
 
@@ -16,9 +16,6 @@ static float GetScalar(ptcScalarDistr *d, float t);
 static void GetVector(ptcVectorDistr *d, float t, ptcVector out);
 static void GetColour(ptcColourDistr *d, uint32_t flags, float t, ptcColour out);
 
-#ifdef __cplusplus
-extern "C"
-#endif
 uint32_t ref_ptcCompileEmitter(ptcEmitter *emitter) {
 	emitter->NumParticles = 0;
 	memset(emitter->ParticleBuf, 0, sizeof(ptcParticle) * emitter->MaxParticles);
@@ -128,41 +125,49 @@ static inline bool ProcessParticle(ptcEmitter *emitter, ptcParticle *p,
 	return true;
 }
 
-#ifdef __cplusplus
-extern "C"
-#endif
-size_t ref_ptcProcessEmitter(ptcEmitter *emitter,
-	float step, ptcVector cameraCS[3], ptcVertex *buffer, size_t maxVertices) {
-	// particle spawning
+void ref_ptcSpawnParticles(ptcEmitter *emitter, float step, uint32_t count) {
 	emitter->SpawnTimer += step;
-	size_t count = (size_t)floorf(emitter->SpawnTimer
-								* emitter->Config.SpawnRate);
 	emitter->SpawnTimer -= (float)count / emitter->Config.SpawnRate;
 	count *= emitter->Config.BurstCount;
 	if (count > emitter->MaxParticles - emitter->NumParticles)
 		count = emitter->MaxParticles - emitter->NumParticles;
 	for (size_t i = 0; i < count; ++i)
 		SpawnParticle(emitter);
+}
 
-	// particle advancing
+uint32_t ref_ptcProcessParticles(ptcEmitter *emitter, ptcParticle *startPtr,
+	ptcParticle *endPtr, float step, ptcVector cameraCS[3], ptcVertex *buffer,
+	size_t maxVertices) {
 	uint32_t verts = 0;
-	ptcParticle *p;
-	for (size_t i = 0; i < emitter->MaxParticles
-		&& verts + 4 < maxVertices; ++i) {
-		if (!emitter->ParticleBuf[i].Active)
+	for (ptcParticle *p = startPtr;
+		p < endPtr && verts + 4 < maxVertices;
+		++p) {
+		if (!p->Active)
 			continue;
-		p = &emitter->ParticleBuf[i];
 		if (ProcessParticle(emitter, p, step, cameraCS, buffer + verts))
 			verts += 4;
 	}
 	return verts;
 }
 
-#ifdef __cplusplus
-extern "C"
-#endif
+size_t ref_ptcProcessEmitter(ptcEmitter *emitter,
+	float step, ptcVector cameraCS[3], ptcVertex *buffer, size_t maxVertices) {
+	// particle spawning
+	size_t count = (size_t)floorf(emitter->SpawnTimer
+								* emitter->Config.SpawnRate);
+	ref_ptcSpawnParticles(emitter, step, count);
+
+	// particle advancing
+	return ref_ptcProcessParticles(emitter, emitter->ParticleBuf,
+		emitter->ParticleBuf + emitter->MaxParticles, step, cameraCS, buffer,
+		maxVertices);
+}
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 void ref_ptcReleaseEmitter(ptcEmitter *emitter) {
 }
+#pragma GCC diagnostic pop
 
 static float FRand() {
 	return (float)rand() / (float)RAND_MAX;
@@ -214,10 +219,13 @@ static bool SpawnParticle(ptcEmitter *e) {
 	return true;
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 static inline float GetBicubicInterp(float t, float targVal) {
 	// FIXME
 	return targVal;
 }
+#pragma GCC diagnostic pop
 
 static float GetScalar(ptcScalarDistr *d, float t) {
 	switch (d->DistrID) {
