@@ -63,10 +63,10 @@ ptcAPIExports	ptcAPI;
 //#define USE_CPP_REFERENCE_IMPLEMENTATION
 
 #ifdef USE_CPP_REFERENCE_IMPLEMENTATION
-extern "C" PTC_ATTRIBS unsigned int ref_ptcCompileEmitter(ptcEmitter *emitter);
-extern "C" PTC_ATTRIBS uint32_t ref_ptcProcessEmitter(ptcEmitter *emitter,
+PTC_ATTRIBS unsigned int ref_ptcCompileEmitter(ptcEmitter *emitter);
+PTC_ATTRIBS uint32_t ref_ptcProcessEmitter(ptcEmitter *emitter,
 	float step, ptcVector cameraCS[3], ptcVertex *buffer, uint32_t maxVertices);
-extern "C" PTC_ATTRIBS void ref_ptcReleaseEmitter(ptcEmitter *emitter);
+PTC_ATTRIBS void ref_ptcReleaseEmitter(ptcEmitter *emitter);
 #else
 void *libparticlasmHandle = NULL;
 #endif // USE_CPP_REFERENCE_IMPLEMENTATION
@@ -183,7 +183,7 @@ int LoadGLTextures( )
     SDL_Surface *TextureImage[1];
 
     /* Load The Bitmap, Check For Errors, If Bitmap's Not Found Quit */
-    if ( ( TextureImage[0] = SDL_LoadBMP( "data/particle.bmp" ) ) )
+    if ( ( TextureImage[0] = SDL_LoadBMP( "../../data/particle.bmp" ) ) )
         {
 
 	    /* Set the status to true */

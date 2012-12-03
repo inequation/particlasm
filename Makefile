@@ -13,6 +13,8 @@ DOXYGEN = doxygen
 
 # =============================================================================
 
+.PHONY: all libparticlasm edificle hostapp headless doc
+
 all: libparticlasm edificle hostapp headless doc
 
 libparticlasm:
