@@ -1,8 +1,8 @@
 	; SIMULATION PRE-PROCESSING
 	; T += t * Ts
 	fld		st0			; duplicate the time step
-	fmul	st0, st3	; multiply by time step
-	faddp	st4, st0	; add scaled time step to lifetime
+	fmul	st0, st2	; multiply by time scale
+	faddp	st3, st0	; add scaled time step to lifetime
 	; kill the particle if we're past its lifetime
 	fld1
 	fcomip	st3

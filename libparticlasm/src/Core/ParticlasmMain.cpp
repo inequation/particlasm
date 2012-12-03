@@ -248,7 +248,7 @@ PTC_ATTRIBS uint32_t ptcCompileEmitter(ptcEmitter *emitter)
 
 		Debugf("Construction finished with %s (arg %d) "
 			"in stage %s, output saved to %s\n"
-			"Spawn offset: 0x%08X Process offset: 0x%08X\n"
+			"Spawn offset: 0x%08zX Process offset: 0x%08zX\n"
 			"== Toolchain log starts here ==\n"
 			"%s\n"
 			"== Toolchain log ends here ==\n",
@@ -274,7 +274,10 @@ PTC_ATTRIBS uint32_t ptcCompileEmitter(ptcEmitter *emitter)
 			CloseIntermediateFile(Ptr);
 			return 0;
 		}
+
+		// huge success!
 		CloseIntermediateFile(Ptr);
+		emitter->NumParticles = 0;
 	}
 
 	return Result;

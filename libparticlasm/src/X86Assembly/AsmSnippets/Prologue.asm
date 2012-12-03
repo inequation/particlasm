@@ -49,13 +49,13 @@ BITS {%s}
 ; flag-based colour component mixing
 %macro cdistr_mix 0
 	; simple case - both RGB and alpha are to be written
-	test	__ax, (ptcCF_SetRGB | ptcCF_SetAlpha)
+	test	eax, (ptcCF_SetRGB | ptcCF_SetAlpha)
 	; parity bit holds information about equality
 	jnp		%%rgb
 	movaps	xmm5, xmm6
 	jmp		%%end
 %%rgb:
-	test	__ax, ptcCF_SetRGB
+	test	eax, ptcCF_SetRGB
 	jz		%%alpha
 	; mask out alpha from the distribution value and add in the original alpha
 	lea		__ax, [rel_addr(MASK_RGB)]
@@ -66,7 +66,7 @@ BITS {%s}
 	movaps	xmm5, xmm6
 	jmp		%%end
 %%alpha:
-	test	__ax, ptcCF_SetAlpha
+	test	eax, ptcCF_SetAlpha
 	jz		%%end
 	; mask out RGB from the distribution value and add in the original RGB
 	lea		__ax, [rel_addr(MASK_ALPHA)]

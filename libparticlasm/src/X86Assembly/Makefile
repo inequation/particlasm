@@ -12,8 +12,13 @@ all:
 
 build: AsmSnippets.h $(OBJECTS)
 
+# HACK!!! https://github.com/inequation/particlasm/issues/2
+# The presence of the red zone breaks X86Launcher::ProcessParticles because gcc
+# is not aware of the assembly code's stack access; as a result, the assembly
+# code overwrites the function parameters that gcc puts in the red zone. As a
+# temporary alleviation, I'm disabling the red zone altogether.
 $(OBJECTS): $(HEADERS) $(SOURCES)
-	$(CXX) $(CXXFLAGS) -I../../include $(basename $(notdir $@)).cpp -o $(REAL_OBJ_DIR)/$@
+	$(CXX) $(CXXFLAGS) -mno-red-zone -I../../include $(basename $(notdir $@)).cpp -o $@
 
 AsmSnippets.h: GenerateSnippetHeader.py AsmSnippets/libparticlasm.inc $(SOURCES_ASM)
 	$(PYTHON) GenerateSnippetHeader.py

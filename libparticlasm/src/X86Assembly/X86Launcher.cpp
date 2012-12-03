@@ -32,18 +32,19 @@ Copyright (C) 2012, Leszek Godlewski <github@inequation.org>
 	#define __BP			"rbp"
 	#define __SP			"rsp"
 	#define __CALL			"callq"
-	#define __PUSHAD		"push %%rax"	\
-							"push %%rbx"	\
-							"push %%rcx"	\
-							"push %%rdx"	\
-							"push %%rsi"	\
-							"push %%rdi"
-	#define __POPAD			"pop %%rdi"	\
-							"pop %%rsi"	\
-							"pop %%rdx"	\
-							"pop %%rcx"	\
-							"pop %%rbx"	\
-							"pop %%rax"
+	// selective pushad/popad - leave rdx intact, it contains life state
+#define __PUSHAD			"sub	$40, %%rsp\n"	\
+							"movq	%%rax, (%%rsp)\n"	\
+							"movq	%%rbx, 8(%%rsp)\n"	\
+							"movq	%%rcx, 16(%%rsp)\n"	\
+							"movq	%%rsi, 24(%%rsp)\n"	\
+							"movq	%%rdi, 32(%%rsp)\n"
+#define __POPAD				"movq	32(%%rsp), %%rdi\n"	\
+							"movq	24(%%rsp), %%rsi\n"	\
+							"movq	16(%%rsp), %%rcx\n"	\
+							"movq	8(%%rsp), %%rbx\n"	\
+							"movq	(%%rsp), %%rax\n"	\
+							"add	$40, %%rsp\n"
 #else
 	#define __AX			"eax"
 	#define __BX			"ebx"
@@ -54,8 +55,19 @@ Copyright (C) 2012, Leszek Godlewski <github@inequation.org>
 	#define __BP			"ebp"
 	#define __SP			"esp"
 	#define __CALL			"calll"
-	#define __PUSHAD		"pushal"
-	#define __POPAD			"popal"
+	// selective pushad/popad - leave edx intact, it contains life state
+#define __PUSHAD			"sub	$20, %%esp\n"	\
+							"movl	%%eax, (%%esp)\n"	\
+							"movl	%%ebx, 4(%%esp)\n"	\
+							"movl	%%ecx, 8(%%esp)\n"	\
+							"movl	%%esi, 12(%%esp)\n"	\
+							"movl	%%edi, 16(%%esp)\n"
+#define __POPAD				"movl	16(%%esp), %%edi\n"	\
+							"movl	12(%%esp), %%esi\n"	\
+							"movl	8(%%esp), %%ecx\n"	\
+							"movl	4(%%esp), %%ebx\n"	\
+							"movl	(%%esp), %%eax\n"	\
+							"add	$20, %%esp\n"
 #endif
 
 #define DECLARE_STRUCT_OFFSET(Type, Member)									\
@@ -132,11 +144,11 @@ Apart from colour, which is 16 bytes long, therefore it can be written directly.
 		__PUSHAD "\n"														\
 		"push	%c[FRand](%0)\n"											\
 		__CALL "	*%1\n"													\
-		"add	%2, %%" __SP "\n"												\
+		"add	%2, %%" __SP "\n"											\
 		__POPAD "\n"														\
 		:																	\
 		: "r" (&ExtLib),													\
-			"r" (Emitter->InternalPtr2),									\
+			"r" (Pointer),													\
 			"i" (sizeof(ptcExtLib)),										\
 			DECLARE_STRUCT_OFFSET(ptcExtLib, FRand)							\
 		: "%edx", "%xmm0", "%xmm1", "%xmm2", "%xmm3",						\
@@ -160,13 +172,10 @@ static void ExtLib_FRand(void)
 {
 	uint32_t RandInt = mt19937::genrand_int32();
 	static float Multiplier = 1.0f / 4294967295.0f;
-	asm(
-		"push	%1\n"
-		"fld	%0\n"
+	asm("flds	%0\n"
+		"sub	$4, %%" __SP "\n"
+		"movl	%1, (%%" __SP ")\n"
 		"fimull	(%%" __SP ")\n"
-		"fld1\n"
-		"fxch	%%st(1)\n"
-		"fsubp	%%st(1)\n"
 		"add	$4, %%" __SP "\n"
 		: // no output registers
 		: "m" (Multiplier), "r" (RandInt)
@@ -304,8 +313,8 @@ uint32_t X86Launcher::ProcessParticles(ptcEmitter *Emitter,
 
 			// load in 0.5 and broadcast it to all components
 			"sub	$4, %%" __SP "\n"
-			"movl	$0x3F000000, (%%esp)\n"
-			"movss	(%%esp), %%xmm3\n"
+			"movl	$0x3F000000, (%%" __SP ")\n"
+			"movss	(%%" __SP "), %%xmm3\n"
 			"add	$4, %%" __SP "\n"
 			"shufps	$0x00, %%xmm3, %%xmm3\n"
 
@@ -352,32 +361,34 @@ uint32_t X86Launcher::ProcessParticles(ptcEmitter *Emitter,
 			"movss	%%xmm0, %c[Location] + 8(%[Buffer])\n"
 			"movw	$1, %c[TexCoords](%[Buffer])\n"
 			"movw	$0, %c[TexCoords] + 2(%[Buffer])\n"
-
 			"add	%[sizeof_ptcVertex], %[Buffer]\n"
+
 			"movups	%%xmm1, %c[Colour](%[Buffer])\n"
 			"movlps	%%xmm3, %c[Location](%[Buffer])\n"
 			"shufps	$0xAA, %%xmm3, %%xmm3\n"
 			"movss	%%xmm3, %c[Location] + 8(%[Buffer])\n"
 			"movw	$0, %c[TexCoords](%[Buffer])\n"
 			"movw	$0, %c[TexCoords] + 2(%[Buffer])\n"
-
 			"add	%[sizeof_ptcVertex], %[Buffer]\n"
+
 			"movups	%%xmm1, %c[Colour](%[Buffer])\n"
 			"movlps	%%xmm6, %c[Location](%[Buffer])\n"
 			"shufps	$0xAA, %%xmm6, %%xmm6\n"
 			"movss	%%xmm6, %c[Location] + 8(%[Buffer])\n"
 			"movw	$0, %c[TexCoords](%[Buffer])\n"
 			"movw	$1, %c[TexCoords] + 2(%[Buffer])\n"
-
 			"add	%[sizeof_ptcVertex], %[Buffer]\n"
+
 			"movups	%%xmm1, %c[Colour](%[Buffer])\n"
 			"movlps	%%xmm7, %c[Location](%[Buffer])\n"
 			"shufps	$0xAA, %%xmm7, %%xmm7\n"
 			"movss	%%xmm7, %c[Location] + 8(%[Buffer])\n"
 			"movw	$1, %c[TexCoords](%[Buffer])\n"
 			"movw	$1, %c[TexCoords] + 2(%[Buffer])\n"
+			"add	%[sizeof_ptcVertex], %[Buffer]\n"
 
 			"sub	$4, %[VerticesLeft]\n"
+			"jmp	.end\n"
 
 			".dead:\n"
 			"dec	%[NumParticles]\n"
