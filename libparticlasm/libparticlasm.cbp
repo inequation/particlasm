@@ -128,6 +128,86 @@
 					<SilentBuild command="$make -f $makefile $target &gt; $(CMD_NULL)" />
 				</MakeCommands>
 			</Target>
+			<Target title="debug-mingw-x86">
+				<Option output="../bin/Debug/libparticlasm2.dll" imp_lib="$(TARGET_OUTPUT_DIR)$(TARGET_OUTPUT_BASENAME).a" def_file="$(TARGET_OUTPUT_DIR)$(TARGET_OUTPUT_BASENAME).def" prefix_auto="0" extension_auto="0" />
+				<Option object_output="../obj/Debug/" />
+				<Option type="3" />
+				<Option compiler="gcc" />
+				<Option parameters="1" />
+				<Option host_application="/home/inequation/projects/particlasm/bin/Debug/headless-linux-x86" />
+				<Option run_host_application_in_terminal="1" />
+				<Compiler>
+					<Add option="-g" />
+				</Compiler>
+				<MakeCommands>
+					<Build command="$make -f $makefile $target" />
+					<CompileFile command="$make -f $makefile $file" />
+					<Clean command="$make -f $makefile clean" />
+					<DistClean command="$make -f $makefile distclean$target" />
+					<AskRebuildNeeded command="$make -q -f $makefile $target" />
+					<SilentBuild command="$make -f $makefile $target &gt; $(CMD_NULL)" />
+				</MakeCommands>
+			</Target>
+			<Target title="release-mingw-x86">
+				<Option output="../bin/Release/libparticlasm2.dll" imp_lib="$(TARGET_OUTPUT_DIR)$(TARGET_OUTPUT_BASENAME).a" def_file="$(TARGET_OUTPUT_DIR)$(TARGET_OUTPUT_BASENAME).def" prefix_auto="0" extension_auto="0" />
+				<Option object_output="../obj/Release/" />
+				<Option type="3" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-O2" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+				</Linker>
+				<MakeCommands>
+					<Build command="$make -f $makefile $target" />
+					<CompileFile command="$make -f $makefile $file" />
+					<Clean command="$make -f $makefile clean" />
+					<DistClean command="$make -f $makefile distclean$target" />
+					<AskRebuildNeeded command="$make -q -f $makefile $target" />
+					<SilentBuild command="$make -f $makefile $target &gt; $(CMD_NULL)" />
+				</MakeCommands>
+			</Target>
+			<Target title="debug-mingw-x64">
+				<Option output="../bin/Debug/libparticlasm2.dll" imp_lib="$(TARGET_OUTPUT_DIR)$(TARGET_OUTPUT_BASENAME).a" def_file="$(TARGET_OUTPUT_DIR)$(TARGET_OUTPUT_BASENAME).def" prefix_auto="0" extension_auto="0" />
+				<Option object_output="../obj/Debug/" />
+				<Option type="3" />
+				<Option compiler="gcc" />
+				<Option parameters="1" />
+				<Option host_application="/home/inequation/projects/particlasm/bin/Debug/headless-linux-x86" />
+				<Option run_host_application_in_terminal="1" />
+				<Compiler>
+					<Add option="-g" />
+				</Compiler>
+				<MakeCommands>
+					<Build command="$make -f $makefile $target" />
+					<CompileFile command="$make -f $makefile $file" />
+					<Clean command="$make -f $makefile clean" />
+					<DistClean command="$make -f $makefile distclean$target" />
+					<AskRebuildNeeded command="$make -q -f $makefile $target" />
+					<SilentBuild command="$make -f $makefile $target &gt; $(CMD_NULL)" />
+				</MakeCommands>
+			</Target>
+			<Target title="release-mingw-x64">
+				<Option output="../bin/Release/libparticlasm2.dll" imp_lib="$(TARGET_OUTPUT_DIR)$(TARGET_OUTPUT_BASENAME).a" def_file="$(TARGET_OUTPUT_DIR)$(TARGET_OUTPUT_BASENAME).def" prefix_auto="0" extension_auto="0" />
+				<Option object_output="../obj/Debug/" />
+				<Option type="3" />
+				<Option compiler="gcc" />
+				<Option parameters="1" />
+				<Option host_application="/home/inequation/projects/particlasm/bin/Debug/headless-linux-x86" />
+				<Option run_host_application_in_terminal="1" />
+				<Compiler>
+					<Add option="-g" />
+				</Compiler>
+				<MakeCommands>
+					<Build command="$make -f $makefile $target" />
+					<CompileFile command="$make -f $makefile $file" />
+					<Clean command="$make -f $makefile clean" />
+					<DistClean command="$make -f $makefile distclean$target" />
+					<AskRebuildNeeded command="$make -q -f $makefile $target" />
+					<SilentBuild command="$make -f $makefile $target &gt; $(CMD_NULL)" />
+				</MakeCommands>
+			</Target>
 		</Build>
 		<Compiler>
 			<Add option="-Wall" />
@@ -155,7 +235,6 @@
 		<Unit filename="src/X86Assembly/AsmSnippets/CDistr_Uniform_Code.asm" />
 		<Unit filename="src/X86Assembly/AsmSnippets/CDistr_Uniform_Data.asm" />
 		<Unit filename="src/X86Assembly/AsmSnippets/EIPRelativeAddressingHack.asm" />
-		<Unit filename="src/X86Assembly/AsmSnippets/Epilogue.asm" />
 		<Unit filename="src/X86Assembly/AsmSnippets/Mod_Acceleration.asm" />
 		<Unit filename="src/X86Assembly/AsmSnippets/Mod_Colour_Data.asm" />
 		<Unit filename="src/X86Assembly/AsmSnippets/Mod_Colour_PostDistr.asm" />

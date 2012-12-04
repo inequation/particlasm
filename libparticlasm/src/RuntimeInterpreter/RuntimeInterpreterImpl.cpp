@@ -52,8 +52,10 @@ static inline bool ProcessParticle(ptcEmitter *emitter, ptcParticle *p,
 				case ptcMID_Gravity:
 					{
 // shut up compiler
+#if !defined(WIN32) && !defined(__WIN32__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
 						ptcVector centre;
 						GetVector(&m->Gravity.Centre, p->Time, centre);
 						ptcVector diff = {
@@ -61,7 +63,9 @@ static inline bool ProcessParticle(ptcEmitter *emitter, ptcParticle *p,
 							centre[1] - p->Location[1],
 							centre[2] - p->Location[2]
 						};
+#if !defined(WIN32) && !defined(__WIN32__)
 #pragma GCC diagnostic pop
+#endif
 						const float r2 = diff[0] * diff[0]
 										+ diff[1] * diff[1]
 										+ diff[2] * diff[2];

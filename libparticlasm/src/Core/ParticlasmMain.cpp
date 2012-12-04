@@ -10,6 +10,7 @@ Copyright (C) 2011-2012, Leszek Godlewski <github@inequation.org>
 #include <cstdarg>
 #include <ctime>
 #include <cstdio>
+#include <map>
 
 #ifdef NDEBUG
 	#define Debugf(Fmt, ...)	(void)0
@@ -25,7 +26,6 @@ Copyright (C) 2011-2012, Leszek Godlewski <github@inequation.org>
 	#include <sys/mman.h>
 	#include <sys/stat.h>
 	#include <fcntl.h>
-	#include <map>
 	#include <unistd.h>
 #endif // WIN32
 
@@ -65,19 +65,128 @@ static void CloseSourceFile()
 	fclose(GSourceCode);
 }
 
-typedef std::map<void *, std::pair<int, size_t> > FileMap;
+#if defined(WIN32) || defined(__WIN32__)
+struct FileInfo
+{
+	HANDLE	File;
+	HANDLE	Mapping;
+	bool	NeedsFlush;
+
+	FileInfo(HANDLE InFile, HANDLE InMapping, bool InNeedsFlush)
+		: File(InFile), Mapping(InMapping), NeedsFlush(InNeedsFlush) {}
+};
+#else
+struct FileInfo
+{
+	int		fd;
+	size_t	size;
+
+	FileInfo(int in_fd, size_t in_size)
+		: fd(in_fd), size(in_size) {}
+};
+#endif
+
+typedef std::map<void *, FileInfo> FileMap;
 static FileMap IntermediateFiles;
 
 static const void *OpenIntermediateFile(const char *Path, FileAccessMode Mode,
 	size_t *OutFileSize)
 {
-	int FileFlags;
+#if defined(WIN32) || defined(__WIN32__)
+	DWORD AccessFlags, ShareFlags, CreateFlags;
 	switch (Mode & 0x03)
 	{
-		case FAM_Read:		FileFlags = O_RDONLY;						break;
-		case FAM_Write:		FileFlags = O_WRONLY | O_CREAT | O_TRUNC;	break;
-		case FAM_ReadWrite:	FileFlags = O_RDWR;							break;
+		case FAM_Read:
+			AccessFlags = GENERIC_READ;
+			ShareFlags = FILE_SHARE_READ;
+			CreateFlags = OPEN_EXISTING;
+			break;
+		case FAM_Write:
+			AccessFlags = GENERIC_WRITE;
+			ShareFlags = 0;
+			CreateFlags = CREATE_ALWAYS;
+			break;
+		case FAM_ReadWrite:
+			AccessFlags = GENERIC_READ | GENERIC_WRITE;
+			ShareFlags = 0;
+			CreateFlags = OPEN_ALWAYS;
+			break;
 		default:			return NULL;
+	}
+
+	HANDLE File = CreateFile(Path, AccessFlags, ShareFlags, NULL, CreateFlags,
+		FILE_ATTRIBUTE_NORMAL, NULL);
+	if (File == INVALID_HANDLE_VALUE)
+		return NULL;
+
+	LARGE_INTEGER FileSize;
+	if (!GetFileSizeEx(File, &FileSize))
+	{
+		CloseHandle(File);
+		return NULL;
+	}
+	if (OutFileSize)
+		*OutFileSize = static_cast<size_t>(FileSize.QuadPart);
+
+	LARGE_INTEGER MaxSize = {{0, 0}};
+	DWORD ProtectionFlags;
+	switch (Mode & 0x03)
+	{
+		case FAM_Read:
+			MaxSize = FileSize;
+			ProtectionFlags = PAGE_READONLY;
+			AccessFlags = FILE_MAP_READ;
+			break;
+		case FAM_Write:
+			MaxSize.QuadPart = (Mode & ~0x03) >> 2;
+			ProtectionFlags = PAGE_READWRITE;
+			AccessFlags = FILE_MAP_WRITE;
+			break;
+		case FAM_ReadWrite:
+			MaxSize.QuadPart = FileSize.QuadPart * 2;
+			ProtectionFlags = PAGE_READWRITE;
+			AccessFlags = FILE_MAP_ALL_ACCESS;
+			break;
+		case FAM_PADDING:
+			break;	// shut up compiler
+	}
+	HANDLE Mapping = CreateFileMapping(File, NULL, ProtectionFlags,
+		MaxSize.u.HighPart, MaxSize.u.LowPart, NULL);
+	if (Mapping == NULL)
+	{
+		CloseHandle(File);
+		return NULL;
+	}
+	void *Ptr = MapViewOfFile(Mapping, AccessFlags, 0, 0, 0);
+	if (Ptr == NULL)
+	{
+		CloseHandle(Mapping);
+		CloseHandle(File);
+		return NULL;
+	}
+
+	IntermediateFiles.insert(FileMap::value_type
+		(Ptr, FileInfo(File, Mapping, (Mode & 0x03) != FAM_Read)));
+
+	return Ptr;
+#else // WIN32
+	int FileFlags, ProtectionFlags;
+	switch (Mode & 0x03)
+	{
+		case FAM_Read:
+			FileFlags = O_RDONLY;
+			ProtectionFlags = PROT_READ;
+			break;
+		case FAM_Write:
+			FileFlags = O_WRONLY | O_CREAT | O_TRUNC;
+			ProtectionFlags = PROT_WRITE;
+			break;
+		case FAM_ReadWrite:
+			FileFlags = O_RDWR;
+			ProtectionFlags = PROT_READ | PROT_WRITE;
+			break;
+		default:
+			return NULL;
 	}
 
 	int fd = open(Path, FileFlags);
@@ -101,8 +210,8 @@ static const void *OpenIntermediateFile(const char *Path, FileAccessMode Mode,
 		case FAM_ReadWrite:	MappingLength = 2 * FileStat.st_size;		break;
 		case FAM_PADDING:	break;	// shut up compiler
 	}
-	void *Ptr = mmap(NULL, MappingLength,
-		PROT_READ, MAP_SHARED | MAP_FILE, fd, 0);
+	void *Ptr = mmap(NULL, MappingLength, ProtectionFlags,
+		MAP_SHARED | MAP_FILE, fd, 0);
 	if (Ptr == MAP_FAILED)
 	{
 		close(fd);
@@ -110,9 +219,10 @@ static const void *OpenIntermediateFile(const char *Path, FileAccessMode Mode,
 	}
 
 	IntermediateFiles.insert(FileMap::value_type
-		(Ptr, std::pair<int, size_t>(fd, FileStat.st_size)));
+		(Ptr, FileInfo(fd, FileStat.st_size)));
 
 	return Ptr;
+#endif // WIN32
 }
 
 static void CloseIntermediateFile(const void *FilePtr)
@@ -120,8 +230,16 @@ static void CloseIntermediateFile(const void *FilePtr)
 	FileMap::iterator It = IntermediateFiles.find((void *)FilePtr);
 	if (It == IntermediateFiles.end())
 		return;
-	munmap(It->first, It->second.second);
-	close(It->second.first);
+#if defined(WIN32) || defined(__WIN32__)
+	if (It->second.NeedsFlush)
+		FlushViewOfFile(FilePtr, 0);
+	UnmapViewOfFile(FilePtr);
+	CloseHandle(It->second.Mapping);
+	CloseHandle(It->second.File);
+#else // WIN32
+	munmap(It->first, It->second.size);
+	close(It->second.fd);
+#endif // WIN32
 	IntermediateFiles.erase(It);
 }
 

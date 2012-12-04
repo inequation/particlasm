@@ -222,6 +222,16 @@ bool X86Launcher::LoadRawBinary(ptcEmitter *Emitter, const void *Buffer,
 	const size_t ProcessCodeOffset) const
 {
 	assert(DataOffset == 0);
+#if defined(WIN32) || defined(__WIN32__)
+	Emitter->InternalPtr1 = VirtualAlloc(NULL, Size, MEM_COMMIT | MEM_RESERVE,
+		PAGE_EXECUTE_READWRITE);
+	if (Emitter->InternalPtr1 == NULL)
+		return false;
+	CopyMemory(Emitter->InternalPtr1, Buffer, Size);
+	Emitter->InternalPtr2 = ((char *)Emitter->InternalPtr1) + SpawnCodeOffset;
+	Emitter->InternalPtr3 = ((char *)Emitter->InternalPtr1) + ProcessCodeOffset;
+	return true;
+#else // WIN32
 	Emitter->InternalPtr1 = mmap(NULL, Size,
 		PROT_READ | PROT_WRITE | PROT_EXEC,
 		MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
@@ -231,11 +241,16 @@ bool X86Launcher::LoadRawBinary(ptcEmitter *Emitter, const void *Buffer,
 	Emitter->InternalPtr2 = ((char *)Emitter->InternalPtr1) + SpawnCodeOffset;
 	Emitter->InternalPtr3 = ((char *)Emitter->InternalPtr1) + ProcessCodeOffset;
 	return true;
+#endif // WIN32
 }
 
 void X86Launcher::Unload(ptcEmitter *Emitter) const
 {
+#if defined(WIN32) || defined(__WIN32__)
+	VirtualFree(Emitter->InternalPtr1, 0, MEM_RELEASE);
+#else // WIN32
 	munmap(Emitter->InternalPtr1, 0);
+#endif // WIN32
 }
 
 void X86Launcher::SpawnParticles(ptcEmitter *Emitter, float TimeStep,
