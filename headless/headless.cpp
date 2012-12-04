@@ -48,8 +48,8 @@ ptcAPIExports	ptcAPI;
 #endif
 
 extern PTC_ATTRIBS uint32_t ref_ptcCompileEmitter(ptcEmitter *emitter);
-extern PTC_ATTRIBS size_t ref_ptcProcessEmitter(ptcEmitter *emitter,
-	float step, ptcVector cameraCS[3], ptcVertex *buffer, size_t maxVertices);
+extern PTC_ATTRIBS uint32_t ref_ptcProcessEmitter(ptcEmitter *emitter,
+	float step, ptcVector cameraCS[3], ptcVertex *buffer, uint32_t maxVertices);
 extern PTC_ATTRIBS void ref_ptcReleaseEmitter(ptcEmitter *emitter);
 
 extern "C" size_t Fire(ptcEmitter **emitters);

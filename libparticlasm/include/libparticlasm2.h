@@ -370,9 +370,9 @@ typedef struct {
 	/// \param	maxVertices	maximum number of vertices to emit
 	/// \return	number of particle vertices emitted
 	/// \sa PFNPTCGETAPI
-	PTC_ATTRIBS size_t (* ProcessEmitter)(ptcEmitter *emitter,
+	PTC_ATTRIBS uint32_t (* ProcessEmitter)(ptcEmitter *emitter,
 		ptcScalar step, ptcVector cameraCS[3], ptcVertex *buffer,
-		size_t maxVertices);
+		uint32_t maxVertices);
 
 	/// Releases all resources related to this emitter.
 	/// \param	emitter		emitter to release

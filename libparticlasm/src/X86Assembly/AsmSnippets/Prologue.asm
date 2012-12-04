@@ -59,19 +59,19 @@ BITS {%s}
 	jz		%%alpha
 	; mask out alpha from the distribution value and add in the original alpha
 	lea		__ax, [rel_addr(MASK_RGB)]
-	jmp		%%composite
+	jmp		%%combine
 %%alpha:
 	test	eax, ptcCF_SetAlpha
 	jz		%%revert
 	; mask out RGB from the distribution value and add in the original RGB
 	lea		__ax, [rel_addr(MASK_ALPHA)]
-%%composite:
+%%combine:
 	movups	xmm7, [__ax]
 	andps	xmm5, xmm7
 	andnps	xmm7, xmm1
 	addps	xmm5, xmm7
 	jmp		%%end
-%%revert
+%%revert:
 	; no-op colour flags, revert the original one
 	movaps	xmm5, xmm1
 %%end:

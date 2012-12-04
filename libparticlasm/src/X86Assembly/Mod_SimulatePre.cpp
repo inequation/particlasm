@@ -13,6 +13,8 @@ Mod_SimulatePre::Mod_SimulatePre() :
 	//ctor
 }
 
+SUPPRESS_WARNING_GCC_BEGIN("-Wunused-parameter")
+
 void Mod_SimulatePre::Generate(CodeGenerationContext &Context,
 			const ptcModule *Module) const
 {
@@ -22,3 +24,5 @@ void Mod_SimulatePre::Generate(CodeGenerationContext &Context,
 	Context.Result = GR_Success;
 	Context.ResultArgument = 0;
 }
+
+SUPPRESS_WARNING_END

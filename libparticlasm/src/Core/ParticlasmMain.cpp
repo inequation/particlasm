@@ -9,11 +9,11 @@ Copyright (C) 2011-2012, Leszek Godlewski <github@inequation.org>
 #include <string.h>
 #include <cstdarg>
 #include <ctime>
+#include <cstdio>
 
 #ifdef NDEBUG
-	#define Debugf
+	#define Debugf(Fmt, ...)	(void)0
 #else
-	#include <cstdio>
 	#define Debugf	printf
 #endif // NDEBUG
 
@@ -93,7 +93,7 @@ static const void *OpenIntermediateFile(const char *Path, FileAccessMode Mode,
 	if (OutFileSize)
 		*OutFileSize = FileStat.st_size;
 
-	size_t MappingLength;
+	size_t MappingLength = 0;
 	switch(Mode & 0x03)
 	{
 		case FAM_Read:		MappingLength = FileStat.st_size;			break;
@@ -125,10 +125,8 @@ static void CloseIntermediateFile(const void *FilePtr)
 	IntermediateFiles.erase(It);
 }
 
-// get rid of warnings in debug builds
-#ifndef NDEBUG
-	SUPPRESS_WARNING_GCC_BEGIN("-Wunused-parameter")
-#endif
+// get rid of unused parameter warnings
+SUPPRESS_WARNING_GCC_BEGIN("-Wunused-parameter")
 
 static void DeleteIntermediateFile(const char *Path)
 {
@@ -283,8 +281,8 @@ PTC_ATTRIBS uint32_t ptcCompileEmitter(ptcEmitter *emitter)
 	return Result;
 }
 
-PTC_ATTRIBS size_t EXPORTDECL ptcProcessEmitter(ptcEmitter *emitter, float step,
-		ptcVector cameraCS[3], ptcVertex *buffer, size_t maxVertices)
+PTC_ATTRIBS uint32_t EXPORTDECL ptcProcessEmitter(ptcEmitter *emitter,
+	float step, ptcVector cameraCS[3], ptcVertex *buffer, uint32_t maxVertices)
 {
 	uint32_t count;
 
@@ -329,6 +327,4 @@ extern "C" EXPORTDECL uint32_t ptcGetAPI(uint32_t version,
 	return 0;
 }
 
-#ifndef NDEBUG
-	SUPPRESS_WARNING_GCC_END
-#endif
+SUPPRESS_WARNING_GCC_END

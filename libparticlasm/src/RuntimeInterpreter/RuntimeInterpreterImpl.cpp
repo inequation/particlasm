@@ -150,10 +150,10 @@ uint32_t ref_ptcProcessParticles(ptcEmitter *emitter, ptcParticle *startPtr,
 	return verts;
 }
 
-size_t ref_ptcProcessEmitter(ptcEmitter *emitter,
-	float step, ptcVector cameraCS[3], ptcVertex *buffer, size_t maxVertices) {
+uint32_t ref_ptcProcessEmitter(ptcEmitter *emitter,
+	float step, ptcVector cameraCS[3], ptcVertex *buffer, uint32_t maxVertices) {
 	// particle spawning
-	size_t count = (size_t)floorf(emitter->SpawnTimer
+	uint32_t count = (uint32_t)floorf(emitter->SpawnTimer
 								* emitter->Config.SpawnRate);
 	ref_ptcSpawnParticles(emitter, step, count);
 

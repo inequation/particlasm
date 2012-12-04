@@ -59,11 +59,11 @@ RELEASE_ASFLAGS= -Ox
 # additional C++ compiler flags for debug builds
 DEBUG_CXXFLAGS= -O0 -g
 # additional C++ compiler flags for release builds
-RELEASE_CXXFLAGS= -O3 -DNDEBUG
+RELEASE_CXXFLAGS= -O2 -DNDEBUG
 # additional linker flags for debug builds
 DEBUG_LDFLAGS=
 # additional linker flags for release builds
-RELEASE_LDFLAGS= -S
+RELEASE_LDFLAGS= -Wl,-S
 # output library file name
 OUTPUT_NAME=libparticlasm2
 

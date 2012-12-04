@@ -3,6 +3,7 @@ Particlasm x86 assembly generator module for simulation postprocessing
 Copyright (C) 2012, Leszek Godlewski <github@inequation.org>
 */
 
+#include "../Core/ParticlasmMain.h"
 #include "Mod_SimulatePost.h"
 #include "AsmSnippets.h"
 
@@ -11,6 +12,8 @@ Mod_SimulatePost::Mod_SimulatePost() :
 {
 	//ctor
 }
+
+SUPPRESS_WARNING_GCC_BEGIN("-Wunused-parameter")
 
 void Mod_SimulatePost::Generate(CodeGenerationContext &Context,
 			const ptcModule *Module) const
@@ -21,3 +24,5 @@ void Mod_SimulatePost::Generate(CodeGenerationContext &Context,
 	Context.Result = GR_Success;
 	Context.ResultArgument = 0;
 }
+
+SUPPRESS_WARNING_END

@@ -170,15 +170,20 @@ static inline float FRand()
 
 static void ExtLib_FRand(void)
 {
-	uint32_t RandInt = mt19937::genrand_int32();
+	// The MT returns an unsigned 32-bit integer, while the FPU can only deal
+	// with signed numbers; as a result, the unsigned 32-bit integer is
+	// interpreted as a signed one, and we get a float in the [-0.5, 0.5] range
+	// instead of [0, 1]. We can fix that by either throwing 1 bit away and
+	// reducing the divisor by half, or by zero-expansion to 64 bits. I chose
+	// the latter to preserve the granularity, and I presume this is also what
+	// the compiler silently does in the C++ implementation above.
+	int64_t RandInt = static_cast<int64_t>(mt19937::genrand_int32());
 	static float Multiplier = 1.0f / 4294967295.0f;
 	asm("flds	%0\n"
-		"sub	$4, %%" __SP "\n"
-		"movl	%1, (%%" __SP ")\n"
-		"fimull	(%%" __SP ")\n"
-		"add	$4, %%" __SP "\n"
+		"fildq	%1\n"
+		"fmulp\n"
 		: // no output registers
-		: "m" (Multiplier), "r" (RandInt)
+		: "m" (Multiplier), "m" (RandInt)
 		: "%st", "%st(1)"
 		);
 }
@@ -279,6 +284,9 @@ void X86Launcher::SpawnParticles(ptcEmitter *Emitter, float TimeStep,
 	}
 }
 
+// FIXME: this is a temporary workaround for the assembly implementation bugs
+#define USE_CXX_EMISSION	1
+
 uint32_t X86Launcher::ProcessParticles(ptcEmitter *Emitter,
 	ptcParticle *StartPtr, ptcParticle *EndPtr, float TimeStep,
 	ptcVector CameraCS[3], ptcVertex *Buffer, uint32_t MaxVertices) const
@@ -298,11 +306,15 @@ uint32_t X86Launcher::ProcessParticles(ptcEmitter *Emitter,
 		STORE_PARTICLE_DATA(Particle);
 
 		// conditional vertex emission
+#if !USE_CXX_EMISSION
 		// we only need to leave xmm1 and xmm2 untouched, the rest may be used
 		asm(// skip vertex emission if the particle's dead
 			"testl	$0xFFFFFFFF, %c[Active](%[Particle])\n"
-			"jz		.dead\n"
+			"jnz	.verts_left\n"
+			"dec	%[NumParticles]\n"
+			"jmp	.end\n"
 
+			".verts_left:\n"
 			// skip vertex emission if we've exceeded the vertex count
 			"cmpl	$4, %[VerticesLeft]\n"
 			"jl		.end\n"
@@ -388,10 +400,7 @@ uint32_t X86Launcher::ProcessParticles(ptcEmitter *Emitter,
 			"add	%[sizeof_ptcVertex], %[Buffer]\n"
 
 			"sub	$4, %[VerticesLeft]\n"
-			"jmp	.end\n"
 
-			".dead:\n"
-			"dec	%[NumParticles]\n"
 			".end:\n"
 			: [NumParticles] "+r" (NumParticles),
 				[Buffer] "+r" (Buffer),
@@ -408,6 +417,53 @@ uint32_t X86Launcher::ProcessParticles(ptcEmitter *Emitter,
 			: "%edx", "%" __SI, "%xmm0", "%xmm1", "%xmm2", "%xmm3",
 				"%xmm4", "%xmm5", "%xmm6", "%xmm7"
 		);
+#else
+		if (!Particle->Active)
+		{
+			--NumParticles;
+			continue;
+		}
+		if (VerticesLeft < 4)
+			continue;
+#define CALC_VERT_LOC(RightOp, UpOp)										\
+		Buffer->Location[0] = Particle->Location[0] + 0.5 * Particle->Size	\
+			* (RightOp CameraCS[1][0] UpOp CameraCS[2][0]);					\
+		Buffer->Location[1] = Particle->Location[1] + 0.5 * Particle->Size	\
+			* (RightOp CameraCS[1][1] UpOp CameraCS[2][1]);					\
+		Buffer->Location[2] = Particle->Location[2] + 0.5 * Particle->Size	\
+			* (RightOp CameraCS[1][2] UpOp CameraCS[2][2])
+#define COPY_COLOUR															\
+		Buffer->Colour[0] = Particle->Colour[0];							\
+		Buffer->Colour[1] = Particle->Colour[1];							\
+		Buffer->Colour[2] = Particle->Colour[2];							\
+		Buffer->Colour[3] = Particle->Colour[3]
+
+		CALC_VERT_LOC(+, +);
+		COPY_COLOUR;
+		Buffer->TexCoords[0] = 1;
+		Buffer->TexCoords[1] = 0;
+		++Buffer;
+
+		CALC_VERT_LOC(-, +);
+		COPY_COLOUR;
+		Buffer->TexCoords[0] = 0;
+		Buffer->TexCoords[1] = 0;
+		++Buffer;
+
+		CALC_VERT_LOC(-, -);
+		COPY_COLOUR;
+		Buffer->TexCoords[0] = 0;
+		Buffer->TexCoords[1] = 1;
+		++Buffer;
+
+		CALC_VERT_LOC(+, -);
+		COPY_COLOUR;
+		Buffer->TexCoords[0] = 1;
+		Buffer->TexCoords[1] = 1;
+		++Buffer;
+
+		VerticesLeft -= 4;
+#endif
 	}
 	Emitter->NumParticles = NumParticles;
 	return (MaxVertices - VerticesLeft);

@@ -95,6 +95,7 @@ void X86Generator::Generate(CodeGenerationContext& Context) const
 			break;
 		default:
 			assert(!"Invalid architecture");
+			return;
 	}
 	Context.Emitf(Asm_Prologue,
 		CPU, BITS, OUTPUT_FORMAT,
@@ -192,9 +193,6 @@ void X86Generator::Generate(CodeGenerationContext& Context) const
 
 	// clear the private data pointer
 	Context.PrivateData = NULL;
-
-	// finish off by integrating the epilogue
-	Context.Emitf(Asm_Epilogue);
 
 	// close the source code file
 	Context.CloseSourceFile();
