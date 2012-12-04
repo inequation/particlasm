@@ -59,7 +59,8 @@ RELEASE_ASFLAGS= -Ox
 # additional C++ compiler flags for debug builds
 DEBUG_CXXFLAGS= -O0 -g
 # additional C++ compiler flags for release builds
-RELEASE_CXXFLAGS= -O2 -DNDEBUG
+# FIXME: -fpredictive-commoning, implied by -O3, breaks my code - investigate
+RELEASE_CXXFLAGS= -O3 -fno-predictive-commoning -DNDEBUG
 # additional linker flags for debug builds
 DEBUG_LDFLAGS=
 # additional linker flags for release builds
