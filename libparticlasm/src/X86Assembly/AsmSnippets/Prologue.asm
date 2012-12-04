@@ -52,29 +52,28 @@ BITS {%s}
 	test	eax, (ptcCF_SetRGB | ptcCF_SetAlpha)
 	; parity bit holds information about equality
 	jnp		%%rgb
-	movaps	xmm5, xmm6
+	; nothing to do here, the new value is in
 	jmp		%%end
 %%rgb:
 	test	eax, ptcCF_SetRGB
 	jz		%%alpha
 	; mask out alpha from the distribution value and add in the original alpha
 	lea		__ax, [rel_addr(MASK_RGB)]
-	movups	xmm7, [__ax]
-	andps	xmm6, xmm7
-	andnps	xmm7, xmm5
-	addps	xmm6, xmm7
-	movaps	xmm5, xmm6
-	jmp		%%end
+	jmp		%%composite
 %%alpha:
 	test	eax, ptcCF_SetAlpha
-	jz		%%end
+	jz		%%revert
 	; mask out RGB from the distribution value and add in the original RGB
 	lea		__ax, [rel_addr(MASK_ALPHA)]
+%%composite:
 	movups	xmm7, [__ax]
-	andps	xmm6, xmm7
-	andnps	xmm7, xmm5
-	addps	xmm6, xmm7
-	movaps	xmm5, xmm6
+	andps	xmm5, xmm7
+	andnps	xmm7, xmm1
+	addps	xmm5, xmm7
+	jmp		%%end
+%%revert
+	; no-op colour flags, revert the original one
+	movaps	xmm5, xmm1
 %%end:
 %endmacro
 
