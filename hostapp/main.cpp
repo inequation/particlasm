@@ -68,7 +68,7 @@ PTC_ATTRIBS uint32_t ref_ptcProcessEmitter(ptcEmitter *emitter,
 	float step, ptcVector cameraCS[3], ptcVertex *buffer, uint32_t maxVertices);
 PTC_ATTRIBS void ref_ptcReleaseEmitter(ptcEmitter *emitter);
 #else
-void *libparticlasmHandle = NULL;
+SO_HANDLE libparticlasmHandle = NULL;
 #endif // USE_CPP_REFERENCE_IMPLEMENTATION
 
 bool InitParticlasm() {
@@ -183,8 +183,11 @@ int LoadGLTextures( )
     SDL_Surface *TextureImage[1];
 
     /* Load The Bitmap, Check For Errors, If Bitmap's Not Found Quit */
-    if ( ( TextureImage[0] = SDL_LoadBMP( "../../data/particle.bmp" ) ) )
-        {
+    TextureImage[0] = SDL_LoadBMP("data/particle.bmp");
+    if (!TextureImage[0])
+		TextureImage[0] = SDL_LoadBMP("../../hostapp/data/particle.bmp");
+    if (TextureImage[0])
+	{
 
 	    /* Set the status to true */
 	    Status = TRUE;
@@ -195,7 +198,7 @@ int LoadGLTextures( )
 	    /* Typical Texture Generation Using Data From The Bitmap */
 	    glBindTexture( GL_TEXTURE_2D, texture[0] );
 
-	    glTexEnvf( GL_POINT_SPRITE_ARB, GL_COORD_REPLACE_ARB, GL_TRUE );
+	    glTexEnvi( GL_POINT_SPRITE_ARB, GL_COORD_REPLACE_ARB, GL_TRUE );
 
 	    /* Generate The Texture */
 	    glTexImage2D( GL_TEXTURE_2D, 0, 3, TextureImage[0]->w,
@@ -205,11 +208,14 @@ int LoadGLTextures( )
 	    /* Linear Filtering */
 	    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 	    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-        }
+	}
 
     /* Free up any memory we may have used */
     if ( TextureImage[0] )
 	    SDL_FreeSurface( TextureImage[0] );
+
+	if (Status == FALSE)
+		printf("Failed to load textures\n");
 
     return Status;
 }
@@ -360,7 +366,11 @@ int initGL(void)
 		ptc_emitters[i].ParticleBuf = ptc_particles;
 		ptc_emitters[i].MaxParticles = sizeof(ptc_particles) / sizeof(ptc_particles[0]);
 		if (!ptcAPI.CompileEmitter(&ptc_emitters[i]))
+		{
+			printf("Failed to compile emitter. Are you sure you have the "
+					"target's dependencies in PATH?\n");
 			return FALSE;
+		}
 	}
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glVertexPointer(3, GL_FLOAT, sizeof(ptcVertex), &ptc_vertices[0].Location[0]);
@@ -476,7 +486,12 @@ int drawGLScene(void)
     return( TRUE );
 }
 
+#if defined(WIN32) || defined(__WIN32__)
+int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
+	LPSTR lpCmdLine, int nCmdShow)
+#else
 int main( int argc, char **argv )
+#endif // WIN32
 {
     /* Flags to pass to SDL_SetVideoMode */
     int videoFlags;

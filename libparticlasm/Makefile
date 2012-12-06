@@ -24,7 +24,7 @@ ifeq ($(ARCH), x64)
 	else
 		ASFLAGS:=-f win64 $(ASFLAGS)
 		CXXFLAGS:=$(CXXFLAGS) -march=core2 -m64
-		LDFLAGS:=$(LDFLAGS) -m64 -Wl,-mi386pep
+		LDFLAGS:=$(LDFLAGS) -m64 -Wl,-mi386pe
 		DEBUG_FORMAT=null
 		SO_EXT=.dll
 	endif

@@ -68,47 +68,59 @@ bool CodeGeneratorInterface::RunProcess(const char *CommandLine,
 	}
 
 	// wait for the process to finish and retrieve its exit code
-	if (WaitForSingleObject(ProcInfo.hProcess, INFINITE) != WAIT_OBJECT_0)
+	char *OutBuf = StdoutBuffer;
+	char *ErrBuf = StderrBuffer;
+	DWORD WaitResult;
+	do
+	{
+		// if buffers are provided, perform the reads
+		// TODO: switch to named pipes with overlapped I/O and events so that we
+		// don't keep spinning while waiting for the pipes to be filled
+		DWORD BytesAvail;
+		if (OutBuf && PeekNamedPipe(outfd[0], NULL, 0, NULL, &BytesAvail, NULL)
+			&& BytesAvail > 0)
+		{
+			DWORD BytesRead;
+			ReadFile(outfd[0], OutBuf, StdoutBufferSize - 1, &BytesRead,
+				NULL);
+			OutBuf += BytesRead;
+			*OutBuf = 0;
+			StdoutBufferSize -= BytesRead;
+		}
+		if (ErrBuf && PeekNamedPipe(errfd[0], NULL, 0, NULL, &BytesAvail, NULL)
+			&& BytesAvail > 0)
+		{
+			// we may have been asked to write both streams into the same buffer
+			// if that's the case, concatenate them
+			if (StderrBuffer == StdoutBuffer)
+			{
+				DWORD BytesRead;
+				ReadFile(errfd[0], OutBuf, StdoutBufferSize - 1, &BytesRead,
+					NULL);
+				OutBuf += BytesRead;
+				*OutBuf = 0;
+				StdoutBufferSize -= BytesRead;
+			}
+			else
+			{
+				DWORD BytesRead;
+				ReadFile(errfd[0], ErrBuf, StderrBufferSize - 1, &BytesRead,
+					NULL);
+				ErrBuf += BytesRead;
+				*ErrBuf = 0;
+				StderrBufferSize -= BytesRead;
+			}
+		}
+	}
+	while ((WaitResult = WaitForSingleObject(ProcInfo.hProcess, INFINITE))
+		== WAIT_TIMEOUT);
+	if (WaitResult != WAIT_OBJECT_0)
 		return false;
+
 	DWORD ExitCode;
 	if (!GetExitCodeProcess(ProcInfo.hProcess, &ExitCode))
 		return false;
 	OutExitCode = (int)ExitCode;
-
-	// if buffers are provided, perform the reads
-	if (StdoutBuffer)
-	{
-		DWORD BytesRead;
-		if (!ReadFile(outfd[0], StdoutBuffer, StdoutBufferSize - 1, &BytesRead,
-			NULL))
-			return false;
-		StdoutBuffer[BytesRead] = 0;
-	}
-	if (StderrBuffer)
-	{
-		// we may have been asked to write both streams into the same buffer
-		// if that's the case, concatenate them
-		if (StderrBuffer == StdoutBuffer)
-		{
-			const size_t StdoutLen = strlen(StdoutBuffer);
-			StderrBuffer += StdoutLen;
-			if (StdoutBufferSize - StdoutLen > 0)
-			{
-				*StderrBuffer = 0;
-				StderrBufferSize = StdoutBufferSize - StdoutLen;
-			}
-			else
-				StderrBuffer = NULL;
-		}
-		if (StderrBuffer)
-		{
-			DWORD BytesRead;
-			if (!ReadFile(outfd[0], StderrBuffer, StderrBufferSize - 1,
-				&BytesRead, NULL))
-				return false;
-			StderrBuffer[BytesRead] = 0;
-		}
-	}
 
 	CloseHandle(ProcInfo.hProcess);
 	CloseHandle(ProcInfo.hThread);
@@ -205,6 +217,9 @@ bool CodeGeneratorInterface::RunProcess(const char *CommandLine,
 		// close unnecessary FDs
 		close(outfd[1]);
 		close(errfd[1]);
+
+		// FIXME: waiting for the process to finish before emptying the pipes
+		// may result in a deadlock if the process overflows the buffers!
 
 		// wait for the process to finish and retrieve its exit code
 		int ExitCode;

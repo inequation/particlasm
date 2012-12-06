@@ -22,6 +22,10 @@ uint32_t ref_ptcCompileEmitter(ptcEmitter *emitter) {
 	return 1;
 }
 
+// shut up compiler
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+
 #define MIN_SUBSTEP		0.025f
 static inline bool ProcessParticle(ptcEmitter *emitter, ptcParticle *p,
 	float step, ptcVector cameraCS[3], ptcVertex *buffer) {
@@ -51,11 +55,6 @@ static inline bool ProcessParticle(ptcEmitter *emitter, ptcParticle *p,
 					break;
 				case ptcMID_Gravity:
 					{
-// shut up compiler
-#if !defined(WIN32) && !defined(__WIN32__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
-#endif
 						ptcVector centre;
 						GetVector(&m->Gravity.Centre, p->Time, centre);
 						ptcVector diff = {
@@ -63,9 +62,7 @@ static inline bool ProcessParticle(ptcEmitter *emitter, ptcParticle *p,
 							centre[1] - p->Location[1],
 							centre[2] - p->Location[2]
 						};
-#if !defined(WIN32) && !defined(__WIN32__)
-#pragma GCC diagnostic pop
-#endif
+
 						const float r2 = diff[0] * diff[0]
 										+ diff[1] * diff[1]
 										+ diff[2] * diff[2];
@@ -128,6 +125,7 @@ static inline bool ProcessParticle(ptcEmitter *emitter, ptcParticle *p,
 	} while (s > 0.f);
 	return true;
 }
+#pragma GCC diagnostic pop
 
 void ref_ptcSpawnParticles(ptcEmitter *emitter, float step, uint32_t count) {
 	emitter->SpawnTimer += step;

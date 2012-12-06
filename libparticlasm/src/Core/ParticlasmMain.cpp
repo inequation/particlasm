@@ -20,6 +20,7 @@ Copyright (C) 2011-2012, Leszek Godlewski <github@inequation.org>
 
 #if defined(WIN32) || defined(__WIN32__)
 	#define WIN32_LEAN_AND_MEAN
+	#define _WIN32_WINNT 0x0501
 	#include <windows.h>
 #else
 	#include <sys/types.h>
@@ -331,10 +332,16 @@ PTC_ATTRIBS uint32_t ptcCompileEmitter(ptcEmitter *emitter)
 {
 	static char SourceBaseName[256] = {0};
 
+#if defined(WIN32) || defined(__WIN32__)
+	static char TempPath[MAX_PATH];
+	if (GetTempPath(sizeof(TempPath), TempPath) == 0)
+		return 0;
+#endif // WIN32
+
 	snprintf(SourceBaseName, sizeof(SourceBaseName) - 1,
 		"%sparticlasm_%d_%d",
 #if defined(WIN32) || defined(__WIN32__)
-		"%TEMP%\\", (int)GetCurrentProcessId(),
+		TempPath, (int)GetCurrentProcessId(),
 #else
 		"/tmp/", getpid(),
 #endif // WIN32
@@ -364,7 +371,7 @@ PTC_ATTRIBS uint32_t ptcCompileEmitter(ptcEmitter *emitter)
 
 		Debugf("Construction finished with %s (arg %d) "
 			"in stage %s, output saved to %s\n"
-			"Spawn offset: 0x%08zX Process offset: 0x%08zX\n"
+			"Spawn offset: 0x%08X Process offset: 0x%08X\n"
 			"== Toolchain log starts here ==\n"
 			"%s\n"
 			"== Toolchain log ends here ==\n",

@@ -246,14 +246,14 @@ def parse_C_header(path):
 parse_C_header(os.path.join("..", "..", "include", "libparticlasm2.h"))
 parse_C_header("ExternalFuncLibrary.h")
 
-#print "\nENUMS:"
-#print enums
-#print "\nSTRUCTS:"
-#print structs
-#print "\nUNIONS:"
-#print unions
+#print("\nENUMS:")
+#print(enums)
+#print("\nSTRUCTS:")
+#print(structs)
+#print("\nUNIONS:")
+#print(unions)
 
-print "Writing libparticlasm.inc..."
+print("Writing libparticlasm.inc...")
 
 outpath = "AsmSnippets"
 mkdir_p(outpath)
@@ -301,4 +301,4 @@ outfile.write("\n%endif ; LIBPARTICLASM_INC\n")
 
 outfile.close()
 
-print "Done."
+print("Done.")
