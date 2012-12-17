@@ -1,0 +1,4 @@
+# don't track temp and local files
+*~
+*.layout
+*.depend
