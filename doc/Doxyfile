@@ -657,7 +657,10 @@ WARN_LOGFILE           =
 # directories like "/usr/src/myproject". Separate the files or directories
 # with spaces.
 
-INPUT                  = ../libparticlasm \
+INPUT                  = ../libparticlasm/include \
+                         ../libparticlasm/src \
+                         ../libparticlasm/src/Core \
+                         ../libparticlasm/src/X86Assembly
                          .
 
 # This tag can be used to specify the character encoding of the source files
