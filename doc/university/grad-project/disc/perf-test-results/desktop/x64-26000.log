@@ -1,0 +1,270 @@
+particlasm headless benchmark
+
+Initializing C++ implementation: Done.
+Test parameters:
+    Implementation: C++
+    Sim. time:      30.00
+    Sim. framerate: 60.00
+    Max particles:  26000
+    Max vertices:   104000
+
+Compiling emitter... Done.
+Starting test... Done simulating 1800 frames.
+42605 ms, avg. 23.67 ms/frame
+
+Initializing assembly implementation: Done.
+Test parameters:
+    Implementation: assembly
+    Sim. time:      30.00
+    Sim. framerate: 60.00
+    Max particles:  26000
+    Max vertices:   104000
+
+Compiling emitter... Done.
+Starting test... Done simulating 1800 frames.
+2958 ms, avg. 1.64 ms/frame
+
+Assembly speed-up ratio: 14.4033
+particlasm headless benchmark
+
+Initializing C++ implementation: Done.
+Test parameters:
+    Implementation: C++
+    Sim. time:      30.00
+    Sim. framerate: 60.00
+    Max particles:  26000
+    Max vertices:   104000
+
+Compiling emitter... Done.
+Starting test... Done simulating 1800 frames.
+32013 ms, avg. 17.78 ms/frame
+
+Initializing assembly implementation: Done.
+Test parameters:
+    Implementation: assembly
+    Sim. time:      30.00
+    Sim. framerate: 60.00
+    Max particles:  26000
+    Max vertices:   104000
+
+Compiling emitter... Done.
+Starting test... Done simulating 1800 frames.
+3778 ms, avg. 2.10 ms/frame
+
+Assembly speed-up ratio: 8.4735
+particlasm headless benchmark
+
+Initializing C++ implementation: Done.
+Test parameters:
+    Implementation: C++
+    Sim. time:      30.00
+    Sim. framerate: 60.00
+    Max particles:  26000
+    Max vertices:   104000
+
+Compiling emitter... Done.
+Starting test... Done simulating 1800 frames.
+32212 ms, avg. 17.90 ms/frame
+
+Initializing assembly implementation: Done.
+Test parameters:
+    Implementation: assembly
+    Sim. time:      30.00
+    Sim. framerate: 60.00
+    Max particles:  26000
+    Max vertices:   104000
+
+Compiling emitter... Done.
+Starting test... Done simulating 1800 frames.
+2902 ms, avg. 1.61 ms/frame
+
+Assembly speed-up ratio: 11.0999
+particlasm headless benchmark
+
+Initializing C++ implementation: Done.
+Test parameters:
+    Implementation: C++
+    Sim. time:      30.00
+    Sim. framerate: 60.00
+    Max particles:  26000
+    Max vertices:   104000
+
+Compiling emitter... Done.
+Starting test... Done simulating 1800 frames.
+43299 ms, avg. 24.06 ms/frame
+
+Initializing assembly implementation: Done.
+Test parameters:
+    Implementation: assembly
+    Sim. time:      30.00
+    Sim. framerate: 60.00
+    Max particles:  26000
+    Max vertices:   104000
+
+Compiling emitter... Done.
+Starting test... Done simulating 1800 frames.
+2941 ms, avg. 1.63 ms/frame
+
+Assembly speed-up ratio: 14.7225
+particlasm headless benchmark
+
+Initializing C++ implementation: Done.
+Test parameters:
+    Implementation: C++
+    Sim. time:      30.00
+    Sim. framerate: 60.00
+    Max particles:  26000
+    Max vertices:   104000
+
+Compiling emitter... Done.
+Starting test... Done simulating 1800 frames.
+42614 ms, avg. 23.67 ms/frame
+
+Initializing assembly implementation: Done.
+Test parameters:
+    Implementation: assembly
+    Sim. time:      30.00
+    Sim. framerate: 60.00
+    Max particles:  26000
+    Max vertices:   104000
+
+Compiling emitter... Done.
+Starting test... Done simulating 1800 frames.
+2953 ms, avg. 1.64 ms/frame
+
+Assembly speed-up ratio: 14.4307
+particlasm headless benchmark
+
+Initializing C++ implementation: Done.
+Test parameters:
+    Implementation: C++
+    Sim. time:      30.00
+    Sim. framerate: 60.00
+    Max particles:  26000
+    Max vertices:   104000
+
+Compiling emitter... Done.
+Starting test... Done simulating 1800 frames.
+42628 ms, avg. 23.68 ms/frame
+
+Initializing assembly implementation: Done.
+Test parameters:
+    Implementation: assembly
+    Sim. time:      30.00
+    Sim. framerate: 60.00
+    Max particles:  26000
+    Max vertices:   104000
+
+Compiling emitter... Done.
+Starting test... Done simulating 1800 frames.
+2931 ms, avg. 1.63 ms/frame
+
+Assembly speed-up ratio: 14.5438
+particlasm headless benchmark
+
+Initializing C++ implementation: Done.
+Test parameters:
+    Implementation: C++
+    Sim. time:      30.00
+    Sim. framerate: 60.00
+    Max particles:  26000
+    Max vertices:   104000
+
+Compiling emitter... Done.
+Starting test... Done simulating 1800 frames.
+42598 ms, avg. 23.67 ms/frame
+
+Initializing assembly implementation: Done.
+Test parameters:
+    Implementation: assembly
+    Sim. time:      30.00
+    Sim. framerate: 60.00
+    Max particles:  26000
+    Max vertices:   104000
+
+Compiling emitter... Done.
+Starting test... Done simulating 1800 frames.
+2942 ms, avg. 1.63 ms/frame
+
+Assembly speed-up ratio: 14.4793
+particlasm headless benchmark
+
+Initializing C++ implementation: Done.
+Test parameters:
+    Implementation: C++
+    Sim. time:      30.00
+    Sim. framerate: 60.00
+    Max particles:  26000
+    Max vertices:   104000
+
+Compiling emitter... Done.
+Starting test... Done simulating 1800 frames.
+42552 ms, avg. 23.64 ms/frame
+
+Initializing assembly implementation: Done.
+Test parameters:
+    Implementation: assembly
+    Sim. time:      30.00
+    Sim. framerate: 60.00
+    Max particles:  26000
+    Max vertices:   104000
+
+Compiling emitter... Done.
+Starting test... Done simulating 1800 frames.
+2942 ms, avg. 1.63 ms/frame
+
+Assembly speed-up ratio: 14.4636
+particlasm headless benchmark
+
+Initializing C++ implementation: Done.
+Test parameters:
+    Implementation: C++
+    Sim. time:      30.00
+    Sim. framerate: 60.00
+    Max particles:  26000
+    Max vertices:   104000
+
+Compiling emitter... Done.
+Starting test... Done simulating 1800 frames.
+42734 ms, avg. 23.74 ms/frame
+
+Initializing assembly implementation: Done.
+Test parameters:
+    Implementation: assembly
+    Sim. time:      30.00
+    Sim. framerate: 60.00
+    Max particles:  26000
+    Max vertices:   104000
+
+Compiling emitter... Done.
+Starting test... Done simulating 1800 frames.
+2974 ms, avg. 1.65 ms/frame
+
+Assembly speed-up ratio: 14.3692
+particlasm headless benchmark
+
+Initializing C++ implementation: Done.
+Test parameters:
+    Implementation: C++
+    Sim. time:      30.00
+    Sim. framerate: 60.00
+    Max particles:  26000
+    Max vertices:   104000
+
+Compiling emitter... Done.
+Starting test... Done simulating 1800 frames.
+42699 ms, avg. 23.72 ms/frame
+
+Initializing assembly implementation: Done.
+Test parameters:
+    Implementation: assembly
+    Sim. time:      30.00
+    Sim. framerate: 60.00
+    Max particles:  26000
+    Max vertices:   104000
+
+Compiling emitter... Done.
+Starting test... Done simulating 1800 frames.
+2924 ms, avg. 1.62 ms/frame
+
+Assembly speed-up ratio: 14.6029
