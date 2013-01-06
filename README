@@ -2,10 +2,12 @@ Particlasm 2 - a high-performance, modular, data-driven particle system
 Copyright (C) 2011-2012, Leszek Godlewski <github@inequation.org>
 
 This is a nifty little project I've originally written as a university
-assignment, which later evolved into my graduation project. Inspired by Unreal
-Cascade (Unreal Engine 3's particle system editor), it combines the
-artist-friendly concept of particle-processing modules with a blazing-fast
-implementation.
+assignment, which later evolved into my graduation project at the Silesian
+University of Technology.
+
+Inspired by Unreal Cascade (Unreal Engine 3's particle system editor), it
+combines the artist-friendly concept of particle-processing modules with a
+blazing-fast implementation.
 
 Processing speed is achieved by compiling the predefined emitter modules - coded
 in raw x86 assembly language, basing heavily on SSE instructions - into two
