@@ -1,0 +1,26 @@
+Politechnika Śląska
+Wydział Automatyki, Elektroniki i Informatyki
+Kierunek Informatyka
+
+Projekt inżynierski
+
+Wysokowydajny silnik modularnych efektów cząsteczkowych
+
+Autor: Leszek Godlewski
+Kierujący pracą: dr inż. Agnieszka Szczęsna
+Konsultant: mgr inż. Jakub Stępień
+
+Gliwice, styczeń 2013
+
+-------------------------------------------------------
+
+Spis zawartości płyty:
+* bin - skompilowane pliki wykonywalne dla poszczególnych platform
+  * linux-amd64 - system Linux na procesory x86-64
+  * linux-i386 - system Linux na procesory x86
+  * win32 - system Windows
+* perf-test-results - pliki źródłowe testów wydajności, łącznie z arkuszem kalkulacyjnym z ich analizą
+* src - kod źródłowy projektu
+  * headless - program do pomiaru wydajności bez renderowania
+  * hostapp - graficzny program demonstrujący
+  * libparticlasm - właściwy silnik
